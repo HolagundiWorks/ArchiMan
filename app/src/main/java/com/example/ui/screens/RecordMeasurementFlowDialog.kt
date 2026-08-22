@@ -1,0 +1,513 @@
+package com.example.ui.screens
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.local.entity.CalculationType
+import com.example.data.local.entity.ContractorEntity
+import com.example.data.local.entity.ContractorQualifiedItemEntity
+import com.example.data.local.entity.FloorEntity
+import com.example.ui.theme.*
+import com.example.ui.viewmodel.SiteViewModel
+
+enum class RecordFlowStep {
+    SELECT_CONTRACTOR,
+    SELECT_ITEM,
+    SELECT_FLOOR
+}
+
+@Composable
+fun RecordMeasurementFlowDialog(
+    viewModel: SiteViewModel,
+    projectId: Long,
+    onDismiss: () -> Unit,
+    onLaunchDedicatedMeasurement: (contractorId: Long, itemName: String, uom: String, calcType: CalculationType, floorId: Long, floorName: String) -> Unit
+) {
+    val contractors by viewModel.contractors.collectAsStateWithLifecycle()
+    val allQualifiedItems by viewModel.allQualifiedItems.collectAsStateWithLifecycle()
+    val floors by viewModel.floors.collectAsStateWithLifecycle()
+
+    var currentStep by remember { mutableStateOf(RecordFlowStep.SELECT_CONTRACTOR) }
+    var selectedContractor by remember { mutableStateOf<ContractorEntity?>(null) }
+    var selectedQualifiedItem by remember { mutableStateOf<ContractorQualifiedItemEntity?>(null) }
+    var selectedFloor by remember { mutableStateOf<FloorEntity?>(null) }
+
+    val availableContractorItems = remember(selectedContractor, allQualifiedItems) {
+        if (selectedContractor != null) {
+            allQualifiedItems.filter { it.contractorId == selectedContractor!!.id }
+        } else emptyList()
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(4.dp),
+            color = CarbonWhite,
+            border = BorderStroke(1.dp, CarbonGray30),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Header & Step Indicator
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Record Measurement",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CarbonGray100
+                        )
+                        Text(
+                            text = when (currentStep) {
+                                RecordFlowStep.SELECT_CONTRACTOR -> "Step 1 of 3: Select Contractor"
+                                RecordFlowStep.SELECT_ITEM -> "Step 2 of 3: Select Qualified Item"
+                                RecordFlowStep.SELECT_FLOOR -> "Step 3 of 3: Select Floor / Level"
+                            },
+                            fontSize = 12.sp,
+                            color = CarbonBlue60,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = CarbonGray70)
+                    }
+                }
+
+                // Step Progress Bar
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .background(CarbonBlue60, shape = RoundedCornerShape(2.dp))
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .background(
+                                if (currentStep != RecordFlowStep.SELECT_CONTRACTOR) CarbonBlue60 else CarbonGray30,
+                                shape = RoundedCornerShape(2.dp)
+                            )
+                    )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(4.dp)
+                            .background(
+                                if (currentStep == RecordFlowStep.SELECT_FLOOR) CarbonBlue60 else CarbonGray30,
+                                shape = RoundedCornerShape(2.dp)
+                            )
+                    )
+                }
+
+                Divider(color = CarbonGray20, thickness = 1.dp)
+
+                // Selected chips summary if past step 1
+                if (selectedContractor != null || selectedQualifiedItem != null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        if (selectedContractor != null) {
+                            Surface(
+                                color = CarbonCyan10,
+                                shape = RoundedCornerShape(2.dp),
+                                border = BorderStroke(1.dp, CarbonCyan30)
+                            ) {
+                                Text(
+                                    text = "Contractor: ${selectedContractor!!.name}",
+                                    fontSize = 11.sp,
+                                    color = CarbonCyan80,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        if (selectedQualifiedItem != null) {
+                            Surface(
+                                color = CarbonYellow10,
+                                shape = RoundedCornerShape(2.dp),
+                                border = BorderStroke(1.dp, CarbonYellow30)
+                            ) {
+                                Text(
+                                    text = "Item: ${selectedQualifiedItem!!.itemName}",
+                                    fontSize = 11.sp,
+                                    color = CarbonGray100,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Step 1: SELECT CONTRACTOR
+                when (currentStep) {
+                    RecordFlowStep.SELECT_CONTRACTOR -> {
+                        Text(
+                            text = "Choose Contractor executing the work:",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CarbonGray90
+                        )
+
+                        if (contractors.isEmpty()) {
+                            Surface(
+                                color = CarbonGray10,
+                                shape = RoundedCornerShape(2.dp),
+                                border = BorderStroke(1.dp, CarbonGray30),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "No contractors available. Please register contractors first from the Contractors tab.",
+                                    fontSize = 12.sp,
+                                    color = CarbonGray70,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 280.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(contractors, key = { it.id }) { contractor ->
+                                    val itemCount = allQualifiedItems.count { it.contractorId == contractor.id }
+                                    Surface(
+                                        color = if (selectedContractor?.id == contractor.id) CarbonBlue10 else CarbonWhite,
+                                        shape = RoundedCornerShape(2.dp),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (selectedContractor?.id == contractor.id) CarbonBlue60 else CarbonGray30
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedContractor = contractor
+                                                selectedQualifiedItem = null
+                                                currentStep = RecordFlowStep.SELECT_ITEM
+                                            }
+                                            .testTag("select_contractor_${contractor.id}")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Engineering,
+                                                    contentDescription = null,
+                                                    tint = CarbonBlue60,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Column {
+                                                    Text(
+                                                        text = contractor.name,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.sp,
+                                                        color = CarbonGray100
+                                                    )
+                                                    Text(
+                                                        text = "$itemCount Qualified Items • ${contractor.contactNo.ifBlank { contractor.phone }}",
+                                                        fontSize = 11.sp,
+                                                        color = CarbonGray60
+                                                    )
+                                                }
+                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.ChevronRight,
+                                                contentDescription = null,
+                                                tint = CarbonGray60,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Step 2: SELECT ITEM FROM QUALIFIED ITEMS
+                    RecordFlowStep.SELECT_ITEM -> {
+                        Text(
+                            text = "Select item from ${selectedContractor?.name}'s qualified trades:",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CarbonGray90
+                        )
+
+                        if (availableContractorItems.isEmpty()) {
+                            Surface(
+                                color = CarbonYellow10,
+                                shape = RoundedCornerShape(2.dp),
+                                border = BorderStroke(1.dp, CarbonYellow30),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "This contractor has no qualified items registered yet.",
+                                        fontSize = 12.sp,
+                                        color = CarbonGray90
+                                    )
+                                    Button(
+                                        onClick = {
+                                            // Fallback default item
+                                            selectedQualifiedItem = ContractorQualifiedItemEntity(
+                                                contractorId = selectedContractor!!.id,
+                                                itemName = "Civil Works",
+                                                uom = "m²",
+                                                calculationType = CalculationType.AREA
+                                            )
+                                            currentStep = RecordFlowStep.SELECT_FLOOR
+                                        },
+                                        shape = RoundedCornerShape(2.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                                    ) {
+                                        Text("Use General Item", fontSize = 12.sp)
+                                    }
+                                }
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 280.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(availableContractorItems, key = { it.id }) { item ->
+                                    val isPlaster = item.itemName.contains("plaster", ignoreCase = true)
+                                    Surface(
+                                        color = if (selectedQualifiedItem?.id == item.id) CarbonBlue10 else CarbonWhite,
+                                        shape = RoundedCornerShape(2.dp),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (selectedQualifiedItem?.id == item.id) CarbonBlue60 else CarbonGray30
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedQualifiedItem = item
+                                                currentStep = RecordFlowStep.SELECT_FLOOR
+                                            }
+                                            .testTag("select_item_${item.id}")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (isPlaster) Icons.Default.FormatPaint else Icons.Default.SquareFoot,
+                                                    contentDescription = null,
+                                                    tint = CarbonBlue60,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Column {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = item.itemName,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 13.sp,
+                                                            color = CarbonGray100
+                                                        )
+                                                        if (isPlaster) {
+                                                            Surface(color = CarbonCyan10, shape = RoundedCornerShape(2.dp)) {
+                                                                Text("Linked to Brickwork", fontSize = 9.sp, color = CarbonCyan80, modifier = Modifier.padding(2.dp))
+                                                            }
+                                                        }
+                                                    }
+                                                    Text(
+                                                        text = "Unit: ${item.uom}${if (item.rate > 0) " • ₹${item.rate.toInt()}/${item.uom}" else ""}",
+                                                        fontSize = 11.sp,
+                                                        color = CarbonGray60
+                                                    )
+                                                }
+                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.ChevronRight,
+                                                contentDescription = null,
+                                                tint = CarbonGray60,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Step 3: SELECT FLOOR / LEVEL
+                    RecordFlowStep.SELECT_FLOOR -> {
+                        Text(
+                            text = "Select Floor / Level to record measurements for:",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CarbonGray90
+                        )
+
+                        if (floors.isEmpty()) {
+                            Surface(
+                                color = CarbonGray10,
+                                shape = RoundedCornerShape(2.dp),
+                                border = BorderStroke(1.dp, CarbonGray30),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "No floors defined for this project. Level 0 (Ground Floor) will be used.",
+                                    fontSize = 12.sp,
+                                    color = CarbonGray70,
+                                    modifier = Modifier.padding(12.dp)
+                                )
+                            }
+                        } else {
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 280.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(floors, key = { it.id }) { floor ->
+                                    Surface(
+                                        color = if (selectedFloor?.id == floor.id) CarbonBlue10 else CarbonWhite,
+                                        shape = RoundedCornerShape(2.dp),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (selectedFloor?.id == floor.id) CarbonBlue60 else CarbonGray30
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable {
+                                                selectedFloor = floor
+                                                // Launch dedicated screen directly!
+                                                val contractor = selectedContractor!!
+                                                val item = selectedQualifiedItem!!
+                                                onLaunchDedicatedMeasurement(
+                                                    contractor.id,
+                                                    item.itemName,
+                                                    item.uom,
+                                                    item.calculationType,
+                                                    floor.id,
+                                                    floor.name
+                                                )
+                                            }
+                                            .testTag("select_floor_${floor.id}")
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(12.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Layers,
+                                                    contentDescription = null,
+                                                    tint = CarbonBlue60,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                                Text(
+                                                    text = floor.name,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp,
+                                                    color = CarbonGray100
+                                                )
+                                            }
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            ) {
+                                                Text("Open Screen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60)
+                                                Icon(
+                                                    imageVector = Icons.Default.ArrowForward,
+                                                    contentDescription = null,
+                                                    tint = CarbonBlue60,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Dialog Navigation Actions
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (currentStep != RecordFlowStep.SELECT_CONTRACTOR) {
+                        OutlinedButton(
+                            onClick = {
+                                currentStep = when (currentStep) {
+                                    RecordFlowStep.SELECT_FLOOR -> RecordFlowStep.SELECT_ITEM
+                                    RecordFlowStep.SELECT_ITEM -> RecordFlowStep.SELECT_CONTRACTOR
+                                    else -> RecordFlowStep.SELECT_CONTRACTOR
+                                }
+                            },
+                            shape = RoundedCornerShape(2.dp),
+                            border = BorderStroke(1.dp, CarbonGray40)
+                        ) {
+                            Text("Back", color = CarbonGray100, fontSize = 12.sp)
+                        }
+                    } else {
+                        OutlinedButton(
+                            onClick = onDismiss,
+                            shape = RoundedCornerShape(2.dp),
+                            border = BorderStroke(1.dp, CarbonGray40)
+                        ) {
+                            Text("Cancel", color = CarbonGray100, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

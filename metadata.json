@@ -1,0 +1,6 @@
+{
+  "name": "Accelerated Measurement Book",
+  "description": "Accelerated Measurement Book (AMB) - Fast site measurement, structural calculation, M-Book register, and contractor billing.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
