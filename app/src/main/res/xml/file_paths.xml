@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <cache-path name="cache_root" path="." />
-    <files-path name="files_root" path="." />
-    <external-files-path name="external_files" path="." />
-    <external-path name="external_root" path="." />
+    <!-- Exports are deliberately staged in private cache. Never expose the
+         database, managed measurement photos, drafts, or external storage. -->
+    <cache-path name="export_cache" path="." />
 </paths>

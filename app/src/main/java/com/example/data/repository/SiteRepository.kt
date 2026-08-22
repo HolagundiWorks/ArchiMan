@@ -1,5 +1,8 @@
 package com.example.data.repository
 
+import androidx.room.withTransaction
+import com.example.domain.MeasurementSheetStatus
+import com.example.domain.MeasurementSheetWorkflow
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
@@ -11,7 +14,6 @@ class SiteRepository(private val database: AppDatabase) {
     val allQualifiedItems: Flow<List<ContractorQualifiedItemEntity>> = database.contractorDao().getAllQualifiedItems()
     val allItems: Flow<List<ItemMasterEntity>> = database.itemMasterDao().getAllItems()
     val allMeasurements: Flow<List<MeasurementEntity>> = database.measurementDao().getAllMeasurements()
-    val allBills: Flow<List<BillEntity>> = database.billDao().getAllBills()
 
     // Client operations
     suspend fun insertClient(client: ClientEntity): Long =
@@ -103,18 +105,6 @@ class SiteRepository(private val database: AppDatabase) {
 
     fun getMeasurementsByProjectAndContractor(projectId: Long, contractorId: Long): Flow<List<MeasurementEntity>> =
         database.measurementDao().getMeasurementsByProjectAndContractor(projectId, contractorId)
-
-    fun getRatesForContractor(contractorId: Long): Flow<List<ContractorRateEntity>> =
-        database.contractorRateDao().getRatesForContractor(contractorId)
-
-    suspend fun getRateForContractorAndItem(contractorId: Long, itemId: Long): Double? {
-        val contractorRate = database.contractorRateDao().getRate(contractorId, itemId)
-        if (contractorRate != null) {
-            return contractorRate.rate
-        }
-        val item = database.itemMasterDao().getItemById(itemId)
-        return item?.defaultRate
-    }
 
     // Projects & Contractors
     suspend fun insertProject(project: ProjectEntity): Long =
@@ -376,7 +366,7 @@ class SiteRepository(private val database: AppDatabase) {
     suspend fun deleteConnectedWorkItem(item: ComponentWorkItemEntity) =
         database.componentWorkItemDao().deleteWorkItem(item)
 
-    // Items & Rates
+    // Work items
     suspend fun insertItem(item: ItemMasterEntity): Long =
         database.itemMasterDao().insertItem(item)
 
@@ -384,38 +374,105 @@ class SiteRepository(private val database: AppDatabase) {
         database.itemMasterDao().updateItem(item)
 
     suspend fun deleteItem(item: ItemMasterEntity) =
-        database.itemMasterDao().deleteItem(item)
+        database.itemMasterDao().archiveItem(item.id)
 
-    suspend fun saveContractorRate(contractorId: Long, itemId: Long, rate: Double) =
-        database.contractorRateDao().insertRate(ContractorRateEntity(contractorId = contractorId, itemId = itemId, rate = rate))
+    fun getAliasesForWorkItem(workItemId: Long): Flow<List<WorkItemAliasEntity>> =
+        database.workItemAliasDao().getAliases(workItemId)
+
+    suspend fun addWorkItemAlias(workItemId: Long, alias: String): Long =
+        database.workItemAliasDao().insert(WorkItemAliasEntity(workItemId = workItemId, alias = alias.trim()))
+
+    suspend fun mergeWorkItems(sourceId: Long, canonicalId: Long) =
+        database.itemMasterDao().mergeIntoCanonical(sourceId, canonicalId)
 
     // Measurements
-    suspend fun insertMeasurement(measurement: MeasurementEntity): Long =
-        database.measurementDao().insertMeasurement(measurement)
-
-    suspend fun updateMeasurement(measurement: MeasurementEntity) =
-        database.measurementDao().updateMeasurement(measurement)
-
-    suspend fun deleteMeasurement(measurement: MeasurementEntity) =
-        database.measurementDao().deleteMeasurement(measurement)
-
-    suspend fun deleteMeasurementById(id: Long) =
-        database.measurementDao().deleteMeasurementById(id)
-
-    suspend fun getUnbilledMeasurements(projectId: Long, contractorId: Long): List<MeasurementEntity> =
-        database.measurementDao().getUnbilledMeasurements(projectId, contractorId)
-
-    suspend fun createBill(bill: BillEntity, measurementIds: List<Long>): Long {
-        val billId = database.billDao().insertBill(bill)
-        if (measurementIds.isNotEmpty()) {
-            database.measurementDao().linkMeasurementsToBill(measurementIds, billId)
+    suspend fun insertMeasurement(measurement: MeasurementEntity): Long = database.withTransaction {
+        if (measurement.sheetId > 0) database.measurementDao().insertMeasurement(measurement)
+        else {
+            val sheetId = database.measurementSheetDao().insert(measurement.toSheet())
+            database.measurementDao().insertMeasurement(measurement.withSheet(sheetId))
         }
-        return billId
     }
 
-    suspend fun deleteBill(bill: BillEntity) =
-        database.billDao().deleteBill(bill)
+    suspend fun insertMeasurementBatch(measurements: List<MeasurementEntity>): Int = database.withTransaction {
+        if (measurements.isEmpty()) return@withTransaction 0
+        val first = measurements.first()
+        val sheetId = database.measurementSheetDao().insert(first.toSheet())
+        database.measurementDao().insertMeasurements(measurements.map { it.withSheet(sheetId) }).size
+    }
 
-    suspend fun getMeasurementsForBill(billId: Long): List<MeasurementEntity> =
-        database.measurementDao().getMeasurementsForBill(billId)
+    fun getMeasurementSheets(): Flow<List<MeasurementSheetEntity>> = database.measurementSheetDao().getAllSheets()
+
+    fun getReviewEvents(sheetId: Long): Flow<List<MeasurementReviewEventEntity>> =
+        database.measurementReviewEventDao().getForSheet(sheetId)
+
+    suspend fun transitionMeasurementSheet(sheetId: Long, to: MeasurementSheetStatus, actor: String, comment: String = "") =
+        database.withTransaction {
+            require(actor.isNotBlank()) { "Actor is required" }
+            val sheet = requireNotNull(database.measurementSheetDao().getById(sheetId)) { "Measurement sheet does not exist" }
+            require(sheet.archivedAt == null) { "Archived sheets cannot change status" }
+            val from = MeasurementSheetStatus.valueOf(sheet.status)
+            MeasurementSheetWorkflow.requireTransition(from, to, comment)
+            val revision = if (from == MeasurementSheetStatus.RETURNED && to == MeasurementSheetStatus.SUBMITTED) sheet.revision + 1 else sheet.revision
+            val now = System.currentTimeMillis()
+            database.measurementSheetDao().updateWorkflow(sheetId, to.name, revision, now)
+            database.measurementReviewEventDao().insert(
+                MeasurementReviewEventEntity(
+                    sheetId = sheetId,
+                    fromStatus = from.name,
+                    toStatus = to.name,
+                    comment = comment.trim(),
+                    actor = actor.trim(),
+                    revision = revision,
+                    createdAt = now
+                )
+            )
+            Unit
+        }
+
+    suspend fun updateMeasurement(measurement: MeasurementEntity) = database.withTransaction {
+        val sheet = requireNotNull(database.measurementSheetDao().getById(measurement.sheetId)) { "Measurement sheet does not exist" }
+        require(sheet.status == "DRAFT" || sheet.status == "RETURNED") { "Only draft or returned sheets can be edited" }
+        database.measurementDao().updateMeasurement(measurement)
+    }
+
+    suspend fun deleteMeasurement(measurement: MeasurementEntity) = archiveMeasurementSheet(measurement.sheetId, "Local User")
+
+    suspend fun deleteMeasurementById(id: Long) {
+        val measurement = database.measurementDao().getMeasurementById(id) ?: return
+        archiveMeasurementSheet(measurement.sheetId, "Local User")
+    }
+
+    suspend fun archiveMeasurementSheet(sheetId: Long, actor: String) = database.withTransaction {
+        val sheet = requireNotNull(database.measurementSheetDao().getById(sheetId)) { "Measurement sheet does not exist" }
+        if (sheet.archivedAt != null) return@withTransaction
+        val now = System.currentTimeMillis()
+        database.measurementSheetDao().archive(sheetId, now)
+        database.measurementReviewEventDao().insert(
+            MeasurementReviewEventEntity(sheetId = sheetId, fromStatus = sheet.status, toStatus = "ARCHIVED", comment = "Archived without deleting measurement rows", actor = actor.ifBlank { "Local User" }, revision = sheet.revision, createdAt = now)
+        )
+    }
+
 }
+
+private fun MeasurementEntity.toSheet() = MeasurementSheetEntity(
+    sheetCode = "MB-${date}-${java.util.UUID.randomUUID().toString().take(8).uppercase()}",
+    projectId = projectId,
+    floorId = floorId,
+    floorNameSnapshot = floor,
+    contractorId = contractorId,
+    contractorNameSnapshot = contractorName,
+    itemId = itemId,
+    itemNameSnapshot = itemName,
+    uomSnapshot = unit,
+    formulaCode = calculationType.name,
+    formulaVersion = 1,
+    createdAt = date,
+    updatedAt = date
+)
+
+private fun MeasurementEntity.withSheet(id: Long) = copy(
+    sheetId = id,
+    formulaCode = calculationType.name,
+    formulaVersion = 1
+)

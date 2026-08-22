@@ -65,15 +65,15 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
             when (currentScreen) {
                 AppScreen.PROJECT_WORKSPACE -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.DEDICATED_MEASUREMENT -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
-                AppScreen.WORK_ITEM_MEASURE -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.ROOM_WORKSPACE -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.MEASUREMENT_BOOK -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.CLIENTS, AppScreen.CONTRACTORS -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.EXPORT -> viewModel.navigateTo(AppScreen.HOME)
-                AppScreen.MASTER_DATA -> viewModel.navigateTo(AppScreen.HOME)
+                AppScreen.MASTER_DATA -> viewModel.navigateTo(
+                    if (selectedProjectId != null) AppScreen.PROJECT_WORKSPACE else AppScreen.HOME
+                )
                 AppScreen.REGISTER -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.PROJECTS -> viewModel.navigateTo(AppScreen.HOME)
-                AppScreen.QUICK_ENTRY -> viewModel.navigateTo(AppScreen.HOME)
                 else -> viewModel.navigateTo(AppScreen.HOME)
             }
         }
@@ -176,7 +176,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         modifier = Modifier.testTag("home_nav_contractors")
                     )
                 }
-            } else {
+            } else if (currentScreen != AppScreen.DEDICATED_MEASUREMENT) {
                 // INSIDE PROJECT BOTTOM BAR: Project Hub, Contractors, M-Book, Record Measurement
                 NavigationBar(
                     containerColor = CarbonWhite,
@@ -192,8 +192,9 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         }
                         .testTag("inside_project_bottom_navigation")
                 ) {
-                    val isWorkspaceActive = currentScreen == AppScreen.PROJECT_WORKSPACE || currentScreen == AppScreen.ROOM_WORKSPACE || currentScreen == AppScreen.WORK_ITEM_MEASURE
+                    val isWorkspaceActive = currentScreen == AppScreen.PROJECT_WORKSPACE || currentScreen == AppScreen.ROOM_WORKSPACE
                     val isMBookActive = currentScreen == AppScreen.MEASUREMENT_BOOK || currentScreen == AppScreen.REGISTER
+                    val isWorkListActive = currentScreen == AppScreen.MASTER_DATA
                     val isDedicatedActive = currentScreen == AppScreen.DEDICATED_MEASUREMENT
 
                     // 1. Projects (Back to Home Projects)
@@ -231,7 +232,29 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         modifier = Modifier.testTag("project_nav_hub")
                     )
 
-                    // 3. Measurement Book (M-Book)
+                    // 3. Work-item and formula library
+                    NavigationBarItem(
+                        selected = isWorkListActive,
+                        onClick = { viewModel.navigateTo(AppScreen.MASTER_DATA) },
+                        icon = { Icon(Icons.Default.AccountTree, contentDescription = "Work List") },
+                        label = {
+                            Text(
+                                "Work List",
+                                fontSize = 11.sp,
+                                fontWeight = if (isWorkListActive) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = CarbonBlue60,
+                            selectedTextColor = CarbonBlue60,
+                            indicatorColor = CarbonBlue10,
+                            unselectedIconColor = CarbonGray70,
+                            unselectedTextColor = CarbonGray70
+                        ),
+                        modifier = Modifier.testTag("project_nav_work_list")
+                    )
+
+                    // 4. Measurement Book (M-Book)
                     NavigationBarItem(
                         selected = isMBookActive,
                         onClick = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) },
@@ -253,7 +276,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         modifier = Modifier.testTag("project_nav_mbook")
                     )
 
-                    // 4. Record Measurement (Dedicated Entry Flow)
+                    // 5. Record Measurement (Dedicated Entry Flow)
                     NavigationBarItem(
                         selected = isDedicatedActive,
                         onClick = {
@@ -303,22 +326,13 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         viewModel = viewModel,
                         onNavigateBack = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) }
                     )
-                    AppScreen.WORK_ITEM_MEASURE -> WorkItemMeasureScreen(
-                        viewModel = viewModel,
-                        onNavigateBack = { viewModel.navigateTo(AppScreen.ROOM_WORKSPACE) }
-                    )
                     AppScreen.MEASUREMENT_BOOK -> MeasurementBookScreen(
                         viewModel = viewModel,
                         onNavigateBack = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) }
                     )
-                    AppScreen.QUICK_ENTRY -> QuickEntryScreen(viewModel = viewModel)
                     AppScreen.REGISTER -> MeasurementRegisterScreen(viewModel = viewModel)
                     AppScreen.MASTER_DATA -> MasterDataScreen(viewModel = viewModel)
                     AppScreen.EXPORT -> ExportScreen(
-                        viewModel = viewModel,
-                        onNavigateBack = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) }
-                    )
-                    AppScreen.BILLS, AppScreen.REPORTS, AppScreen.LAN_SERVER -> ExportScreen(
                         viewModel = viewModel,
                         onNavigateBack = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) }
                     )

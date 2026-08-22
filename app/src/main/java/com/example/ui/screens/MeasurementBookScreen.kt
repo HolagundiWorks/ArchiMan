@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -26,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.MeasurementEntity
+import com.example.data.local.entity.MeasurementSheetEntity
+import com.example.domain.MeasurementSheetStatus
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
@@ -44,6 +48,7 @@ fun MeasurementBookScreen(
     val selectedProjectId by viewModel.selectedProjectId.collectAsStateWithLifecycle()
     val floors by viewModel.floors.collectAsStateWithLifecycle()
     val measurements by viewModel.measurements.collectAsStateWithLifecycle()
+    val sheets by viewModel.measurementSheets.collectAsStateWithLifecycle()
     val items by viewModel.items.collectAsStateWithLifecycle()
 
     val currentProject = projects.firstOrNull { it.id == selectedProjectId } ?: projects.firstOrNull()
@@ -246,6 +251,13 @@ fun MeasurementBookScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
+                val visibleSheetIds = filteredMeasurements.map { it.sheetId }.toSet()
+                val visibleSheets = sheets.filter { it.id in visibleSheetIds }
+                if (visibleSheets.isNotEmpty()) {
+                    item {
+                        SheetWorkflowPanel(viewModel, visibleSheets)
+                    }
+                }
                 if (filteredMeasurements.isEmpty()) {
                     item {
                         Surface(
@@ -520,5 +532,100 @@ fun MeasurementBookScreen(
                 Spacer(modifier = Modifier.height(12.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun SheetWorkflowPanel(viewModel: SiteViewModel, sheets: List<MeasurementSheetEntity>) {
+    var actor by rememberSaveable { mutableStateOf("") }
+    var returnSheet by remember { mutableStateOf<MeasurementSheetEntity?>(null) }
+    var returnComment by remember { mutableStateOf("") }
+    var historySheet by remember { mutableStateOf<MeasurementSheetEntity?>(null) }
+    var message by remember { mutableStateOf<String?>(null) }
+
+    fun transition(sheet: MeasurementSheetEntity, to: MeasurementSheetStatus, comment: String = "") {
+        viewModel.transitionMeasurementSheet(sheet.id, to, actor, comment) { result ->
+            message = result.fold({ "${sheet.sheetCode}: ${to.name.lowercase().replaceFirstChar(Char::uppercase)}" }, { it.message ?: "Status update failed" })
+            if (result.isSuccess) { returnSheet = null; returnComment = "" }
+        }
+    }
+
+    Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("SHEET REVIEW WORKFLOW", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray80)
+            OutlinedTextField(
+                value = actor,
+                onValueChange = { actor = it },
+                label = { Text("Your name / reviewer") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            sheets.sortedByDescending { it.createdAt }.take(20).forEach { sheet ->
+                val status = runCatching { MeasurementSheetStatus.valueOf(sheet.status) }.getOrDefault(MeasurementSheetStatus.DRAFT)
+                Surface(color = CarbonWhite, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
+                    Column(Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(sheet.itemNameSnapshot, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text("${sheet.sheetCode} • Rev ${sheet.revision}", fontSize = 9.sp, color = CarbonGray70)
+                            }
+                            Surface(color = if (status == MeasurementSheetStatus.APPROVED) CarbonGreen60 else CarbonBlue60, shape = RoundedCornerShape(2.dp)) {
+                                Text(status.name, color = CarbonWhite, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
+                            }
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            when (status) {
+                                MeasurementSheetStatus.DRAFT, MeasurementSheetStatus.RETURNED -> TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.SUBMITTED) }) { Text("Submit") }
+                                MeasurementSheetStatus.SUBMITTED -> {
+                                    TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.CHECKED) }) { Text("Mark checked") }
+                                    TextButton(enabled = actor.isNotBlank(), onClick = { returnSheet = sheet }) { Text("Return") }
+                                }
+                                MeasurementSheetStatus.CHECKED -> {
+                                    TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.APPROVED) }) { Text("Approve") }
+                                    TextButton(enabled = actor.isNotBlank(), onClick = { returnSheet = sheet }) { Text("Return") }
+                                }
+                                MeasurementSheetStatus.APPROVED -> Text("Locked", fontSize = 10.sp, color = CarbonGreen60, modifier = Modifier.padding(12.dp))
+                            }
+                            TextButton(onClick = { historySheet = sheet }) { Text("History") }
+                        }
+                    }
+                }
+            }
+            message?.let { Text(it, fontSize = 10.sp, color = CarbonBlue60) }
+        }
+    }
+
+    returnSheet?.let { sheet ->
+        AlertDialog(
+            onDismissRequest = { returnSheet = null },
+            title = { Text("Return measurement sheet") },
+            text = { OutlinedTextField(value = returnComment, onValueChange = { returnComment = it }, label = { Text("Required correction comment") }, modifier = Modifier.fillMaxWidth()) },
+            dismissButton = { TextButton(onClick = { returnSheet = null }) { Text("Cancel") } },
+            confirmButton = { Button(enabled = returnComment.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.RETURNED, returnComment) }) { Text("Return") } }
+        )
+    }
+
+    historySheet?.let { sheet ->
+        val eventsFlow = remember(sheet.id) { viewModel.reviewEvents(sheet.id) }
+        val events by eventsFlow.collectAsStateWithLifecycle(initialValue = emptyList())
+        AlertDialog(
+            onDismissRequest = { historySheet = null },
+            title = { Text("Audit history • ${sheet.sheetCode}") },
+            text = {
+                Column(Modifier.heightIn(max = 380.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (events.isEmpty()) Text("No transitions recorded yet.", color = CarbonGray70)
+                    events.forEach { event ->
+                        Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
+                            Column(Modifier.padding(8.dp)) {
+                                Text("${event.fromStatus} → ${event.toStatus}", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text("${event.actor} • Revision ${event.revision}", fontSize = 10.sp, color = CarbonGray70)
+                                if (event.comment.isNotBlank()) Text(event.comment, fontSize = 10.sp)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { historySheet = null }) { Text("Close") } }
+        )
     }
 }

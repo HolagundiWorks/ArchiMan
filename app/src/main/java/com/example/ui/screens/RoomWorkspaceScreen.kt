@@ -756,7 +756,7 @@ fun ComponentCard(
                             onClick = {
                                 viewModel.selectComponent(component.id)
                                 viewModel.selectComponentWorkItem(wi)
-                                viewModel.navigateTo(AppScreen.WORK_ITEM_MEASURE)
+                                viewModel.openCanonicalMeasurement()
                             },
                             label = {
                                 Text(

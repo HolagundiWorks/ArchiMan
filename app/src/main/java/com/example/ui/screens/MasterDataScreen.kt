@@ -1,8 +1,13 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -23,6 +29,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.ItemMasterEntity
+import com.example.domain.WorkCatalog
+import com.example.domain.WorkItemDuplicateDetector
+import com.example.domain.WorkItemDuplicateCandidate
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
@@ -33,9 +42,30 @@ fun MasterDataScreen(
     viewModel: SiteViewModel,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val items by viewModel.items.collectAsStateWithLifecycle()
     var showAddItemDialog by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<ItemMasterEntity?>(null) }
+    var showDuplicateReport by remember { mutableStateOf(false) }
+    var candidateToMerge by remember { mutableStateOf<WorkItemDuplicateCandidate?>(null) }
+    var mergeError by remember { mutableStateOf<String?>(null) }
+    var importMessage by remember { mutableStateOf<String?>(null) }
+    val catalogImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() } ?: error("Unable to read catalog") }
+                .onSuccess { json ->
+                    viewModel.importWorkCatalog(json) { result ->
+                        importMessage = result.fold(
+                            onSuccess = { count -> if (count == 0) "Catalog valid; all items already exist." else "Imported $count work items." },
+                            onFailure = { error -> error.message ?: "Catalog import failed" }
+                        )
+                    }
+                }
+                .onFailure { importMessage = it.message ?: "Catalog import failed" }
+        }
+    }
+    val expandedWorkTypes = remember { mutableStateListOf<String>() }
+    val duplicateCandidates = remember(items) { WorkItemDuplicateDetector.find(items) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -151,22 +181,68 @@ fun MasterDataScreen(
                         color = CarbonGray70,
                         letterSpacing = 0.5.sp
                     )
-                    Text(
-                        text = "Pure Quantity Calculations",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = CarbonBlue60
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        TextButton(onClick = { catalogImporter.launch(arrayOf("application/json", "text/plain")) }) {
+                            Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Spacer(Modifier.width(3.dp))
+                            Text("Import", fontSize = 11.sp)
+                        }
+                        if (duplicateCandidates.isEmpty()) {
+                            Text("Catalog checked", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = CarbonBlue60)
+                        } else {
+                            TextButton(onClick = { showDuplicateReport = true }) {
+                                Text("Review ${duplicateCandidates.size} duplicate${if (duplicateCandidates.size == 1) "" else "s"}", fontSize = 11.sp)
+                            }
+                        }
+                    }
                 }
             }
 
-            // Items List
+            val groupedItems = items.groupBy { it.workType.ifBlank { "General Works" } }.toSortedMap()
+            importMessage?.let { message ->
+                Surface(color = CarbonBlue10, border = BorderStroke(1.dp, CarbonBlue60), shape = RoundedCornerShape(2.dp), modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(message, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                        IconButton(onClick = { importMessage = null }, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(14.dp))
+                        }
+                    }
+                }
+            }
+            LaunchedEffect(groupedItems.keys) {
+                if (expandedWorkTypes.isEmpty()) expandedWorkTypes.addAll(groupedItems.keys)
+            }
+
+            // Work Type -> Work Item -> Formula hierarchy
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(items, key = { it.id }) { item ->
+                groupedItems.forEach { (workType, workItems) ->
+                    item(key = "work_type_$workType") {
+                        val expanded = workType in expandedWorkTypes
+                        Surface(
+                            color = CarbonGray100,
+                            shape = RoundedCornerShape(2.dp),
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                if (expanded) expandedWorkTypes.remove(workType) else expandedWorkTypes.add(workType)
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(workType, color = CarbonWhite, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("${workItems.size} work item${if (workItems.size == 1) "" else "s"}", color = CarbonGray40, fontSize = 10.sp)
+                                }
+                                Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null, tint = CarbonWhite)
+                            }
+                        }
+                    }
+                    if (workType in expandedWorkTypes) items(workItems, key = { it.id }) { item ->
                     Surface(
                         shape = RoundedCornerShape(2.dp),
                         color = CarbonWhite,
@@ -188,6 +264,7 @@ fun MasterDataScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = CarbonGray100
                                 )
+                                Text(item.itemCode, fontSize = 10.sp, color = CarbonGray60, fontWeight = FontWeight.SemiBold)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -236,10 +313,11 @@ fun MasterDataScreen(
                                     onClick = { viewModel.deleteItem(item) },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = CarbonRed60, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Archive, contentDescription = "Archive", tint = CarbonRed60, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
@@ -251,12 +329,13 @@ fun MasterDataScreen(
         ItemMasterEditorDialog(
             initialItem = null,
             onDismiss = { showAddItemDialog = false },
-            onSave = { name, unit, calcType ->
+            onSave = { workType, name, unit, calcType ->
                 viewModel.addItem(
                     ItemMasterEntity(
+                        itemCode = WorkCatalog.codeFor(workType, name),
+                        workType = workType,
                         name = name,
                         unit = unit,
-                        defaultRate = 0.0,
                         calculationType = calcType
                     )
                 )
@@ -270,15 +349,96 @@ fun MasterDataScreen(
         ItemMasterEditorDialog(
             initialItem = item,
             onDismiss = { itemToEdit = null },
-            onSave = { name, unit, calcType ->
+            onSave = { workType, name, unit, calcType ->
                 viewModel.updateItem(
                     item.copy(
+                        workType = workType,
                         name = name,
                         unit = unit,
                         calculationType = calcType
                     )
                 )
                 itemToEdit = null
+            }
+        )
+    }
+
+    if (showDuplicateReport) {
+        AlertDialog(
+            onDismissRequest = { showDuplicateReport = false },
+            title = { Text("POSSIBLE DUPLICATE ITEMS", fontWeight = FontWeight.Bold) },
+            text = {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.heightIn(max = 420.dp)) {
+                    items(duplicateCandidates, key = { "${it.first.id}_${it.second.id}" }) { candidate ->
+                        Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text("${candidate.similarity}% similar", color = CarbonBlue60, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(candidate.first.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Text(candidate.second.name, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                Text("${candidate.first.workType} • ${candidate.first.unit} • ${candidate.first.calculationType.displayName}", color = CarbonGray70, fontSize = 10.sp)
+                                TextButton(
+                                    onClick = {
+                                        candidateToMerge = candidate
+                                        mergeError = null
+                                        showDuplicateReport = false
+                                    },
+                                    contentPadding = PaddingValues(0.dp)
+                                ) { Text("Preview merge") }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showDuplicateReport = false }) { Text("Close") } }
+        )
+    }
+
+    candidateToMerge?.let { candidate ->
+        var canonicalId by remember(candidate) { mutableLongStateOf(candidate.first.id) }
+        val canonical = if (canonicalId == candidate.first.id) candidate.first else candidate.second
+        val source = if (canonicalId == candidate.first.id) candidate.second else candidate.first
+        AlertDialog(
+            onDismissRequest = { candidateToMerge = null; mergeError = null },
+            title = { Text("MERGE WORK ITEMS", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Select the canonical item to keep. Measurements remain unchanged; their item reference is moved safely.", fontSize = 12.sp)
+                    listOf(candidate.first, candidate.second).forEach { option ->
+                        Surface(
+                            modifier = Modifier.fillMaxWidth().clickable { canonicalId = option.id },
+                            color = if (canonicalId == option.id) CarbonBlue10 else CarbonGray10,
+                            border = BorderStroke(1.dp, if (canonicalId == option.id) CarbonBlue60 else CarbonGray30),
+                            shape = RoundedCornerShape(2.dp)
+                        ) {
+                            Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                RadioButton(selected = canonicalId == option.id, onClick = { canonicalId = option.id })
+                                Column {
+                                    Text(option.name, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text(option.itemCode, color = CarbonGray70, fontSize = 10.sp)
+                                }
+                            }
+                        }
+                    }
+                    Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
+                        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("MERGE PREVIEW", fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                            Text("Keep: ${canonical.name}", fontSize = 11.sp)
+                            Text("Archive: ${source.name}", fontSize = 11.sp)
+                            Text("Preserve “${source.name}” as an alias", fontSize = 11.sp)
+                            Text("Repoint measurements, component links and contractor qualifications", fontSize = 11.sp)
+                        }
+                    }
+                    mergeError?.let { Text(it, color = CarbonRed60, fontSize = 11.sp) }
+                }
+            },
+            dismissButton = { TextButton(onClick = { candidateToMerge = null; mergeError = null }) { Text("Cancel") } },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.mergeWorkItems(source.id, canonical.id) { result ->
+                        result.onSuccess { candidateToMerge = null; mergeError = null }
+                            .onFailure { mergeError = it.message ?: "Merge failed" }
+                    }
+                }) { Text("Merge safely") }
             }
         )
     }
@@ -289,13 +449,16 @@ fun MasterDataScreen(
 private fun ItemMasterEditorDialog(
     initialItem: ItemMasterEntity?,
     onDismiss: () -> Unit,
-    onSave: (name: String, unit: String, calcType: CalculationType) -> Unit
+    onSave: (workType: String, name: String, unit: String, calcType: CalculationType) -> Unit
 ) {
     var name by remember { mutableStateOf(initialItem?.name ?: "") }
+    var workType by remember { mutableStateOf(initialItem?.workType ?: "General Works") }
+    var workTypeExpanded by remember { mutableStateOf(false) }
     var unit by remember { mutableStateOf(initialItem?.unit ?: "cum") }
     var selectedCalcType by remember { mutableStateOf(initialItem?.calculationType ?: CalculationType.VOLUME) }
 
     val commonUnits = listOf("cum", "sqm", "rmt", "nos", "kg", "ton", "bags", "litres")
+    val workTypes = listOf("Earthwork", "Concrete & Structure", "Masonry", "Finishes", "Flooring & Cladding", "Plumbing Works", "Electrical Works", "Joinery & Carpentry", "Waterproofing", "HVAC Works", "Fire Protection", "Fabrication", "Landscaping", "General Works")
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -305,7 +468,7 @@ private fun ItemMasterEditorDialog(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(20.dp),
+                modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
@@ -315,6 +478,22 @@ private fun ItemMasterEditorDialog(
                     color = CarbonGray100,
                     letterSpacing = 0.5.sp
                 )
+
+                ExposedDropdownMenuBox(expanded = workTypeExpanded, onExpandedChange = { workTypeExpanded = !workTypeExpanded }) {
+                    OutlinedTextField(
+                        value = workType,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("WORK TYPE") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(workTypeExpanded) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(expanded = workTypeExpanded, onDismissRequest = { workTypeExpanded = false }) {
+                        workTypes.forEach { option ->
+                            DropdownMenuItem(text = { Text(option) }, onClick = { workType = option; workTypeExpanded = false })
+                        }
+                    }
+                }
 
                 // Item Name
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -447,7 +626,7 @@ private fun ItemMasterEditorDialog(
                     Button(
                         onClick = {
                             if (name.isNotBlank()) {
-                                onSave(name.trim(), unit.trim(), selectedCalcType)
+                                onSave(workType, name.trim(), unit.trim(), selectedCalcType)
                             }
                         },
                         enabled = name.isNotBlank(),

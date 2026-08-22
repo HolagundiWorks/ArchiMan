@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +61,7 @@ fun ProjectWorkspaceScreen(
     val selectedProjectId by viewModel.selectedProjectId.collectAsStateWithLifecycle()
     val floors by viewModel.floors.collectAsStateWithLifecycle()
     val contractors by viewModel.contractors.collectAsStateWithLifecycle()
+    val projectContractorRefs by viewModel.projectContractorRefs.collectAsStateWithLifecycle()
     val items by viewModel.items.collectAsStateWithLifecycle()
     val allMeasurements by viewModel.measurements.collectAsStateWithLifecycle()
 
@@ -68,8 +70,9 @@ fun ProjectWorkspaceScreen(
         if (currentProject != null) allMeasurements.filter { it.projectId == currentProject.id }
         else emptyList()
     }
-    val projectContractors = remember(contractors, currentProject) {
-        if (currentProject != null) contractors.filter { it.projectId == currentProject.id }
+    val projectContractors = remember(contractors, projectContractorRefs, currentProject) {
+        val assignedIds = projectContractorRefs.map { it.contractorId }.toSet()
+        if (currentProject != null) contractors.filter { it.id in assignedIds || it.projectId == currentProject.id }
         else emptyList()
     }
 
@@ -269,16 +272,7 @@ fun ProjectWorkspaceScreen(
         ) {
             when (selectedTab) {
                 ProjectTab.RECORD_MEASURE -> {
-                    ProjectRecordMeasurementTab(
-                        viewModel = viewModel,
-                        currentProject = currentProject,
-                        floors = floors,
-                        contractors = projectContractors,
-                        items = items,
-                        onMeasurementSaved = {
-                            // Optionally switch or stay on entry
-                        }
-                    )
+                    CanonicalMeasurementLauncher(viewModel)
                 }
                 ProjectTab.MEASUREMENT_BOOK -> {
                     ProjectMeasurementBookTab(
@@ -298,6 +292,7 @@ fun ProjectWorkspaceScreen(
                         viewModel = viewModel,
                         currentProject = currentProject,
                         contractors = projectContractors,
+                        allContractors = contractors,
                         measurements = projectMeasurements,
                         onViewContractorMeasurements = { contractorId ->
                             filterContractorForMBook = contractorId
@@ -380,6 +375,38 @@ fun ProjectWorkspaceScreen(
     }
 }
 
+@Composable
+private fun CanonicalMeasurementLauncher(viewModel: SiteViewModel) {
+    Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
+        Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
+            Column(
+                Modifier.fillMaxWidth().padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Icon(Icons.Default.TableRows, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(36.dp))
+                Text("Measurement Sheet", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = CarbonGray100)
+                Text(
+                    "All project, room, and component shortcuts now use the same spreadsheet-style measurement editor.",
+                    textAlign = TextAlign.Center,
+                    fontSize = 12.sp,
+                    color = CarbonGray70
+                )
+                Button(
+                    onClick = { viewModel.openCanonicalMeasurement() },
+                    colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
+                    shape = RoundedCornerShape(2.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(Icons.Default.Straighten, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("OPEN MEASUREMENT SHEET", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
 // ====================================================================
 // TAB 1: CONTRACTORS LIST
 // ====================================================================
@@ -389,12 +416,18 @@ fun ProjectContractorsTab(
     viewModel: SiteViewModel,
     currentProject: ProjectEntity?,
     contractors: List<ContractorEntity>,
+    allContractors: List<ContractorEntity>,
     measurements: List<MeasurementEntity>,
     onViewContractorMeasurements: (Long) -> Unit
 ) {
     val context = LocalContext.current
     var showAddContractorDialog by remember { mutableStateOf(false) }
     var contractorToDelete by remember { mutableStateOf<ContractorEntity?>(null) }
+    val selectedExistingIds = remember { mutableStateListOf<Long>() }
+    val availableExisting = remember(allContractors, contractors) {
+        val assignedIds = contractors.map { it.id }.toSet()
+        allContractors.filter { it.id !in assignedIds }
+    }
 
     Scaffold(
         containerColor = CarbonWhite,
@@ -631,6 +664,55 @@ fun ProjectContractorsTab(
                     )
                     Divider(color = CarbonGray20)
 
+                    Text("ASSIGN EXISTING CONTRACTORS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray70)
+                    if (availableExisting.isEmpty()) {
+                        Text("All registered contractors are already assigned to this site.", fontSize = 12.sp, color = CarbonGray60)
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            items(availableExisting, key = { it.id }) { existing ->
+                                val selected = existing.id in selectedExistingIds
+                                Surface(
+                                    color = if (selected) CarbonBlue10 else CarbonGray10,
+                                    border = BorderStroke(1.dp, if (selected) CarbonBlue60 else CarbonGray30),
+                                    shape = RoundedCornerShape(2.dp),
+                                    modifier = Modifier.fillMaxWidth().clickable {
+                                        if (selected) selectedExistingIds.remove(existing.id) else selectedExistingIds.add(existing.id)
+                                    }
+                                ) {
+                                    Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(checked = selected, onCheckedChange = {
+                                            if (it) selectedExistingIds.add(existing.id) else selectedExistingIds.remove(existing.id)
+                                        })
+                                        Column {
+                                            Text(existing.name, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Text(existing.contactNo.ifBlank { existing.phone }, fontSize = 10.sp, color = CarbonGray60)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        Button(
+                            onClick = {
+                                currentProject?.let { project ->
+                                    selectedExistingIds.distinct().forEach { viewModel.assignContractorToProject(project.id, it) }
+                                    selectedExistingIds.clear()
+                                    showAddContractorDialog = false
+                                }
+                            },
+                            enabled = selectedExistingIds.isNotEmpty(),
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(2.dp)
+                        ) {
+                            Text("Assign ${selectedExistingIds.size} Selected")
+                        }
+                    }
+
+                    HorizontalDivider(color = CarbonGray20)
+                    Text("OR CREATE A NEW CONTRACTOR", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray70)
+
                     if (error != null) {
                         Text(text = error ?: "", color = CarbonRed60, fontSize = 11.sp)
                     }
@@ -700,7 +782,9 @@ fun ProjectContractorsTab(
             confirmButton = {
                 Button(
                     onClick = {
-                        contractorToDelete?.let { viewModel.deleteContractor(it) }
+                        contractorToDelete?.let { contractor ->
+                            currentProject?.let { project -> viewModel.removeContractorFromProject(project.id, contractor.id) }
+                        }
                         contractorToDelete = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = CarbonRed60),
@@ -1142,8 +1226,8 @@ fun ProjectMeasurementBookTab(
     if (measurementToDelete != null) {
         AlertDialog(
             onDismissRequest = { measurementToDelete = null },
-            title = { Text("Delete Measurement Entry?", fontWeight = FontWeight.Bold, fontSize = 15.sp) },
-            text = { Text("Are you sure you want to delete this recorded measurement (${measurementToDelete?.itemName} - ${"%.3f".format(measurementToDelete?.quantity)} ${measurementToDelete?.unit})?", fontSize = 13.sp) },
+            title = { Text("Archive Measurement Sheet?", fontWeight = FontWeight.Bold, fontSize = 15.sp) },
+            text = { Text("Archive this measurement sheet without deleting its recorded rows (${measurementToDelete?.itemName} - ${"%.3f".format(measurementToDelete?.quantity)} ${measurementToDelete?.unit})?", fontSize = 13.sp) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1153,7 +1237,7 @@ fun ProjectMeasurementBookTab(
                     colors = ButtonDefaults.buttonColors(containerColor = CarbonRed60),
                     shape = RoundedCornerShape(2.dp)
                 ) {
-                    Text("Delete", fontWeight = FontWeight.Bold)
+                    Text("Archive", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1168,6 +1252,7 @@ fun ProjectMeasurementBookTab(
 // TAB 3: RECORD MEASUREMENT (FAST 6-STEP DIMENSION ENTRY)
 // ====================================================================
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectRecordMeasurementTab(
     viewModel: SiteViewModel,
@@ -1181,14 +1266,22 @@ fun ProjectRecordMeasurementTab(
     val selectedFloorId by viewModel.selectedFloorId.collectAsStateWithLifecycle()
     val selectedItemId by viewModel.selectedItemId.collectAsStateWithLifecycle()
     val selectedContractorId by viewModel.selectedContractorId.collectAsStateWithLifecycle()
+    val allQualifiedItems by viewModel.allQualifiedItems.collectAsStateWithLifecycle()
 
     val currentItem = items.firstOrNull { it.id == selectedItemId } ?: items.firstOrNull()
     val currentFloor = floors.firstOrNull { it.id == selectedFloorId } ?: floors.firstOrNull()
     val currentContractor = contractors.firstOrNull { it.id == selectedContractorId }
+    val contractorItems = remember(selectedContractorId, allQualifiedItems) {
+        if (selectedContractorId == null || selectedContractorId == 0L) emptyList()
+        else allQualifiedItems.filter { it.contractorId == selectedContractorId }
+    }
 
     // Multi-floor duplication selection
     val selectedDuplicationFloors = remember { mutableStateListOf<Long>() }
     var showAddFloorDialog by remember { mutableStateOf(false) }
+    var workItemMenuExpanded by remember { mutableStateOf(false) }
+    var floorMenuExpanded by remember { mutableStateOf(false) }
+    var contractorMenuExpanded by remember { mutableStateOf(false) }
 
     val liveQuantity = remember(currentItem, formState) {
         if (currentItem != null) viewModel.computeQuantity(currentItem.calculationType, formState)
@@ -1231,40 +1324,112 @@ fun ProjectRecordMeasurementTab(
             }
         }
 
-        // STEP 1: SELECT WORK ITEM
+        // STEP 1: SELECT CONTRACTOR
         item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                CarbonStepHeader(stepNumber = "1", title = "SELECT WORK ITEM")
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
+                CarbonStepHeader(stepNumber = "1", title = "SELECT CONTRACTOR")
+                ExposedDropdownMenuBox(
+                    expanded = contractorMenuExpanded,
+                    onExpandedChange = { if (contractors.isNotEmpty()) contractorMenuExpanded = !contractorMenuExpanded }
                 ) {
-                    items(items) { itemEntity ->
-                        val isSelected = itemEntity.id == selectedItemId
-                        Surface(
-                            color = if (isSelected) CarbonBlue10 else CarbonGray10,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, if (isSelected) CarbonBlue60 else CarbonGray30),
-                            modifier = Modifier.clickable { viewModel.selectItem(itemEntity.id) }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = itemEntity.name,
-                                    fontSize = 12.sp,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                    color = if (isSelected) CarbonBlue60 else CarbonGray100
-                                )
-                                Text(
-                                    text = "(${itemEntity.unit})",
-                                    fontSize = 10.sp,
-                                    color = if (isSelected) CarbonBlue60 else CarbonGray60
-                                )
-                            }
+                    OutlinedTextField(
+                        value = currentContractor?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Contractor") },
+                        placeholder = { Text(if (contractors.isEmpty()) "No contractors assigned" else "Choose contractor first") },
+                        leadingIcon = { Icon(Icons.Default.Engineering, contentDescription = null) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(contractorMenuExpanded) },
+                        shape = RoundedCornerShape(2.dp),
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = contractors.isNotEmpty())
+                            .fillMaxWidth()
+                            .testTag("project_dropdown_contractor")
+                    )
+                    ExposedDropdownMenu(expanded = contractorMenuExpanded, onDismissRequest = { contractorMenuExpanded = false }) {
+                        contractors.forEach { contractor ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(contractor.name, fontWeight = FontWeight.SemiBold)
+                                        val count = allQualifiedItems.count { it.contractorId == contractor.id }
+                                        Text("$count qualified items", fontSize = 11.sp, color = CarbonGray70)
+                                    }
+                                },
+                                onClick = {
+                                    viewModel.selectContractor(contractor.id)
+                                    contractorMenuExpanded = false
+                                    workItemMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // STEP 2: SELECT WORK ITEM
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                CarbonStepHeader(stepNumber = "2", title = "SELECT QUALIFIED WORK ITEM")
+
+                ExposedDropdownMenuBox(
+                    expanded = workItemMenuExpanded,
+                    onExpandedChange = { if (contractorItems.isNotEmpty()) workItemMenuExpanded = !workItemMenuExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Work item") },
+                        placeholder = { Text(if (currentContractor == null) "Select contractor first" else if (contractorItems.isEmpty()) "No qualified items" else "Choose qualified item") },
+                        leadingIcon = { Icon(Icons.Default.Construction, contentDescription = null) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(workItemMenuExpanded) },
+                        shape = RoundedCornerShape(2.dp),
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = contractorItems.isNotEmpty())
+                            .fillMaxWidth()
+                            .testTag("project_dropdown_work_item")
+                    )
+                    ExposedDropdownMenu(
+                        expanded = workItemMenuExpanded,
+                        onDismissRequest = { workItemMenuExpanded = false }
+                    ) {
+                        contractorItems.forEach { qualifiedItem ->
+                            val masterItem = items.firstOrNull { it.name.equals(qualifiedItem.itemName, ignoreCase = true) }
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(qualifiedItem.itemName, fontWeight = FontWeight.SemiBold)
+                                        Text(
+                                            "${qualifiedItem.uom} • ${qualifiedItem.calculationType.displayName}",
+                                            fontSize = 11.sp,
+                                            color = CarbonGray70
+                                        )
+                                    }
+                                },
+                                leadingIcon = if (masterItem?.id == selectedItemId) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, tint = CarbonBlue60) }
+                                } else null,
+                                onClick = {
+                                    masterItem?.let { viewModel.selectItem(it.id) }
+                                    workItemMenuExpanded = false
+                                    val project = currentProject
+                                    val floor = currentFloor
+                                    if (project != null && floor != null) {
+                                        viewModel.startDedicatedMeasurement(
+                                            projectId = project.id,
+                                            contractorId = currentContractor?.id ?: 0L,
+                                            itemName = qualifiedItem.itemName,
+                                            uom = qualifiedItem.uom,
+                                            calcType = qualifiedItem.calculationType,
+                                            floorId = floor.id,
+                                            floorName = floor.name,
+                                            itemId = masterItem?.id
+                                        )
+                                    }
+                                }
+                            )
                         }
                     }
                 }
@@ -1279,7 +1444,7 @@ fun ProjectRecordMeasurementTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    CarbonStepHeader(stepNumber = "2", title = "SELECT FLOOR LEVEL")
+                    CarbonStepHeader(stepNumber = "3", title = "SELECT FLOOR LEVEL")
                     Text(
                         text = "+ Add Floor",
                         fontSize = 11.sp,
@@ -1289,24 +1454,38 @@ fun ProjectRecordMeasurementTab(
                     )
                 }
 
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.fillMaxWidth()
+                ExposedDropdownMenuBox(
+                    expanded = floorMenuExpanded,
+                    onExpandedChange = { if (floors.isNotEmpty()) floorMenuExpanded = !floorMenuExpanded }
                 ) {
-                    items(floors) { f ->
-                        val isSelected = f.id == selectedFloorId
-                        Surface(
-                            color = if (isSelected) CarbonBlue60 else CarbonGray10,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, if (isSelected) CarbonBlue60 else CarbonGray30),
-                            modifier = Modifier.clickable { viewModel.selectFloor(f.id) }
-                        ) {
-                            Text(
-                                text = f.name,
-                                fontSize = 12.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                color = if (isSelected) CarbonWhite else CarbonGray100,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    OutlinedTextField(
+                        value = currentFloor?.name ?: "",
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Floor / level") },
+                        placeholder = { Text(if (floors.isEmpty()) "No floors available" else "Choose a floor") },
+                        leadingIcon = { Icon(Icons.Default.Layers, contentDescription = null) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(floorMenuExpanded) },
+                        shape = RoundedCornerShape(2.dp),
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = floors.isNotEmpty())
+                            .fillMaxWidth()
+                            .testTag("project_dropdown_floor")
+                    )
+                    ExposedDropdownMenu(
+                        expanded = floorMenuExpanded,
+                        onDismissRequest = { floorMenuExpanded = false }
+                    ) {
+                        floors.forEach { floor ->
+                            DropdownMenuItem(
+                                text = { Text(floor.name, fontWeight = FontWeight.SemiBold) },
+                                leadingIcon = if (floor.id == selectedFloorId) {
+                                    { Icon(Icons.Default.Check, contentDescription = null, tint = CarbonBlue60) }
+                                } else null,
+                                onClick = {
+                                    viewModel.selectFloor(floor.id)
+                                    floorMenuExpanded = false
+                                }
                             )
                         }
                     }
@@ -1314,19 +1493,10 @@ fun ProjectRecordMeasurementTab(
             }
         }
 
-        // STEP 3: COMPONENT / LOCATION & CONTRACTOR
-        item {
+        // STEP 3: CONTRACTOR
+        if (false) { item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CarbonStepHeader(stepNumber = "3", title = "MEMBER DESCRIPTION & CONTRACTOR")
-
-                CarbonInputField(
-                    label = "STRUCTURAL MEMBER / DESCRIPTION",
-                    value = formState.description,
-                    onValueChange = { viewModel.updateFormDescription(it) },
-                    placeholder = "e.g. Beam B1 (Grid A-C), Column C4, Living Room Wall",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_dimension_description"
-                )
+                CarbonStepHeader(stepNumber = "3", title = "SELECT CONTRACTOR")
 
                 if (contractors.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1365,7 +1535,9 @@ fun ProjectRecordMeasurementTab(
             }
         }
 
-        // STEP 4: ENTER DIMENSIONS GRID
+        }
+
+        // Legacy inline entry controls
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 CarbonStepHeader(stepNumber = "4", title = "ENTER MEASUREMENTS & DIMENSIONS")

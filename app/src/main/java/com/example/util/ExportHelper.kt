@@ -21,6 +21,29 @@ import java.util.*
 
 object ExportHelper {
 
+    fun shareSupportDiagnostics(context: Context, report: String) {
+        try {
+            val file = File(context.cacheDir, "AMB_Support_Diagnostics.json")
+            FileOutputStream(file).use {
+                it.write(report.toByteArray(StandardCharsets.UTF_8))
+            }
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/json"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "AMB support diagnostics")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(shareIntent, "Share support diagnostics"))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     /**
      * Export measurements to CSV file with UTF-8 BOM and share via standard Android intent
      */

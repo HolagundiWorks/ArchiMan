@@ -164,7 +164,6 @@ fun ProjectsScreen(
                     val isSelected = project.id == selectedProjectId
                     val projectContractors = contractors.filter { it.projectId == project.id }
                     val projectMeasurements = measurements.filter { it.projectId == project.id }
-                    val projectTotalAmount = projectMeasurements.sumOf { it.amount }
 
                     Surface(
                         shape = RoundedCornerShape(20.dp),
@@ -339,7 +338,7 @@ fun ProjectsScreen(
                                     color = SleekTextSecondary
                                 )
                                 Text(
-                                    text = "Total: ₹${String.format(java.util.Locale.getDefault(), "%,.2f", projectTotalAmount)}",
+                                    text = "${projectMeasurements.size} measurement entries",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = SleekPrimaryBlue

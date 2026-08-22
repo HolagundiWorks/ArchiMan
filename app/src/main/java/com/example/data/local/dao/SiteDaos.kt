@@ -218,7 +218,7 @@ interface ContractorDao {
 
 @Dao
 interface ItemMasterDao {
-    @Query("SELECT * FROM item_master ORDER BY id ASC")
+    @Query("SELECT * FROM item_master WHERE isActive = 1 ORDER BY workType, name")
     fun getAllItems(): Flow<List<ItemMasterEntity>>
 
     @Query("SELECT * FROM item_master WHERE id = :id LIMIT 1")
@@ -236,26 +236,51 @@ interface ItemMasterDao {
     @Delete
     suspend fun deleteItem(item: ItemMasterEntity)
 
+    @Query("UPDATE item_master SET isActive = 0 WHERE id = :id")
+    suspend fun archiveItem(id: Long)
+
     @Query("SELECT COUNT(*) FROM item_master")
     suspend fun getCount(): Int
-}
 
-@Dao
-interface ContractorRateDao {
-    @Query("SELECT * FROM contractor_rates WHERE contractorId = :contractorId")
-    fun getRatesForContractor(contractorId: Long): Flow<List<ContractorRateEntity>>
+    @Query("DELETE FROM component_work_items WHERE itemId = :sourceId AND componentId IN (SELECT componentId FROM component_work_items WHERE itemId = :canonicalId)")
+    suspend fun removeDuplicateComponentLinks(sourceId: Long, canonicalId: Long)
 
-    @Query("SELECT * FROM contractor_rates WHERE contractorId = :contractorId AND itemId = :itemId LIMIT 1")
-    suspend fun getRate(contractorId: Long, itemId: Long): ContractorRateEntity?
+    @Query("UPDATE component_work_items SET itemId = :canonicalId, itemName = :canonicalName, unit = :unit, calculationType = :calculationType WHERE itemId = :sourceId")
+    suspend fun repointComponentLinks(sourceId: Long, canonicalId: Long, canonicalName: String, unit: String, calculationType: CalculationType)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertRate(rate: ContractorRateEntity): Long
+    @Query("UPDATE measurements SET itemId = :canonicalId WHERE itemId = :sourceId")
+    suspend fun repointMeasurements(sourceId: Long, canonicalId: Long)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertRates(rates: List<ContractorRateEntity>)
+    @Query("DELETE FROM contractor_qualified_items WHERE LOWER(TRIM(itemName)) = LOWER(TRIM(:sourceName)) AND contractorId IN (SELECT contractorId FROM contractor_qualified_items WHERE LOWER(TRIM(itemName)) = LOWER(TRIM(:canonicalName)))")
+    suspend fun removeDuplicateQualifications(sourceName: String, canonicalName: String)
 
-    @Query("DELETE FROM contractor_rates WHERE contractorId = :contractorId AND itemId = :itemId")
-    suspend fun deleteRate(contractorId: Long, itemId: Long)
+    @Query("UPDATE contractor_qualified_items SET workType = :workType, itemName = :canonicalName, uom = :unit, calculationType = :calculationType WHERE LOWER(TRIM(itemName)) = LOWER(TRIM(:sourceName))")
+    suspend fun repointQualifications(sourceName: String, canonicalName: String, workType: String, unit: String, calculationType: CalculationType)
+
+    @Query("INSERT OR IGNORE INTO work_item_aliases(workItemId, alias) VALUES(:canonicalId, :alias)")
+    suspend fun preserveAlias(canonicalId: Long, alias: String)
+
+    @Query("UPDATE work_item_aliases SET workItemId = :canonicalId WHERE workItemId = :sourceId")
+    suspend fun repointAliases(sourceId: Long, canonicalId: Long)
+
+    @Transaction
+    suspend fun mergeIntoCanonical(sourceId: Long, canonicalId: Long) {
+        require(sourceId != canonicalId) { "Source and canonical work item must differ" }
+        val source = requireNotNull(getItemById(sourceId)) { "Source work item does not exist" }
+        val canonical = requireNotNull(getItemById(canonicalId)) { "Canonical work item does not exist" }
+        require(source.isActive && canonical.isActive) { "Only active work items can be merged" }
+        require(source.workType.equals(canonical.workType, ignoreCase = true)) { "Work types must match" }
+        require(source.calculationType == canonical.calculationType) { "Calculation formulas must match" }
+
+        removeDuplicateComponentLinks(sourceId, canonicalId)
+        repointComponentLinks(sourceId, canonicalId, canonical.name, canonical.unit, canonical.calculationType)
+        repointMeasurements(sourceId, canonicalId)
+        removeDuplicateQualifications(source.name, canonical.name)
+        repointQualifications(source.name, canonical.name, canonical.workType, canonical.unit, canonical.calculationType)
+        preserveAlias(canonicalId, source.name)
+        repointAliases(sourceId, canonicalId)
+        archiveItem(sourceId)
+    }
 }
 
 @Dao
@@ -287,12 +312,6 @@ interface MeasurementDao {
     @Query("SELECT * FROM measurements WHERE id = :id LIMIT 1")
     suspend fun getMeasurementById(id: Long): MeasurementEntity?
 
-    @Query("SELECT * FROM measurements WHERE projectId = :projectId AND contractorId = :contractorId AND (billId IS NULL OR billId = 0)")
-    suspend fun getUnbilledMeasurements(projectId: Long, contractorId: Long): List<MeasurementEntity>
-
-    @Query("SELECT * FROM measurements WHERE billId = :billId")
-    suspend fun getMeasurementsForBill(billId: Long): List<MeasurementEntity>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMeasurement(measurement: MeasurementEntity): Long
 
@@ -308,24 +327,43 @@ interface MeasurementDao {
     @Query("DELETE FROM measurements WHERE id = :id")
     suspend fun deleteMeasurementById(id: Long)
 
-    @Query("UPDATE measurements SET billId = :billId WHERE id IN (:ids)")
-    suspend fun linkMeasurementsToBill(ids: List<Long>, billId: Long)
 }
 
 @Dao
-interface BillDao {
-    @Query("SELECT * FROM bills ORDER BY date DESC, id DESC")
-    fun getAllBills(): Flow<List<BillEntity>>
+interface MeasurementSheetDao {
+    @Query("SELECT * FROM measurement_sheets WHERE archivedAt IS NULL ORDER BY createdAt DESC, id DESC")
+    fun getAllSheets(): Flow<List<MeasurementSheetEntity>>
 
-    @Query("SELECT * FROM bills WHERE projectId = :projectId ORDER BY date DESC")
-    fun getBillsByProject(projectId: Long): Flow<List<BillEntity>>
+    @Query("SELECT * FROM measurement_sheets WHERE id = :id LIMIT 1")
+    suspend fun getById(id: Long): MeasurementSheetEntity?
 
-    @Query("SELECT * FROM bills WHERE id = :id LIMIT 1")
-    suspend fun getBillById(id: Long): BillEntity?
+    @Insert
+    suspend fun insert(sheet: MeasurementSheetEntity): Long
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertBill(bill: BillEntity): Long
+    @Query("UPDATE measurement_sheets SET status=:status, revision=:revision, lockedAt=CASE WHEN :status='APPROVED' THEN :now ELSE lockedAt END, updatedAt=:now WHERE id=:id")
+    suspend fun updateWorkflow(id: Long, status: String, revision: Int, now: Long)
+
+    @Query("UPDATE measurement_sheets SET archivedAt=:now, updatedAt=:now WHERE id=:id AND archivedAt IS NULL")
+    suspend fun archive(id: Long, now: Long): Int
+}
+
+@Dao
+interface MeasurementReviewEventDao {
+    @Query("SELECT * FROM measurement_review_events WHERE sheetId=:sheetId ORDER BY createdAt ASC, id ASC")
+    fun getForSheet(sheetId: Long): Flow<List<MeasurementReviewEventEntity>>
+
+    @Insert
+    suspend fun insert(event: MeasurementReviewEventEntity): Long
+}
+
+@Dao
+interface WorkItemAliasDao {
+    @Query("SELECT * FROM work_item_aliases WHERE workItemId = :workItemId ORDER BY alias")
+    fun getAliases(workItemId: Long): Flow<List<WorkItemAliasEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(alias: WorkItemAliasEntity): Long
 
     @Delete
-    suspend fun deleteBill(bill: BillEntity)
+    suspend fun delete(alias: WorkItemAliasEntity)
 }

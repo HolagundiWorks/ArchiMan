@@ -59,7 +59,6 @@ fun MeasurementRegisterScreen(
     var selectedPhotoUrl by remember { mutableStateOf<String?>(null) }
 
     val currentProject = projects.firstOrNull { it.id == selectedProjectId }
-    val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale("en", "IN")) }
     val sdf = remember { SimpleDateFormat("dd MMM", Locale.getDefault()) }
 
     val filteredMeasurements = measurements.filter { m ->
@@ -71,8 +70,6 @@ fun MeasurementRegisterScreen(
                 m.location.contains(searchQuery, ignoreCase = true) ||
                 m.remarks.contains(searchQuery, ignoreCase = true))
     }
-
-    val totalRegisterAmount = filteredMeasurements.sumOf { it.amount }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -116,7 +113,7 @@ fun MeasurementRegisterScreen(
                             letterSpacing = (-0.5).sp
                         )
                         Text(
-                            text = "${filteredMeasurements.size} items • ${currencyFormat.format(totalRegisterAmount)}",
+                            text = "${filteredMeasurements.size} measurement entries",
                             fontSize = 12.sp,
                             color = SleekPrimaryBlue,
                             fontWeight = FontWeight.SemiBold
@@ -164,7 +161,7 @@ fun MeasurementRegisterScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.navigateTo(AppScreen.QUICK_ENTRY) },
+                onClick = { viewModel.openCanonicalMeasurement() },
                 containerColor = SleekPrimaryBlue,
                 contentColor = Color.White,
                 shape = CircleShape,
@@ -281,7 +278,7 @@ fun MeasurementRegisterScreen(
                             color = SleekTextSecondary
                         )
                         Button(
-                            onClick = { viewModel.navigateTo(AppScreen.QUICK_ENTRY) },
+                            onClick = { viewModel.openCanonicalMeasurement() },
                             shape = RoundedCornerShape(20.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = SleekPrimaryBlue),
                             modifier = Modifier.testTag("btn_empty_add")
@@ -300,7 +297,6 @@ fun MeasurementRegisterScreen(
                         MeasurementCard(
                             measurement = item,
                             dateFormat = sdf,
-                            currencyFormat = currencyFormat,
                             onClick = { viewModel.startEditingMeasurement(item) },
                             onPhotoClick = { if (item.photoUri != null) selectedPhotoUrl = item.photoUri }
                         )
@@ -354,7 +350,6 @@ fun MeasurementRegisterScreen(
 fun MeasurementCard(
     measurement: MeasurementEntity,
     dateFormat: SimpleDateFormat,
-    currencyFormat: NumberFormat,
     onClick: () -> Unit,
     onPhotoClick: () -> Unit
 ) {
@@ -440,24 +435,13 @@ fun MeasurementCard(
                 }
             }
 
-            // Quantity, Rate & Amount
+            // Measured quantity
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = "${String.format(Locale.getDefault(), "%.2f", measurement.quantity)} ${measurement.unit}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     color = SleekPrimaryBlue
-                )
-                Text(
-                    text = "@ ₹${measurement.rate}",
-                    fontSize = 11.sp,
-                    color = SleekTextSecondary
-                )
-                Text(
-                    text = currencyFormat.format(measurement.amount),
-                    fontWeight = FontWeight.Black,
-                    fontSize = 13.sp,
-                    color = SleekTextPrimary
                 )
             }
 
@@ -492,7 +476,6 @@ fun EditMeasurementDialog(
     var height by remember { mutableStateOf(measurement.height.toString()) }
     var nos by remember { mutableStateOf(measurement.nos.toString()) }
     var deduction by remember { mutableStateOf(measurement.deduction.toString()) }
-    var rate by remember { mutableStateOf(measurement.rate.toString()) }
     var floor by remember { mutableStateOf(measurement.floor) }
     var location by remember { mutableStateOf(measurement.location) }
     var remarks by remember { mutableStateOf(measurement.remarks) }
@@ -502,7 +485,6 @@ fun EditMeasurementDialog(
     val h = height.toDoubleOrNull() ?: 0.0
     val n = nos.toDoubleOrNull() ?: 1.0
     val d = deduction.toDoubleOrNull() ?: 0.0
-    val r = rate.toDoubleOrNull() ?: measurement.rate
 
     val calcQty = when (measurement.calculationType) {
         CalculationType.RUNNING_LENGTH -> l * n
@@ -512,7 +494,6 @@ fun EditMeasurementDialog(
         CalculationType.NOS -> n
     }
     val roundedQty = Math.round(calcQty * 100.0) / 100.0
-    val roundedAmt = Math.round(roundedQty * r * 100.0) / 100.0
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -608,16 +589,6 @@ fun EditMeasurementDialog(
                     )
                 }
 
-                OutlinedTextField(
-                    value = rate,
-                    onValueChange = { rate = it },
-                    label = { Text("Rate (₹)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
                 // Live total preview
                 Surface(
                     color = SleekPrimaryContainer,
@@ -628,8 +599,7 @@ fun EditMeasurementDialog(
                         modifier = Modifier.padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Qty: $roundedQty ${measurement.unit}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SleekOnPrimaryContainer)
-                        Text("Amount: ₹$roundedAmt", fontWeight = FontWeight.Black, color = SleekOnPrimaryContainer, fontSize = 13.sp)
+                        Text("Quantity: $roundedQty ${measurement.unit}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SleekOnPrimaryContainer)
                     }
                 }
 
@@ -673,9 +643,9 @@ fun EditMeasurementDialog(
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Delete")
+                        Text("Archive sheet")
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -693,8 +663,6 @@ fun EditMeasurementDialog(
                                         nos = n,
                                         deduction = d,
                                         quantity = roundedQty,
-                                        rate = r,
-                                        amount = roundedAmt,
                                         floor = floor,
                                         location = location,
                                         remarks = remarks

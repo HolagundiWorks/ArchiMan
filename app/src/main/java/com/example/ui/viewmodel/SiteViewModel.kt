@@ -6,11 +6,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import com.example.data.repository.SiteRepository
-import com.example.server.LocalLanServer
+import com.example.domain.MeasurementInput
+import com.example.domain.QuantityCalculator
+import com.example.domain.WorkCatalog
+import com.example.domain.CatalogDocumentParser
+import com.example.domain.MeasurementSheetStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -19,16 +24,11 @@ enum class AppScreen(val title: String) {
     PROJECT_WORKSPACE("Project Workspace"),
     DEDICATED_MEASUREMENT("Record Measurement"),
     ROOM_WORKSPACE("Room Components"),
-    WORK_ITEM_MEASURE("Work Item Measurement"),
     MEASUREMENT_BOOK("Measurement Book"),
-    QUICK_ENTRY("Quick Measurement"),
     REGISTER("Measurements Register"),
     PROJECTS("Projects"),
     CLIENTS("Clients"),
     CONTRACTORS("Contractors"),
-    BILLS("Bills & Invoicing"),
-    REPORTS("Reports & Summary"),
-    LAN_SERVER("Local LAN Web Server"),
     MASTER_DATA("Items & Master Library"),
     EXPORT("Export & Quantities")
 }
@@ -46,7 +46,6 @@ data class QuickEntryFormState(
     val height: String = "",
     val nos: String = "1",
     val deduction: String = "",
-    val rate: String = "",
     val floor: String = "",
     val location: String = "",
     val remarks: String = "",
@@ -59,7 +58,6 @@ data class QuickEntryFormState(
 class SiteViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     val repository = SiteRepository(database)
-    val lanServer = LocalLanServer(application, repository)
 
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
@@ -85,8 +83,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     val measurements: StateFlow<List<MeasurementEntity>> = repository.allMeasurements
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
-    val bills: StateFlow<List<BillEntity>> = repository.allBills
+    val measurementSheets: StateFlow<List<MeasurementSheetEntity>> = repository.getMeasurementSheets()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Dedicated Measurement Session State
@@ -114,6 +111,13 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     // Selection Hierarchy (Digital Measurement Book Context)
     private val _selectedProjectId = MutableStateFlow<Long?>(null)
     val selectedProjectId: StateFlow<Long?> = _selectedProjectId.asStateFlow()
+
+    val projectContractorRefs: StateFlow<List<ProjectContractorCrossRef>> = selectedProjectId
+        .flatMapLatest { projectId ->
+            if (projectId == null) flowOf(emptyList())
+            else repository.getProjectContractorRefs(projectId)
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _selectedFloorId = MutableStateFlow<Long?>(null)
     val selectedFloorId: StateFlow<Long?> = _selectedFloorId.asStateFlow()
@@ -197,13 +201,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     private val _filterSearchQuery = MutableStateFlow("")
     val filterSearchQuery: StateFlow<String> = _filterSearchQuery.asStateFlow()
 
-    // LAN Server State
-    private val _isServerRunning = MutableStateFlow(false)
-    val isServerRunning: StateFlow<Boolean> = _isServerRunning.asStateFlow()
-
-    private val _serverUrl = MutableStateFlow("")
-    val serverUrl: StateFlow<String> = _serverUrl.asStateFlow()
-
     // Editing measurement state
     private val _editingMeasurement = MutableStateFlow<MeasurementEntity?>(null)
     val editingMeasurement: StateFlow<MeasurementEntity?> = _editingMeasurement.asStateFlow()
@@ -252,12 +249,26 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Start LAN server on startup
-        startLanServer()
+        // LAN sharing is intentionally not started. The product is an offline,
+        // quantity-only Measurement Book and must not expose unauthenticated data.
     }
 
     fun navigateTo(screen: AppScreen) {
         _currentScreen.value = screen
+    }
+
+    /** Opens the single authoritative measurement editor using current project context. */
+    fun openCanonicalMeasurement(): Boolean {
+        val contractorId = _selectedContractorId.value ?: contractors.value.firstOrNull()?.id ?: return false
+        val floor = floors.value.firstOrNull { it.id == _selectedFloorId.value } ?: floors.value.firstOrNull() ?: return false
+        val connected = _selectedComponentWorkItem.value
+        val master = items.value.firstOrNull { it.id == (connected?.itemId ?: _selectedItemId.value) }
+        val itemName = connected?.itemName ?: master?.name ?: return false
+        val unit = connected?.unit ?: master?.unit ?: return false
+        val formula = connected?.calculationType ?: master?.calculationType ?: return false
+        startDedicatedMeasurementSession(contractorId, itemName, unit, formula, floor.id, floor.name, connected?.itemId ?: master?.id)
+        _currentScreen.value = AppScreen.DEDICATED_MEASUREMENT
+        return true
     }
 
     // Context selection methods
@@ -295,7 +306,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     fun selectComponentWorkItem(item: ComponentWorkItemEntity) {
         _selectedComponentWorkItem.value = item
         _selectedItemId.value = item.itemId
-        updateRateForCurrentSelection()
 
         // Prefill form dimensions from component if available
         val comp = components.value.firstOrNull { it.id == _selectedComponentId.value }
@@ -315,27 +325,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectContractor(contractorId: Long) {
         _selectedContractorId.value = contractorId
-        updateRateForCurrentSelection()
     }
 
     fun selectItem(itemId: Long) {
         _selectedItemId.value = itemId
-        updateRateForCurrentSelection()
-    }
-
-    private fun updateRateForCurrentSelection() {
-        val contractorId = _selectedContractorId.value
-        val itemId = _selectedItemId.value
-        if (contractorId != null && itemId != null) {
-            viewModelScope.launch {
-                val rate = repository.getRateForContractorAndItem(contractorId, itemId) ?: 0.0
-                _formState.update { it.copy(rate = if (rate > 0) rate.toString() else "") }
-            }
-        } else if (itemId != null) {
-            val item = items.value.firstOrNull { it.id == itemId }
-            val rate = item?.defaultRate ?: 0.0
-            _formState.update { it.copy(rate = if (rate > 0) rate.toString() else "") }
-        }
     }
 
     // Breadcrumb navigation jumps
@@ -666,7 +659,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         height: String? = null,
         nos: String? = null,
         deduction: String? = null,
-        rate: String? = null,
         floor: String? = null,
         location: String? = null,
         remarks: String? = null,
@@ -680,7 +672,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                 height = height ?: current.height,
                 nos = nos ?: current.nos,
                 deduction = deduction ?: current.deduction,
-                rate = rate ?: current.rate,
                 floor = floor ?: current.floor,
                 location = location ?: current.location,
                 remarks = remarks ?: current.remarks,
@@ -697,7 +688,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     fun updateFormDeduction(value: String) = updateForm(deduction = value)
 
     fun repeatFormValues() {
-        // Keeps length, width, height, nos, rate but lets user change description
+        // Keeps dimension values while letting the user change the description.
         _formState.update { current ->
             current.copy(
                 description = if (current.description.isNotBlank()) "${current.description} (Copy)" else ""
@@ -712,14 +703,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         val n = state.nos.toDoubleOrNull() ?: 1.0
         val d = state.deduction.toDoubleOrNull() ?: 0.0
 
-        val q = when (calcType) {
-            CalculationType.RUNNING_LENGTH -> l * n
-            CalculationType.AREA -> l * w * n
-            CalculationType.WALL_PLASTER -> (l * h * n) - d
-            CalculationType.VOLUME -> l * w * h * n
-            CalculationType.NOS -> n
-        }
-        return Math.round(q * 100.0) / 100.0
+        return QuantityCalculator.calculate(
+            calcType,
+            MeasurementInput(no = n, length = l, breadth = w, height = h, deduction = d)
+        )
     }
 
     fun computeQuantity(item: ItemMasterEntity?, state: QuickEntryFormState): Double {
@@ -731,11 +718,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         saveMeasurementRow {
             onSaved()
         }
-    }
-
-    fun computeAmount(qty: Double, rateStr: String): Double {
-        val r = rateStr.toDoubleOrNull() ?: 0.0
-        return Math.round(qty * r * 100.0) / 100.0
     }
 
     // Save Row in Work Item Measurement or Quick Entry
@@ -756,8 +738,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
         val form = _formState.value
         val qty = computeQuantity(item.calculationType, form)
-        val rate = form.rate.toDoubleOrNull() ?: item.defaultRate
-        val amount = computeAmount(qty, rate.toString())
 
         val floorName = form.floor.ifBlank { currentFloor?.name ?: "" }
         val locationName = form.location.ifBlank {
@@ -784,8 +764,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             nos = form.nos.toDoubleOrNull() ?: 1.0,
             deduction = form.deduction.toDoubleOrNull() ?: 0.0,
             quantity = qty,
-            rate = rate,
-            amount = amount,
             floor = floorName,
             location = locationName,
             remarks = form.remarks,
@@ -797,7 +775,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             val insertedId = repository.insertMeasurement(measurement)
             val savedEntity = measurement.copy(id = insertedId)
 
-            val summary = "$desc: ${qty} ${item.unit} @ ₹$rate = ₹${amount.toInt()}"
+            val summary = "$desc: $qty ${item.unit}"
 
             _formState.update { current ->
                 current.copy(
@@ -836,8 +814,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
         val form = _formState.value
         val qty = computeQuantity(item.calculationType, form)
-        val rate = form.rate.toDoubleOrNull() ?: item.defaultRate
-        val amount = computeAmount(qty, rate.toString())
 
         val desc = form.description.ifBlank { currentComp?.name ?: item.name }
         val locationName = form.location.ifBlank {
@@ -869,8 +845,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                 nos = form.nos.toDoubleOrNull() ?: 1.0,
                 deduction = form.deduction.toDoubleOrNull() ?: 0.0,
                 quantity = qty,
-                rate = rate,
-                amount = amount,
                 floor = baseFloorName,
                 location = locationName,
                 remarks = form.remarks,
@@ -897,7 +871,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                 count++
             }
 
-            val summary = "$desc: ${qty} ${item.unit} duplicated across $count floor(s) (Total ₹${(amount * count).toInt()})"
+            val summary = "$desc: $qty ${item.unit} duplicated across $count floor(s)"
             _formState.update { current ->
                 current.copy(
                     description = "",
@@ -955,8 +929,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateMeasurement(measurement: MeasurementEntity) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.updateMeasurement(measurement)
-            _editingMeasurement.value = null
+            runCatching { repository.updateMeasurement(measurement) }
+                .onSuccess { _editingMeasurement.value = null }
         }
     }
 
@@ -1002,7 +976,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         name: String,
         address: String,
         contactNo: String,
-        qualifiedItemsList: List<Triple<String, String, Double>>, // itemName, uom, rate
+        contractorType: String = "Civil",
+        qualifiedItemsList: List<Pair<String, String>>, // itemName, uom
         onComplete: (Long) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -1011,11 +986,12 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                     name = name.trim(),
                     address = address.trim(),
                     contactNo = contactNo.trim(),
-                    phone = contactNo.trim()
+                    phone = contactNo.trim(),
+                    contractorType = contractorType
                 )
             )
             if (qualifiedItemsList.isNotEmpty()) {
-                val entities = qualifiedItemsList.map { (iName, uom, rate) ->
+                val entities = qualifiedItemsList.map { (iName, uom) ->
                     val calcType = when (uom.lowercase().trim()) {
                         "m³", "cu.m", "cum" -> CalculationType.VOLUME
                         "m", "rmt", "r.m." -> CalculationType.RUNNING_LENGTH
@@ -1024,10 +1000,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     ContractorQualifiedItemEntity(
                         contractorId = contractorId,
+                        workType = WorkCatalog.classify(contractorType, iName),
                         itemName = iName.trim(),
                         uom = uom.trim(),
                         calculationType = calcType,
-                        rate = rate
                     )
                 }
                 repository.insertQualifiedItems(entities)
@@ -1039,8 +1015,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     fun addQualifiedItemToContractor(
         contractorId: Long,
         itemName: String,
-        uom: String,
-        rate: Double = 0.0
+        uom: String
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             val calcType = when (uom.lowercase().trim()) {
@@ -1052,10 +1027,13 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             repository.insertQualifiedItem(
                 ContractorQualifiedItemEntity(
                     contractorId = contractorId,
+                    workType = WorkCatalog.classify(
+                        contractors.value.firstOrNull { it.id == contractorId }?.contractorType.orEmpty(),
+                        itemName
+                    ),
                     itemName = itemName.trim(),
                     uom = uom.trim(),
                     calculationType = calcType,
-                    rate = rate
                 )
             )
         }
@@ -1153,14 +1131,9 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         onComplete: (Int) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            var count = 0
-            for (m in measurementsList) {
-                if (m.description.isNotBlank() || m.length > 0 || m.height > 0 || m.quantity > 0) {
-                    repository.insertMeasurement(m)
-                    count++
-                }
-            }
-            onComplete(count)
+            val valid = measurementsList.filter { it.description.isNotBlank() || it.length > 0 || it.height > 0 || it.quantity > 0 }
+            val count = repository.insertMeasurementBatch(valid)
+            withContext(Dispatchers.Main) { onComplete(count) }
         }
     }
 
@@ -1219,14 +1192,41 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun addItem(name: String, unit: String, calcType: CalculationType, defaultRate: Double = 0.0) {
+    fun transitionMeasurementSheet(sheetId: Long, status: MeasurementSheetStatus, actor: String, comment: String = "", onComplete: (Result<Unit>) -> Unit = {}) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = runCatching { repository.transitionMeasurementSheet(sheetId, status, actor, comment) }
+            withContext(Dispatchers.Main) { onComplete(result) }
+        }
+    }
+
+    fun reviewEvents(sheetId: Long): Flow<List<MeasurementReviewEventEntity>> = repository.getReviewEvents(sheetId)
+
+    fun importWorkCatalog(json: String, onComplete: (Result<Int>) -> Unit) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = runCatching {
+                val imported = CatalogDocumentParser.toMasterItems(CatalogDocumentParser.parse(json))
+                val existing = items.value.map { WorkCatalog.normalizeName(it.name) }.toMutableSet()
+                var added = 0
+                imported.forEach { item ->
+                    if (existing.add(WorkCatalog.normalizeName(item.name))) {
+                        repository.insertItem(item)
+                        added++
+                    }
+                }
+                added
+            }
+            withContext(Dispatchers.Main) { onComplete(result) }
+        }
+    }
+
+    fun addItem(name: String, unit: String, calcType: CalculationType) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.insertItem(
                 ItemMasterEntity(
+                    itemCode = WorkCatalog.codeFor("General Works", name),
                     name = name,
                     unit = unit,
                     calculationType = calcType,
-                    defaultRate = defaultRate,
                     isPredefined = false
                 )
             )
@@ -1245,57 +1245,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun saveContractorRate(contractorId: Long, itemId: Long, rate: Double) {
+    fun mergeWorkItems(sourceId: Long, canonicalId: Long, onComplete: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
-            repository.saveContractorRate(contractorId, itemId, rate)
-        }
-    }
-
-    // Billing
-    fun generateBill(
-        projectId: Long,
-        contractorId: Long,
-        retentionPercent: Double = 0.0,
-        notes: String = "",
-        onComplete: (BillEntity) -> Unit = {}
-    ) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val unbilled = repository.getUnbilledMeasurements(projectId, contractorId)
-            if (unbilled.isEmpty()) return@launch
-
-            val proj = projects.value.firstOrNull { it.id == projectId }
-            val cont = contractors.value.firstOrNull { it.id == contractorId }
-
-            val totalQty = unbilled.sumOf { it.quantity }
-            val totalAmt = unbilled.sumOf { it.amount }
-            val retentionAmt = totalAmt * (retentionPercent / 100.0)
-            val netAmt = totalAmt - retentionAmt
-
-            val sdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
-            val billNo = "BILL-${sdf.format(Date())}-${(100..999).random()}"
-
-            val bill = BillEntity(
-                billNumber = billNo,
-                projectId = projectId,
-                projectName = proj?.name ?: "Site Project",
-                contractorId = contractorId,
-                contractorName = cont?.name ?: "Contractor",
-                date = System.currentTimeMillis(),
-                totalQuantity = totalQty,
-                totalAmount = totalAmt,
-                retentionPercent = retentionPercent,
-                netAmount = netAmt,
-                notes = notes
-            )
-
-            val billId = repository.createBill(bill, unbilled.map { it.id })
-            onComplete(bill.copy(id = billId))
-        }
-    }
-
-    fun deleteBill(bill: BillEntity) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.deleteBill(bill)
+            val result = runCatching { repository.mergeWorkItems(sourceId, canonicalId) }
+            withContext(Dispatchers.Main) { onComplete(result) }
         }
     }
 
@@ -1313,7 +1266,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         uom: String,
         calcType: CalculationType,
         floorId: Long,
-        floorName: String
+        floorName: String,
+        itemId: Long? = null
     ) {
         _dedicatedContractorId.value = contractorId
         _dedicatedItemName.value = itemName
@@ -1321,6 +1275,9 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         _dedicatedCalculationType.value = calcType
         _dedicatedFloorId.value = floorId
         _dedicatedFloorName.value = floorName
+        _dedicatedItemId.value = itemId ?: items.value.firstOrNull {
+            WorkCatalog.normalizeName(it.name) == WorkCatalog.normalizeName(itemName)
+        }?.id
     }
 
     // Filter controls
@@ -1328,25 +1285,4 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     fun setFilterContractor(id: Long?) { _filterContractorId.value = id }
     fun setFilterSearchQuery(query: String) { _filterSearchQuery.value = query }
 
-    // LAN Server
-    fun startLanServer() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val ok = lanServer.start()
-            _isServerRunning.value = ok
-            if (ok) {
-                _serverUrl.value = lanServer.getServerUrl()
-            }
-        }
-    }
-
-    fun stopLanServer() {
-        lanServer.stop()
-        _isServerRunning.value = false
-        _serverUrl.value = ""
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        lanServer.stop()
-    }
 }

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "contractorTypes": [
+    {"name":"Civil","items":[
+      {"name":"Earthwork Excavation","uom":"m³","formula":"VOLUME","workType":"Earthwork"},
+      {"name":"PCC","uom":"m³","formula":"VOLUME","workType":"Concrete & Structure"},
+      {"name":"RCC","uom":"m³","formula":"VOLUME","workType":"Concrete & Structure"},
+      {"name":"Reinforcement Steel","uom":"kg","formula":"NOS","workType":"Concrete & Structure"},
+      {"name":"Shuttering & Formwork","uom":"m²","formula":"AREA","workType":"Concrete & Structure"},
+      {"name":"BrickWork 230mm","uom":"m²","formula":"AREA","workType":"Masonry"},
+      {"name":"BrickWork 115mm","uom":"m²","formula":"AREA","workType":"Masonry"},
+      {"name":"Plaster 12mm","uom":"m²","formula":"WALL_PLASTER","workType":"Finishes"},
+      {"name":"Plaster 20mm (External)","uom":"m²","formula":"WALL_PLASTER","workType":"Finishes"}
+    ]},
+    {"name":"Electrical","items":[
+      {"name":"Concealed Conduit","uom":"m","formula":"RUNNING_LENGTH","workType":"Electrical Works"},
+      {"name":"Point Wiring","uom":"Nos","formula":"NOS","workType":"Electrical Works"},
+      {"name":"Light Point","uom":"Nos","formula":"NOS","workType":"Electrical Works"},
+      {"name":"Power Point","uom":"Nos","formula":"NOS","workType":"Electrical Works"},
+      {"name":"Switch Board","uom":"Nos","formula":"NOS","workType":"Electrical Works"},
+      {"name":"Distribution Board","uom":"Nos","formula":"NOS","workType":"Electrical Works"},
+      {"name":"Cable Laying","uom":"m","formula":"RUNNING_LENGTH","workType":"Electrical Works"},
+      {"name":"Earthing","uom":"Nos","formula":"NOS","workType":"Electrical Works"}
+    ]},
+    {"name":"Plumbing","items":[
+      {"name":"Water Supply Pipe","uom":"m","formula":"RUNNING_LENGTH","workType":"Plumbing Works"},
+      {"name":"Drainage Pipe","uom":"m","formula":"RUNNING_LENGTH","workType":"Plumbing Works"},
+      {"name":"Floor Trap","uom":"Nos","formula":"NOS","workType":"Plumbing Works"},
+      {"name":"WC Installation","uom":"Nos","formula":"NOS","workType":"Plumbing Works"},
+      {"name":"Wash Basin Installation","uom":"Nos","formula":"NOS","workType":"Plumbing Works"},
+      {"name":"CP Fittings","uom":"Nos","formula":"NOS","workType":"Plumbing Works"},
+      {"name":"Water Tank","uom":"Nos","formula":"NOS","workType":"Plumbing Works"},
+      {"name":"Pressure Testing","uom":"m","formula":"RUNNING_LENGTH","workType":"Plumbing Works"}
+    ]},
+    {"name":"Carpenter","items":[
+      {"name":"Door Frame","uom":"m","formula":"RUNNING_LENGTH","workType":"Joinery & Carpentry"},
+      {"name":"Door Shutter","uom":"m²","formula":"AREA","workType":"Joinery & Carpentry"},
+      {"name":"Window Shutter","uom":"m²","formula":"AREA","workType":"Joinery & Carpentry"},
+      {"name":"Modular Kitchen","uom":"m²","formula":"AREA","workType":"Joinery & Carpentry"},
+      {"name":"Wardrobe","uom":"m²","formula":"AREA","workType":"Joinery & Carpentry"},
+      {"name":"Wooden Partition","uom":"m²","formula":"AREA","workType":"Joinery & Carpentry"},
+      {"name":"Hardware Fittings","uom":"Nos","formula":"NOS","workType":"Joinery & Carpentry"}
+    ]},
+    {"name":"Painter","items":[
+      {"name":"Wall Putty","uom":"m²","formula":"AREA","workType":"Finishes"},
+      {"name":"Interior Painting","uom":"m²","formula":"AREA","workType":"Finishes"},
+      {"name":"Exterior Painting","uom":"m²","formula":"AREA","workType":"Finishes"},
+      {"name":"Primer Coat","uom":"m²","formula":"AREA","workType":"Finishes"},
+      {"name":"Wood Polish","uom":"m²","formula":"AREA","workType":"Finishes"}
+    ]},
+    {"name":"Flooring & Cladding","items":[
+      {"name":"Floor Tile Laying","uom":"m²","formula":"AREA","workType":"Flooring & Cladding"},
+      {"name":"Wall Tile Cladding","uom":"m²","formula":"AREA","workType":"Flooring & Cladding"},
+      {"name":"Granite Flooring","uom":"m²","formula":"AREA","workType":"Flooring & Cladding"},
+      {"name":"Marble Flooring","uom":"m²","formula":"AREA","workType":"Flooring & Cladding"},
+      {"name":"Skirting","uom":"m","formula":"RUNNING_LENGTH","workType":"Flooring & Cladding"},
+      {"name":"Dado","uom":"m²","formula":"AREA","workType":"Flooring & Cladding"},
+      {"name":"Stone Cladding","uom":"m²","formula":"AREA","workType":"Flooring & Cladding"},
+      {"name":"Tile Grouting","uom":"m²","formula":"AREA","workType":"Flooring & Cladding"}
+    ]},
+    {"name":"HVAC","items":[{"name":"Duct Installation","uom":"m²","formula":"AREA","workType":"HVAC Works"},{"name":"Indoor Unit","uom":"Nos","formula":"NOS","workType":"HVAC Works"},{"name":"Outdoor Unit","uom":"Nos","formula":"NOS","workType":"HVAC Works"}]},
+    {"name":"Fire Fighting","items":[{"name":"Fire Sprinkler","uom":"Nos","formula":"NOS","workType":"Fire Protection"},{"name":"Hydrant Pipe","uom":"m","formula":"RUNNING_LENGTH","workType":"Fire Protection"},{"name":"Hose Reel","uom":"Nos","formula":"NOS","workType":"Fire Protection"}]},
+    {"name":"Fabrication","items":[{"name":"Steel Railing","uom":"m","formula":"RUNNING_LENGTH","workType":"Fabrication"},{"name":"MS Grill","uom":"m²","formula":"AREA","workType":"Fabrication"},{"name":"Steel Truss","uom":"kg","formula":"NOS","workType":"Fabrication"}]},
+    {"name":"Waterproofing","items":[{"name":"Terrace Waterproofing","uom":"m²","formula":"AREA","workType":"Waterproofing"},{"name":"Toilet Waterproofing","uom":"m²","formula":"AREA","workType":"Waterproofing"},{"name":"Joint Treatment","uom":"m","formula":"RUNNING_LENGTH","workType":"Waterproofing"}]},
+    {"name":"Landscaping","items":[{"name":"Lawn Area","uom":"m²","formula":"AREA","workType":"Landscaping"},{"name":"Paver Laying","uom":"m²","formula":"AREA","workType":"Landscaping"},{"name":"Kerb Stone","uom":"m","formula":"RUNNING_LENGTH","workType":"Landscaping"}]},
+    {"name":"General","items":[{"name":"General Count Item","uom":"Nos","formula":"NOS","workType":"General Works"}]}
+  ]
+}

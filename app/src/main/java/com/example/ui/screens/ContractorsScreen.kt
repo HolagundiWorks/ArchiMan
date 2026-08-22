@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.ContractorEntity
 import com.example.data.local.entity.ContractorQualifiedItemEntity
+import com.example.domain.CatalogDocumentParser
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
 
@@ -201,9 +203,11 @@ fun ContractorsScreen(
     // Add Contractor Dialog
     if (showAddDialog) {
         AddContractorDialog(
+            existingContractors = contractors,
+            allQualifiedItems = allQualifiedItems,
             onDismiss = { showAddDialog = false },
-            onSave = { name, address, contactNo, qualifiedItemsList ->
-                viewModel.addContractorWithQualifiedItems(name, address, contactNo, qualifiedItemsList)
+            onSave = { name, address, contactNo, contractorType, qualifiedItemsList ->
+                viewModel.addContractorWithQualifiedItems(name, address, contactNo, contractorType, qualifiedItemsList)
                 showAddDialog = false
             }
         )
@@ -226,8 +230,8 @@ fun ContractorsScreen(
         AddQualifiedItemDialog(
             contractor = contractorToAddItemTo!!,
             onDismiss = { contractorToAddItemTo = null },
-            onSave = { itemName, uom, rate ->
-                viewModel.addQualifiedItemToContractor(contractorToAddItemTo!!.id, itemName, uom, rate)
+            onSave = { itemName, uom ->
+                viewModel.addQualifiedItemToContractor(contractorToAddItemTo!!.id, itemName, uom)
                 contractorToAddItemTo = null
             }
         )
@@ -450,7 +454,7 @@ fun ContractorCard(
                                         color = CarbonGray100
                                     )
                                     Text(
-                                        text = "UOM: ${item.uom}${if (item.rate > 0) " • ₹${item.rate.toInt()}/${item.uom}" else ""}",
+                                        text = "UOM: ${item.uom} • ${item.calculationType.displayName}",
                                         fontSize = 10.sp,
                                         color = CarbonCyan80,
                                         fontWeight = FontWeight.Medium
@@ -476,45 +480,40 @@ fun ContractorCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddContractorDialog(
+    existingContractors: List<ContractorEntity>,
+    allQualifiedItems: List<ContractorQualifiedItemEntity>,
     onDismiss: () -> Unit,
-    onSave: (name: String, address: String, contactNo: String, items: List<Triple<String, String, Double>>) -> Unit
+    onSave: (name: String, address: String, contactNo: String, contractorType: String, items: List<Pair<String, String>>) -> Unit
 ) {
+    val context = LocalContext.current
     var name by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var contactNo by remember { mutableStateOf("") }
+    val bundledCatalog = remember(context) { CatalogDocumentParser.loadBundled(context) }
+    val contractorTypes = bundledCatalog.contractorTypes.map { it.name }
+    val standardWorkItems = bundledCatalog.contractorTypes.associate { type ->
+        type.name to type.items.map { it.name to it.uom }
+    }
+    var contractorType by remember { mutableStateOf("Civil") }
+    var typeExpanded by remember { mutableStateOf(false) }
+    var importExpanded by remember { mutableStateOf(false) }
     
     // Dynamic qualified items
     val qualifiedItems = remember {
-        mutableStateListOf(
-            Triple("BrickWork 230mm", "m²", 850.0),
-            Triple("Plaster 12mm", "m²", 220.0)
-        )
+        mutableStateListOf<Pair<String, String>>().apply {
+            addAll(standardWorkItems["Civil"].orEmpty())
+        }
     }
 
     var newItemName by remember { mutableStateOf("") }
     var newItemUom by remember { mutableStateOf("m²") }
-    var newItemRate by remember { mutableStateOf("") }
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val presetItems = listOf(
-        Pair("BrickWork 230mm", "m²"),
-        Pair("BrickWork 115mm", "m²"),
-        Pair("Plaster 12mm", "m²"),
-        Pair("Plaster 20mm (External)", "m²"),
-        Pair("Slab Concrete", "m³"),
-        Pair("Beam Concrete", "m³"),
-        Pair("RCC", "m³"),
-        Pair("PCC", "m³"),
-        Pair("Flooring", "m²"),
-        Pair("Skirting", "m"),
-        Pair("Painting", "m²"),
-        Pair("Putty", "m²"),
-        Pair("Waterproofing", "m²"),
-        Pair("Shuttering & Formwork", "m²")
-    )
+    val presetItems = standardWorkItems[contractorType].orEmpty()
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -581,6 +580,61 @@ fun AddContractorDialog(
                 }
 
                 item {
+                    ExposedDropdownMenuBox(expanded = typeExpanded, onExpandedChange = { typeExpanded = !typeExpanded }) {
+                        OutlinedTextField(
+                            value = contractorType,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Contractor type") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(typeExpanded) },
+                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
+                            contractorTypes.forEach { type ->
+                                DropdownMenuItem(text = { Text(type) }, onClick = {
+                                    contractorType = type
+                                    qualifiedItems.clear()
+                                    qualifiedItems.addAll(standardWorkItems[type].orEmpty())
+                                    typeExpanded = false
+                                })
+                            }
+                        }
+                    }
+                }
+
+                if (existingContractors.isNotEmpty()) {
+                    item {
+                        ExposedDropdownMenuBox(expanded = importExpanded, onExpandedChange = { importExpanded = !importExpanded }) {
+                            OutlinedTextField(
+                                value = "",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Import qualified items") },
+                                placeholder = { Text("Copy from existing contractor") },
+                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(importExpanded) },
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(expanded = importExpanded, onDismissRequest = { importExpanded = false }) {
+                                existingContractors.forEach { source ->
+                                    val sourceItems = allQualifiedItems.filter { it.contractorId == source.id }
+                                    DropdownMenuItem(
+                                        text = { Text("${source.name} (${sourceItems.size} items)") },
+                                        enabled = sourceItems.isNotEmpty(),
+                                        onClick = {
+                                            qualifiedItems.clear()
+                                            qualifiedItems.addAll(sourceItems.map { it.itemName to it.uom })
+                                            contractorType = source.contractorType
+                                            importExpanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
                     CarbonInputField(
                         label = "ADDRESS / BASE LOCATION",
                         value = address,
@@ -612,7 +666,7 @@ fun AddContractorDialog(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "Specify items this contractor is qualified to execute (Item Name, UOM, Rate):",
+                        text = "Specify the work items this contractor is qualified to execute (item name and UOM):",
                         fontSize = 11.sp,
                         color = CarbonGray60
                     )
@@ -631,7 +685,7 @@ fun AddContractorDialog(
                                 selected = alreadyAdded,
                                 onClick = {
                                     if (!alreadyAdded) {
-                                        qualifiedItems.add(Triple(pName, pUom, 0.0))
+                                        qualifiedItems.add(pName to pUom)
                                     }
                                 },
                                 label = { Text("$pName ($pUom)", fontSize = 11.sp) },
@@ -657,7 +711,7 @@ fun AddContractorDialog(
                         ) {
                             Column {
                                 Text(item.first, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CarbonGray100)
-                                Text("UOM: ${item.second} • Rate: ₹${item.third.toInt()}", fontSize = 10.sp, color = CarbonGray70)
+                                Text("UOM: ${item.second}", fontSize = 10.sp, color = CarbonGray70)
                             }
                             IconButton(
                                 onClick = { qualifiedItems.removeAt(idx) },
@@ -696,22 +750,12 @@ fun AddContractorDialog(
                                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
                                     singleLine = true
                                 )
-                                OutlinedTextField(
-                                    value = newItemRate,
-                                    onValueChange = { newItemRate = it },
-                                    placeholder = { Text("Rate", fontSize = 11.sp) },
-                                    modifier = Modifier.weight(1f),
-                                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
-                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
-                                    singleLine = true
-                                )
                             }
                             Button(
                                 onClick = {
                                     if (newItemName.isNotBlank()) {
-                                        qualifiedItems.add(Triple(newItemName.trim(), newItemUom.trim().ifBlank { "m²" }, newItemRate.toDoubleOrNull() ?: 0.0))
+                                        qualifiedItems.add(newItemName.trim() to newItemUom.trim().ifBlank { "m²" })
                                         newItemName = ""
-                                        newItemRate = ""
                                     }
                                 },
                                 shape = RoundedCornerShape(2.dp),
@@ -744,7 +788,7 @@ fun AddContractorDialog(
                                 if (name.isBlank()) {
                                     errorMessage = "Contractor name is required."
                                 } else {
-                                    onSave(name.trim(), address.trim(), contactNo.trim(), qualifiedItems.toList())
+                                    onSave(name.trim(), address.trim(), contactNo.trim(), contractorType, qualifiedItems.toList())
                                 }
                             },
                             modifier = Modifier
@@ -849,11 +893,10 @@ fun EditContractorDialog(
 fun AddQualifiedItemDialog(
     contractor: ContractorEntity,
     onDismiss: () -> Unit,
-    onSave: (itemName: String, uom: String, rate: Double) -> Unit
+    onSave: (itemName: String, uom: String) -> Unit
 ) {
     var itemName by remember { mutableStateOf("") }
     var uom by remember { mutableStateOf("m²") }
-    var rateText by remember { mutableStateOf("") }
 
     val presetOptions = listOf(
         Pair("BrickWork 230mm", "m²"),
@@ -921,27 +964,13 @@ fun AddQualifiedItemDialog(
                     testTag = "input_qual_item_name"
                 )
 
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        CarbonInputField(
-                            label = "UOM *",
-                            value = uom,
-                            onValueChange = { uom = it },
-                            placeholder = "m², m³, m, Nos",
-                            testTag = "input_qual_item_uom"
-                        )
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        CarbonInputField(
-                            label = "RATE (₹)",
-                            value = rateText,
-                            onValueChange = { rateText = it },
-                            placeholder = "e.g. 850",
-                            keyboardType = KeyboardType.Number,
-                            testTag = "input_qual_item_rate"
-                        )
-                    }
-                }
+                CarbonInputField(
+                    label = "UOM *",
+                    value = uom,
+                    onValueChange = { uom = it },
+                    placeholder = "m², m³, m, Nos",
+                    testTag = "input_qual_item_uom"
+                )
 
                 Spacer(Modifier.height(4.dp))
 
@@ -959,7 +988,7 @@ fun AddQualifiedItemDialog(
                     Button(
                         onClick = {
                             if (itemName.isNotBlank()) {
-                                onSave(itemName.trim(), uom.trim().ifBlank { "m²" }, rateText.toDoubleOrNull() ?: 0.0)
+                                onSave(itemName.trim(), uom.trim().ifBlank { "m²" })
                             }
                         },
                         modifier = Modifier.weight(1f),

@@ -1,15 +1,21 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,18 +25,36 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.MeasurementEntity
+import com.example.data.attachments.MeasurementAttachmentStore
+import com.example.data.draft.MeasurementDraftKey
+import com.example.data.draft.MeasurementDraftRow
+import com.example.data.draft.MeasurementDraftStore
+import com.example.domain.MeasurementInput
+import com.example.domain.QuantityCalculator
+import com.example.domain.MeasurementRowStatus
+import com.example.domain.MeasurementRowValidation
+import com.example.domain.MeasurementRowValidationInput
+import com.example.domain.MeasurementRowValidator
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 data class MeasurementEntryRow(
@@ -41,7 +65,8 @@ data class MeasurementEntryRow(
     var widthText: String = "",
     var nosText: String = "1",
     var deductionText: String = "0",
-    var remarks: String = ""
+    var remarks: String = "",
+    var photoUri: String? = null
 ) {
     val length: Double get() = lengthText.toDoubleOrNull() ?: 0.0
     val height: Double get() = heightText.toDoubleOrNull() ?: 0.0
@@ -50,13 +75,10 @@ data class MeasurementEntryRow(
     val deduction: Double get() = deductionText.toDoubleOrNull() ?: 0.0
 
     fun calculateQuantity(calcType: CalculationType): Double {
-        val qty = when (calcType) {
-            CalculationType.VOLUME -> (length * (if (width > 0) width else 1.0) * height * nos) - deduction
-            CalculationType.AREA, CalculationType.WALL_PLASTER -> (length * (if (height > 0) height else (if (width > 0) width else 1.0)) * nos) - deduction
-            CalculationType.RUNNING_LENGTH -> (length * nos) - deduction
-            CalculationType.NOS -> nos - deduction
-        }
-        return if (qty > 0) Math.round(qty * 100.0) / 100.0 else 0.0
+        return QuantityCalculator.calculate(
+            calcType,
+            MeasurementInput(no = nos, length = length, breadth = width, height = height, deduction = deduction)
+        )
     }
 }
 
@@ -68,6 +90,9 @@ fun DedicatedMeasurementScreen(
     onNavigateToBook: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val draftStore = remember(context) { MeasurementDraftStore(context) }
+    val attachmentStore = remember(context) { MeasurementAttachmentStore(context) }
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val contractors by viewModel.contractors.collectAsStateWithLifecycle()
     val allQualifiedItems by viewModel.allQualifiedItems.collectAsStateWithLifecycle()
@@ -79,6 +104,7 @@ fun DedicatedMeasurementScreen(
     val calcType by viewModel.dedicatedCalculationType.collectAsStateWithLifecycle()
     val floorId by viewModel.dedicatedFloorId.collectAsStateWithLifecycle()
     val floorName by viewModel.dedicatedFloorName.collectAsStateWithLifecycle()
+    val itemId by viewModel.dedicatedItemId.collectAsStateWithLifecycle()
 
     val currentProject = remember(projects, selectedProjectId) {
         projects.firstOrNull { it.id == selectedProjectId }
@@ -87,17 +113,39 @@ fun DedicatedMeasurementScreen(
         contractors.firstOrNull { it.id == contractorId }
     }
 
-    // Rate lookup
-    val unitRate = remember(contractorId, itemName, allQualifiedItems) {
-        val qual = allQualifiedItems.firstOrNull { it.contractorId == contractorId && it.itemName.equals(itemName, ignoreCase = true) }
-        qual?.rate ?: 0.0
-    }
-
     // Measurement entry rows
     val rows = remember {
         mutableStateListOf(
-            MeasurementEntryRow(description = "External Wall Grid A-B", lengthText = "", heightText = "", nosText = "1", deductionText = "0")
+            MeasurementEntryRow(lengthText = "", heightText = "", nosText = "1", deductionText = "0")
         )
+    }
+    val draftKey = remember(selectedProjectId, contractorId, itemId, floorId) {
+        val project = selectedProjectId
+        val contractor = contractorId
+        val item = itemId
+        val floor = floorId
+        if (project != null && contractor != null && item != null && floor != null) {
+            MeasurementDraftKey(project, contractor, item, floor)
+        } else null
+    }
+    var draftLoaded by remember(draftKey) { mutableStateOf(false) }
+
+    LaunchedEffect(draftKey) {
+        draftLoaded = false
+        val restored = draftKey?.let { key -> withContext(Dispatchers.IO) { draftStore.load(key) } }
+        rows.clear()
+        rows.addAll(restored?.rows?.map { it.toEntryRow() } ?: listOf(MeasurementEntryRow(nosText = "1", deductionText = "0")))
+        draftLoaded = true
+    }
+
+    LaunchedEffect(draftKey, draftLoaded) {
+        val key = draftKey ?: return@LaunchedEffect
+        if (!draftLoaded) return@LaunchedEffect
+        snapshotFlow { rows.toList().map { it.toDraftRow() } }
+            .collectLatest { snapshot ->
+                delay(600)
+                withContext(Dispatchers.IO) { draftStore.save(key, snapshot) }
+            }
     }
 
     // Plastering Brickwork Import Prompt State
@@ -108,6 +156,25 @@ fun DedicatedMeasurementScreen(
     var isSaving by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     var savedCount by remember { mutableStateOf(0) }
+    var saveError by remember { mutableStateOf<String?>(null) }
+    var undoSnapshot by remember { mutableStateOf<List<MeasurementEntryRow>?>(null) }
+    val selectedRowIds = remember { mutableStateListOf<String>() }
+    var duplicateCopies by remember { mutableIntStateOf(1) }
+    var photoTargetRowId by remember { mutableStateOf<String?>(null) }
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        val targetId = photoTargetRowId
+        if (uri != null && targetId != null) {
+            coroutineScope.launch {
+                val managedUri = runCatching { withContext(Dispatchers.IO) { attachmentStore.import(uri) } }
+                val index = rows.indexOfFirst { it.id == targetId }
+                if (index >= 0) managedUri.onSuccess { stored ->
+                    withContext(Dispatchers.IO) { attachmentStore.deleteIfManaged(rows[index].photoUri) }
+                    rows[index] = rows[index].copy(photoUri = stored)
+                }.onFailure { saveError = it.message ?: "Unable to import selected photo" }
+            }
+        }
+        photoTargetRowId = null
+    }
 
     val isPlastering = remember(itemName) {
         itemName.contains("plaster", ignoreCase = true)
@@ -129,10 +196,6 @@ fun DedicatedMeasurementScreen(
     val totalQuantity = remember(rows.toList(), calcType) {
         rows.sumOf { it.calculateQuantity(calcType) }
     }
-    val totalAmount = remember(totalQuantity, unitRate) {
-        totalQuantity * unitRate
-    }
-
     Scaffold(
         containerColor = CarbonWhite,
         topBar = {
@@ -227,14 +290,14 @@ fun DedicatedMeasurementScreen(
                             )
                         }
 
-                        // UOM & Rate Tag
+                        // Measurement unit
                         Surface(
                             color = CarbonGray80,
                             shape = RoundedCornerShape(2.dp),
                             border = BorderStroke(1.dp, CarbonGray70)
                         ) {
                             Text(
-                                text = if (unitRate > 0) "$itemUom • ₹${unitRate.toInt()}" else itemUom,
+                                text = itemUom,
                                 color = CarbonGray20,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
@@ -283,18 +346,22 @@ fun DedicatedMeasurementScreen(
                                 fontWeight = FontWeight.Bold,
                                 color = CarbonCyan30
                             )
-                            if (unitRate > 0) {
-                                Text(
-                                    text = "• ₹${String.format(Locale.getDefault(), "%,.0f", totalAmount)}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = CarbonYellow30
-                                )
-                            }
                         }
                     }
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        undoSnapshot?.let { snapshot ->
+                            IconButton(
+                                onClick = {
+                                    rows.clear()
+                                    rows.addAll(snapshot)
+                                    undoSnapshot = null
+                                },
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo last row operation", tint = CarbonWhite, modifier = Modifier.size(19.dp))
+                            }
+                        }
                         OutlinedButton(
                             onClick = {
                                 rows.add(MeasurementEntryRow(nosText = "1", deductionText = "0"))
@@ -311,8 +378,26 @@ fun DedicatedMeasurementScreen(
                         Button(
                             onClick = {
                                 if (isSaving) return@Button
+                                val catalogItemId = itemId
+                                if (selectedProjectId == null || contractorId == null || catalogItemId == null) {
+                                    saveError = "Project, contractor, floor and a catalog work item are required before saving."
+                                    return@Button
+                                }
                                 isSaving = true
-                                val validRows = rows.filter { it.description.isNotBlank() || it.length > 0 || it.height > 0 }
+                                saveError = null
+                                val validatedRows = rows.map { it to it.validation(calcType) }
+                                val incomplete = validatedRows.filter { it.second.status == MeasurementRowStatus.INCOMPLETE }
+                                if (incomplete.isNotEmpty()) {
+                                    isSaving = false
+                                    saveError = "Complete row ${rows.indexOf(incomplete.first().first) + 1}: ${incomplete.first().second.message}"
+                                    return@Button
+                                }
+                                val validRows = validatedRows.filter { it.second.status == MeasurementRowStatus.READY }.map { it.first }
+                                if (validRows.isEmpty()) {
+                                    isSaving = false
+                                    saveError = "Enter at least one complete measurement row."
+                                    return@Button
+                                }
                                 val projId = selectedProjectId ?: 0L
                                 val contId = contractorId ?: 0L
                                 val contName = currentContractor?.name ?: "Contractor"
@@ -321,28 +406,26 @@ fun DedicatedMeasurementScreen(
 
                                 val toSave = validRows.map { r ->
                                     val qty = r.calculateQuantity(calcType)
-                                    val amt = qty * unitRate
                                     MeasurementEntity(
                                         projectId = projId,
                                         floorId = flrId,
                                         contractorId = contId,
                                         contractorName = contName,
-                                        itemId = 0L,
+                                        itemId = catalogItemId,
                                         itemName = itemName,
                                         unit = itemUom,
                                         calculationType = calcType,
-                                        description = r.description.ifBlank { "$itemName Entry" },
+                                        description = r.description.trim().ifBlank { "$itemName Entry" },
                                         length = r.length,
                                         height = r.height,
                                         width = r.width,
                                         nos = r.nos,
                                         deduction = r.deduction,
                                         quantity = qty,
-                                        rate = unitRate,
-                                        amount = amt,
                                         floor = flrName,
                                         location = "$flrName - $itemName",
                                         remarks = r.remarks,
+                                        photoUri = r.photoUri,
                                         date = System.currentTimeMillis()
                                     )
                                 }
@@ -350,6 +433,7 @@ fun DedicatedMeasurementScreen(
                                 viewModel.saveBatchMeasurements(toSave) { count ->
                                     isSaving = false
                                     savedCount = count
+                                    draftKey?.let { key -> coroutineScope.launch(Dispatchers.IO) { draftStore.clear(key) } }
                                     showSuccessDialog = true
                                 }
                             },
@@ -379,6 +463,13 @@ fun DedicatedMeasurementScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            saveError?.let { message ->
+                item {
+                    Surface(color = CarbonRed10, border = BorderStroke(1.dp, CarbonRed60), shape = RoundedCornerShape(2.dp), modifier = Modifier.fillMaxWidth()) {
+                        Text(message, color = CarbonRed60, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(10.dp))
+                    }
+                }
+            }
             // Plastering Linked Brickwork Banner / Prompt
             if (isPlastering) {
                 item {
@@ -510,29 +601,71 @@ fun DedicatedMeasurementScreen(
 
             // Table Header
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "MEASUREMENT ENTRIES (${rows.size} LINES)",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CarbonGray80,
-                        letterSpacing = 0.5.sp
-                    )
-
-                    TextButton(
-                        onClick = {
-                            rows.add(MeasurementEntryRow(nosText = "1", deductionText = "0"))
-                        },
-                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
-                        modifier = Modifier.height(28.dp)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = CarbonBlue60)
-                        Spacer(Modifier.width(4.dp))
-                        Text("Add Line", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60)
+                        Text(
+                            text = "MEASUREMENT TABLE (${rows.size} ROWS)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = CarbonGray80,
+                            letterSpacing = 0.5.sp
+                        )
+                        TextButton(
+                            onClick = {
+                                if (selectedRowIds.size == rows.size) selectedRowIds.clear()
+                                else {
+                                    selectedRowIds.clear()
+                                    selectedRowIds.addAll(rows.map { it.id })
+                                }
+                            }
+                        ) {
+                            Text(if (selectedRowIds.size == rows.size) "Clear" else "Select all")
+                        }
+                    }
+
+                    if (selectedRowIds.isNotEmpty()) {
+                        Surface(
+                            color = CarbonBlue10,
+                            border = BorderStroke(1.dp, CarbonBlue20),
+                            shape = RoundedCornerShape(2.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text("${selectedRowIds.size} selected", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                                IconButton(onClick = { if (duplicateCopies > 1) duplicateCopies-- }, modifier = Modifier.size(30.dp)) {
+                                    Icon(Icons.Default.Remove, contentDescription = "Fewer copies")
+                                }
+                                Text("$duplicateCopies", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.width(24.dp))
+                                IconButton(onClick = { if (duplicateCopies < 20) duplicateCopies++ }, modifier = Modifier.size(30.dp)) {
+                                    Icon(Icons.Default.Add, contentDescription = "More copies")
+                                }
+                                Button(
+                                    onClick = {
+                                        undoSnapshot = rows.toList()
+                                        val originals = rows.filter { it.id in selectedRowIds }
+                                        repeat(duplicateCopies) {
+                                            rows.addAll(originals.map { it.copy(id = java.util.UUID.randomUUID().toString()) })
+                                        }
+                                        selectedRowIds.clear()
+                                        duplicateCopies = 1
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                    shape = RoundedCornerShape(2.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Spacer(Modifier.width(4.dp))
+                                    Text("Duplicate")
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -543,11 +676,29 @@ fun DedicatedMeasurementScreen(
                     index = index + 1,
                     row = row,
                     calcType = calcType,
+                    itemName = itemName,
                     itemUom = itemUom,
+                    selected = row.id in selectedRowIds,
+                    onToggleSelected = {
+                        if (row.id in selectedRowIds) selectedRowIds.remove(row.id) else selectedRowIds.add(row.id)
+                    },
+                    onDuplicate = {
+                        undoSnapshot = rows.toList()
+                        rows.add(index + 1, row.copy(id = java.util.UUID.randomUUID().toString()))
+                    },
+                    onPhotoClick = {
+                        photoTargetRowId = row.id
+                        photoPicker.launch("image/*")
+                    },
+                    onRemovePhoto = {
+                        coroutineScope.launch(Dispatchers.IO) { attachmentStore.deleteIfManaged(row.photoUri) }
+                        rows[index] = row.copy(photoUri = null)
+                    },
                     onUpdateRow = { updated ->
                         rows[index] = updated
                     },
                     onDelete = {
+                        undoSnapshot = rows.toList()
                         if (rows.size > 1) {
                             rows.removeAt(index)
                         } else {
@@ -574,7 +725,7 @@ fun DedicatedMeasurementScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = CarbonGray90, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("+ Add Next Line (Description, Length, Height)", color = CarbonGray90, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Add measurement row", color = CarbonGray90, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -594,9 +745,6 @@ fun DedicatedMeasurementScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("$savedCount measurement lines saved successfully into the Measurement Book.")
                     Text("Total Quantity: ${String.format(Locale.getDefault(), "%.2f", totalQuantity)} $itemUom", fontWeight = FontWeight.Bold)
-                    if (unitRate > 0) {
-                        Text("Total Amount: ₹${String.format(Locale.getDefault(), "%,.0f", totalAmount)}", fontWeight = FontWeight.Bold, color = CarbonBlue60)
-                    }
                 }
             },
             confirmButton = {
@@ -628,217 +776,207 @@ fun DedicatedMeasurementScreen(
     }
 }
 
+private fun MeasurementEntryRow.toDraftRow() = MeasurementDraftRow(
+    id, description, lengthText, heightText, widthText, nosText, deductionText, remarks, photoUri
+)
+
+private fun MeasurementDraftRow.toEntryRow() = MeasurementEntryRow(
+    id, description, lengthText, heightText, widthText, nosText, deductionText, remarks, photoUri
+)
+
+private fun MeasurementEntryRow.validation(type: CalculationType): MeasurementRowValidation = MeasurementRowValidator.validate(
+    type,
+    MeasurementRowValidationInput(description, nosText, lengthText, widthText, heightText, deductionText, photoUri != null, remarks)
+)
+
 @Composable
 fun MeasurementRowCard(
     index: Int,
     row: MeasurementEntryRow,
     calcType: CalculationType,
+    itemName: String,
     itemUom: String,
+    selected: Boolean,
+    onToggleSelected: () -> Unit,
+    onDuplicate: () -> Unit,
+    onPhotoClick: () -> Unit,
+    onRemovePhoto: () -> Unit,
     onUpdateRow: (MeasurementEntryRow) -> Unit,
     onDelete: () -> Unit,
     onAddNextLine: () -> Unit
 ) {
+    val focusManager = LocalFocusManager.current
     var description by remember(row.description) { mutableStateOf(row.description) }
     var lengthText by remember(row.lengthText) { mutableStateOf(row.lengthText) }
+    var widthText by remember(row.widthText) { mutableStateOf(row.widthText) }
     var heightText by remember(row.heightText) { mutableStateOf(row.heightText) }
     var nosText by remember(row.nosText) { mutableStateOf(row.nosText) }
-    var deductionText by remember(row.deductionText) { mutableStateOf(row.deductionText) }
-    var showAdvanced by remember { mutableStateOf(row.deduction > 0 || (row.nos != 1.0 && row.nos > 0)) }
-
     val rowQty = row.calculateQuantity(calcType)
+    val validation = row.validation(calcType)
 
-    Card(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("measurement_row_$index"),
         shape = RoundedCornerShape(2.dp),
-        colors = CardDefaults.cardColors(containerColor = CarbonWhite),
-        border = BorderStroke(1.dp, if (rowQty > 0) CarbonBlue60 else CarbonGray30),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        color = if (selected) CarbonBlue10 else CarbonWhite,
+        border = BorderStroke(2.dp, when {
+            selected -> CarbonBlue60
+            validation.status == MeasurementRowStatus.READY -> CarbonGreen60
+            validation.status == MeasurementRowStatus.INCOMPLETE -> CarbonRed60
+            else -> CarbonGray30
+        }),
     ) {
-        Column(
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .horizontalScroll(rememberScrollState())
+                .padding(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Line Number & Row Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Surface(
-                        color = CarbonGray90,
-                        shape = RoundedCornerShape(2.dp)
-                    ) {
-                        Text(
-                            text = "Line #$index",
-                            color = CarbonWhite,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
-                    }
-                    if (rowQty > 0) {
-                        Surface(
-                            color = CarbonGreen10,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonGreen60)
-                        ) {
-                            Text(
-                                text = "${String.format(Locale.getDefault(), "%.2f", rowQty)} $itemUom",
-                                color = CarbonGreen80,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(
-                        onClick = { showAdvanced = !showAdvanced },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
-                        modifier = Modifier.height(26.dp)
-                    ) {
-                        Text(if (showAdvanced) "Hide Nos/Ded" else "+ Nos/Ded", fontSize = 11.sp, color = CarbonBlue60)
-                    }
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(26.dp)
-                    ) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete line", tint = CarbonRed60, modifier = Modifier.size(16.dp))
-                    }
-                }
+            Checkbox(
+                checked = selected,
+                onCheckedChange = { onToggleSelected() },
+                modifier = Modifier.size(34.dp)
+            )
+            Column(modifier = Modifier.width(126.dp)) {
+                Text("$index. $itemName", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(itemUom, fontSize = 9.sp, color = CarbonGray60)
             }
-
-            // Description Input
             OutlinedTextField(
                 value = description,
                 onValueChange = {
                     description = it
                     onUpdateRow(row.copy(description = it))
                 },
-                placeholder = { Text("Description (e.g. North Wall / Bedroom 1)", fontSize = 12.sp) },
-                label = { Text("DESCRIPTION", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("input_row_desc_$index"),
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
+                label = { Text("Member description", fontSize = 9.sp) },
+                placeholder = { Text("Beam B1 / North wall", fontSize = 10.sp) },
                 singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = CarbonBlue60,
-                    unfocusedBorderColor = CarbonGray40
-                )
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }),
+                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp),
+                shape = RoundedCornerShape(2.dp),
+                modifier = Modifier
+                    .width(170.dp)
+                    .testTag("input_row_member_$index")
             )
-
-            // Flow inputs: Length | Height | (Nos / Deduction if expanded)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Length
-                OutlinedTextField(
+            CompactNumberCell(
+                label = "No.",
+                value = nosText,
+                tag = "input_row_nos_$index",
+                imeAction = if (calcType == CalculationType.NOS) ImeAction.Done else ImeAction.Next,
+                onValueChange = {
+                    nosText = it
+                    onUpdateRow(row.copy(nosText = it))
+                }
+            )
+            if (calcType != CalculationType.NOS) {
+                CompactNumberCell(
+                    label = "Length",
                     value = lengthText,
+                    tag = "input_row_length_$index",
+                    imeAction = if (calcType == CalculationType.RUNNING_LENGTH) ImeAction.Done else ImeAction.Next,
                     onValueChange = {
                         lengthText = it
                         onUpdateRow(row.copy(lengthText = it))
-                    },
-                    placeholder = { Text("0.00", fontSize = 12.sp) },
-                    label = { Text("LENGTH (m)", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("input_row_length_$index"),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = CarbonBlue60,
-                        unfocusedBorderColor = CarbonGray40
-                    )
+                    }
                 )
-
-                // Height
-                OutlinedTextField(
+            }
+            if (calcType == CalculationType.AREA || calcType == CalculationType.VOLUME) {
+                CompactNumberCell(
+                    label = "Breadth",
+                    value = widthText,
+                    tag = "input_row_breadth_$index",
+                    imeAction = if (calcType == CalculationType.AREA) ImeAction.Done else ImeAction.Next,
+                    onValueChange = {
+                        widthText = it
+                        onUpdateRow(row.copy(widthText = it))
+                    }
+                )
+            }
+            if (calcType == CalculationType.WALL_PLASTER || calcType == CalculationType.VOLUME) {
+                CompactNumberCell(
+                    label = "Height",
                     value = heightText,
+                    tag = "input_row_height_$index",
+                    imeAction = ImeAction.Done,
                     onValueChange = {
                         heightText = it
                         onUpdateRow(row.copy(heightText = it))
-                    },
-                    placeholder = { Text("0.00", fontSize = 12.sp) },
-                    label = { Text("HEIGHT (m)", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("input_row_height_$index"),
-                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontWeight = FontWeight.SemiBold),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = CarbonBlue60,
-                        unfocusedBorderColor = CarbonGray40
-                    )
-                )
-
-                if (!showAdvanced) {
-                    // Quick next line button on the right
-                    IconButton(
-                        onClick = onAddNextLine,
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .size(36.dp)
-                            .background(CarbonGray10, shape = RoundedCornerShape(2.dp)),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardReturn,
-                            contentDescription = "Next Line",
-                            tint = CarbonBlue60,
-                            modifier = Modifier.size(18.dp)
-                        )
                     }
+                )
+            }
+            Column(
+                modifier = Modifier.width(76.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Qty", fontSize = 9.sp, color = CarbonGray60)
+                Text(String.format(Locale.getDefault(), "%.2f", rowQty), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CarbonGreen80)
+                Text(
+                    when (validation.status) {
+                        MeasurementRowStatus.READY -> "Ready"
+                        MeasurementRowStatus.INCOMPLETE -> "Incomplete"
+                        MeasurementRowStatus.EMPTY -> "Empty"
+                    },
+                    fontSize = 8.sp,
+                    color = when (validation.status) {
+                        MeasurementRowStatus.READY -> CarbonGreen60
+                        MeasurementRowStatus.INCOMPLETE -> CarbonRed60
+                        MeasurementRowStatus.EMPTY -> CarbonGray60
+                    }
+                )
+            }
+            IconButton(onClick = onPhotoClick, modifier = Modifier.size(32.dp)) {
+                Icon(
+                    if (row.photoUri == null) Icons.Default.AddAPhoto else Icons.Default.Photo,
+                    contentDescription = if (row.photoUri == null) "Add optional photo" else "Replace photo",
+                    tint = if (row.photoUri == null) CarbonGray70 else CarbonGreen60,
+                    modifier = Modifier.size(17.dp)
+                )
+            }
+            if (row.photoUri != null) {
+                IconButton(onClick = onRemovePhoto, modifier = Modifier.size(28.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Remove photo", tint = CarbonRed60, modifier = Modifier.size(14.dp))
                 }
             }
-
-            // Advanced Nos & Deduction inputs if toggled
-            if (showAdvanced) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = nosText,
-                        onValueChange = {
-                            nosText = it
-                            onUpdateRow(row.copy(nosText = it))
-                        },
-                        placeholder = { Text("1", fontSize = 12.sp) },
-                        label = { Text("NOS (Multiplier)", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                        modifier = Modifier.weight(1f),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-
-                    OutlinedTextField(
-                        value = deductionText,
-                        onValueChange = {
-                            deductionText = it
-                            onUpdateRow(row.copy(deductionText = it))
-                        },
-                        placeholder = { Text("0.00", fontSize = 12.sp) },
-                        label = { Text("DEDUCTION ($itemUom)", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-                        modifier = Modifier.weight(1f),
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true
-                    )
-                }
+            IconButton(onClick = onDuplicate, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.ContentCopy, contentDescription = "Duplicate row", tint = CarbonBlue60, modifier = Modifier.size(17.dp))
+            }
+            IconButton(onClick = onAddNextLine, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.Add, contentDescription = "Add row below", tint = CarbonGreen60, modifier = Modifier.size(18.dp))
+            }
+            IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
+                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete row", tint = CarbonRed60, modifier = Modifier.size(17.dp))
             }
         }
     }
+}
+
+@Composable
+private fun CompactNumberCell(
+    label: String,
+    value: String,
+    tag: String,
+    imeAction: ImeAction,
+    onValueChange: (String) -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+    OutlinedTextField(
+        value = value,
+        onValueChange = { next ->
+            if (next.isEmpty() || next.matches(Regex("\\d*\\.?\\d*"))) onValueChange(next)
+        },
+        label = { Text(label, fontSize = 9.sp) },
+        placeholder = { Text("0", fontSize = 11.sp) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = imeAction),
+        keyboardActions = KeyboardActions(
+            onNext = { focusManager.moveFocus(FocusDirection.Next) },
+            onDone = { focusManager.clearFocus() }
+        ),
+        singleLine = true,
+        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center),
+        shape = RoundedCornerShape(2.dp),
+        modifier = Modifier.width(82.dp).testTag(tag),
+        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CarbonBlue60, unfocusedBorderColor = CarbonGray40)
+    )
 }

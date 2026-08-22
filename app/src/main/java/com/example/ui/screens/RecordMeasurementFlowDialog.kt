@@ -27,6 +27,7 @@ import com.example.data.local.entity.ContractorQualifiedItemEntity
 import com.example.data.local.entity.FloorEntity
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
+import com.example.domain.WorkCatalog
 
 enum class RecordFlowStep {
     SELECT_CONTRACTOR,
@@ -49,6 +50,7 @@ fun RecordMeasurementFlowDialog(
     var selectedContractor by remember { mutableStateOf<ContractorEntity?>(null) }
     var selectedQualifiedItem by remember { mutableStateOf<ContractorQualifiedItemEntity?>(null) }
     var selectedFloor by remember { mutableStateOf<FloorEntity?>(null) }
+    var expandedWorkType by remember { mutableStateOf<String?>(null) }
 
     val availableContractorItems = remember(selectedContractor, allQualifiedItems) {
         if (selectedContractor != null) {
@@ -217,6 +219,7 @@ fun RecordMeasurementFlowDialog(
                                             .clickable {
                                                 selectedContractor = contractor
                                                 selectedQualifiedItem = null
+                                                expandedWorkType = null
                                                 currentStep = RecordFlowStep.SELECT_ITEM
                                             }
                                             .testTag("select_contractor_${contractor.id}")
@@ -304,14 +307,45 @@ fun RecordMeasurementFlowDialog(
                                 }
                             }
                         } else {
+                            val groupedItems = availableContractorItems.groupBy {
+                                it.workType.ifBlank { WorkCatalog.classify(selectedContractor?.contractorType.orEmpty(), it.itemName) }
+                            }
                             LazyColumn(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(max = 280.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                items(availableContractorItems, key = { it.id }) { item ->
-                                    val isPlaster = item.itemName.contains("plaster", ignoreCase = true)
+                                groupedItems.forEach { (workType, workItems) ->
+                                    item(key = "work_type_$workType") {
+                                        val expanded = expandedWorkType == workType
+                                        Surface(
+                                            color = CarbonGray10,
+                                            shape = RoundedCornerShape(2.dp),
+                                            border = BorderStroke(1.dp, CarbonGray30),
+                                            modifier = Modifier.fillMaxWidth().clickable {
+                                                expandedWorkType = if (expanded) null else workType
+                                            }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Column {
+                                                    Text(workType, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = CarbonGray100)
+                                                    Text("${workItems.size} work item${if (workItems.size == 1) "" else "s"}", fontSize = 10.sp, color = CarbonGray60)
+                                                }
+                                                Icon(
+                                                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                    contentDescription = if (expanded) "Collapse work type" else "Expand work type",
+                                                    tint = CarbonBlue60
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (expandedWorkType == workType) items(workItems, key = { "qualified_${it.id}" }) { item ->
+                                        val isPlaster = item.itemName.contains("plaster", ignoreCase = true)
                                     Surface(
                                         color = if (selectedQualifiedItem?.id == item.id) CarbonBlue10 else CarbonWhite,
                                         shape = RoundedCornerShape(2.dp),
@@ -321,6 +355,7 @@ fun RecordMeasurementFlowDialog(
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
+                                            .padding(start = 14.dp)
                                             .clickable {
                                                 selectedQualifiedItem = item
                                                 currentStep = RecordFlowStep.SELECT_FLOOR
@@ -360,7 +395,7 @@ fun RecordMeasurementFlowDialog(
                                                         }
                                                     }
                                                     Text(
-                                                        text = "Unit: ${item.uom}${if (item.rate > 0) " • ₹${item.rate.toInt()}/${item.uom}" else ""}",
+                                                        text = "Formula: ${item.calculationType.displayName} • Unit: ${item.uom}",
                                                         fontSize = 11.sp,
                                                         color = CarbonGray60
                                                     )
@@ -373,6 +408,7 @@ fun RecordMeasurementFlowDialog(
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
+                                    }
                                     }
                                 }
                             }

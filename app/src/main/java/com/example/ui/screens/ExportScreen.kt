@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.os.Build
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -29,6 +30,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.theme.*
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
+import com.example.BuildConfig
+import com.example.data.local.DATABASE_SCHEMA_VERSION
+import com.example.domain.SupportDiagnosticReport
+import com.example.domain.SupportDiagnosticSnapshot
 import com.example.util.ExportHelper
 import java.util.*
 
@@ -44,6 +49,8 @@ fun ExportScreen(
     val floors by viewModel.floors.collectAsStateWithLifecycle()
     val items by viewModel.items.collectAsStateWithLifecycle()
     val measurements by viewModel.measurements.collectAsStateWithLifecycle()
+    val contractors by viewModel.contractors.collectAsStateWithLifecycle()
+    val measurementSheets by viewModel.measurementSheets.collectAsStateWithLifecycle()
     val selectedProjectId by viewModel.selectedProjectId.collectAsStateWithLifecycle()
 
     var filterFloorId by remember { mutableStateOf<Long?>(null) }
@@ -180,7 +187,7 @@ fun ExportScreen(
                         }
 
                         IconButton(
-                            onClick = { viewModel.navigateTo(AppScreen.QUICK_ENTRY) },
+                            onClick = { viewModel.openCanonicalMeasurement() },
                             modifier = Modifier.size(36.dp)
                         ) {
                             Icon(Icons.Default.Tune, contentDescription = "Change", tint = CarbonBlue60)
@@ -270,6 +277,38 @@ fun ExportScreen(
                             )
                         },
                         testTag = "btn_print_pdf"
+                    )
+
+                    CarbonExportTile(
+                        title = "Share support diagnostics (.json)",
+                        subtitle = "Metadata-only health report; excludes names, measurements, descriptions, comments, and photos",
+                        icon = Icons.Default.HealthAndSafety,
+                        badge = "PRIVACY SAFE",
+                        badgeColor = CarbonBlue60,
+                        onClick = {
+                            val knownSheetIds = measurementSheets.mapTo(hashSetOf()) { it.id }
+                            val knownItemIds = items.mapTo(hashSetOf()) { it.id }
+                            val report = SupportDiagnosticReport.render(
+                                SupportDiagnosticSnapshot(
+                                    appVersion = BuildConfig.VERSION_NAME,
+                                    versionCode = BuildConfig.VERSION_CODE.toLong(),
+                                    schemaVersion = DATABASE_SCHEMA_VERSION,
+                                    androidSdk = Build.VERSION.SDK_INT,
+                                    generatedAtEpochMs = System.currentTimeMillis(),
+                                    projectCount = projects.size,
+                                    contractorCount = contractors.size,
+                                    workItemCount = items.size,
+                                    measurementCount = measurements.size,
+                                    sheetCount = measurementSheets.size,
+                                    archivedSheetCount = measurementSheets.count { it.archivedAt != null },
+                                    rowsWithoutKnownSheet = measurements.count { it.sheetId !in knownSheetIds },
+                                    rowsWithoutKnownWorkItem = measurements.count { it.itemId !in knownItemIds },
+                                    sheetStatusCounts = measurementSheets.groupingBy { it.status }.eachCount()
+                                )
+                            )
+                            ExportHelper.shareSupportDiagnostics(context, report)
+                        },
+                        testTag = "btn_support_diagnostics"
                     )
                 }
             }
