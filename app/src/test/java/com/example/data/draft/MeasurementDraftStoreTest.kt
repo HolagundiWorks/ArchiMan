@@ -18,9 +18,11 @@ class MeasurementDraftStoreTest {
 
     @Test fun draftSurvivesStoreRecreationAndKeepsRowsScopedToSession() {
         val row = MeasurementDraftRow("row-1", "North wall", "4.2", "3", "0.23", "1", "0", "", "file:///photo.jpg")
-        MeasurementDraftStore(context).save(key, listOf(row))
+        MeasurementDraftStore(context).save(key, listOf(row), "IMPERIAL")
 
-        assertEquals(row, MeasurementDraftStore(context).load(key)?.rows?.single())
+        val restored = MeasurementDraftStore(context).load(key)
+        assertEquals(row, restored?.rows?.single())
+        assertEquals("IMPERIAL", restored?.unitSystem)
         assertNull(MeasurementDraftStore(context).load(key.copy(floorId = 99)))
     }
 
@@ -28,5 +30,19 @@ class MeasurementDraftStoreTest {
         val empty = MeasurementDraftRow("row-1", "", "", "", "", "1", "0", "", null)
         MeasurementDraftStore(context).save(key, listOf(empty))
         assertNull(MeasurementDraftStore(context).load(key))
+    }
+
+    @Test fun legacyDraftWithoutUnitSystemDefaultsToMetric() {
+        context.getSharedPreferences("measurement_drafts", Context.MODE_PRIVATE)
+            .edit()
+            .putString(
+                key.storageKey,
+                """{"rows":[{"id":"legacy","description":"Wall","lengthText":"2","heightText":"3","widthText":"","nosText":"1","deductionText":"0","remarks":"","photoUri":null}],"updatedAt":1}"""
+            )
+            .commit()
+
+        val restored = MeasurementDraftStore(context).load(key)
+        assertEquals("METRIC", restored?.unitSystem)
+        assertEquals("2", restored?.rows?.single()?.lengthText)
     }
 }

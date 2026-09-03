@@ -13,6 +13,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.FileProvider
 import com.example.data.local.entity.MeasurementEntity
+import com.example.data.local.entity.ProjectSelectionItemEntity
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
@@ -20,6 +21,36 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 object ExportHelper {
+
+    fun exportSelectionListAsPurchaseOrder(
+        context: Context,
+        projectName: String,
+        items: List<ProjectSelectionItemEntity>
+    ) {
+        val safeName = projectName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val file = File(context.cacheDir, "PO_${safeName}_${System.currentTimeMillis()}.csv")
+        val csv = buildString {
+            append("\uFEFFPURCHASE ORDER / MATERIAL SELECTION LIST\n")
+            append("Project,\"").append(projectName.replace("\"", "\"\"")).append("\"\n")
+            append("Note,Quantity and specification only - no prices or commercial values\n\n")
+            append("Sr No,Item,Specification,Make / Brand,Quantity,Unit,Selection Status,Remarks\n")
+            items.forEachIndexed { index, item ->
+                fun String.csv() = "\"${replace("\"", "\"\"")}\""
+                append(index + 1).append(',').append(item.itemName.csv()).append(',')
+                    .append(item.specification.csv()).append(',').append(item.makeOrBrand.csv()).append(',')
+                    .append(item.quantity).append(',').append(item.unit.csv()).append(',')
+                    .append(item.status.csv()).append(',').append(item.remarks.csv()).append('\n')
+            }
+        }
+        FileOutputStream(file).use { it.write(csv.toByteArray(StandardCharsets.UTF_8)) }
+        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+            type = "text/csv"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            putExtra(Intent.EXTRA_SUBJECT, "Purchase Order - $projectName")
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }, "Export purchase order"))
+    }
 
     fun shareSupportDiagnostics(context: Context, report: String) {
         try {

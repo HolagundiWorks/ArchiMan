@@ -217,7 +217,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = "Project Hub") },
                         label = {
                             Text(
-                                "Project Hub",
+                                "Hub",
                                 fontSize = 11.sp,
                                 fontWeight = if (isWorkspaceActive) FontWeight.Bold else FontWeight.Normal
                             )

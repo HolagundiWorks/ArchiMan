@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -45,9 +46,11 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 enum class ProjectTab(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    TASKS("Tasks", Icons.Default.TaskAlt),
     CONTRACTORS("Contractors", Icons.Default.Engineering),
-    MEASUREMENT_BOOK("Measurement Book", Icons.Default.MenuBook),
-    RECORD_MEASURE("Record Measurement", Icons.Default.Straighten)
+    MEASUREMENT_BOOK("M-Book", Icons.Default.MenuBook),
+    SELECTIONS("Selections", Icons.Default.Checklist),
+    RECORD_MEASURE("Record", Icons.Default.Straighten)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,6 +67,8 @@ fun ProjectWorkspaceScreen(
     val projectContractorRefs by viewModel.projectContractorRefs.collectAsStateWithLifecycle()
     val items by viewModel.items.collectAsStateWithLifecycle()
     val allMeasurements by viewModel.measurements.collectAsStateWithLifecycle()
+    val projectTasks by viewModel.projectTasks.collectAsStateWithLifecycle()
+    val selectionItems by viewModel.projectSelectionItems.collectAsStateWithLifecycle()
 
     val currentProject = projects.firstOrNull { it.id == selectedProjectId } ?: projects.firstOrNull()
     val projectMeasurements = remember(allMeasurements, currentProject) {
@@ -226,8 +231,9 @@ fun ProjectWorkspaceScreen(
                 }
 
                 // 3 Segmented Navigation Tabs
-                TabRow(
+                ScrollableTabRow(
                     selectedTabIndex = selectedTab.ordinal,
+                    edgePadding = 8.dp,
                     containerColor = CarbonWhite,
                     contentColor = CarbonBlue60,
                     divider = {
@@ -271,6 +277,7 @@ fun ProjectWorkspaceScreen(
                 .padding(innerPadding)
         ) {
             when (selectedTab) {
+                ProjectTab.TASKS -> ProjectTasksTab(viewModel, projectTasks)
                 ProjectTab.RECORD_MEASURE -> {
                     CanonicalMeasurementLauncher(viewModel)
                 }
@@ -300,6 +307,11 @@ fun ProjectWorkspaceScreen(
                         }
                     )
                 }
+                ProjectTab.SELECTIONS -> ProjectSelectionsTab(
+                    viewModel = viewModel,
+                    project = currentProject,
+                    selectionItems = selectionItems
+                )
             }
         }
     }
@@ -375,17 +387,130 @@ fun ProjectWorkspaceScreen(
     }
 }
 
+private fun MeasurementEntity.linearUnitLabel(): String =
+    if (unit.contains("ft", ignoreCase = true)) " ft" else " m"
+
+@Composable
+private fun ProjectTasksTab(viewModel: SiteViewModel, tasks: List<ProjectTaskEntity>) {
+    var showAdd by remember { mutableStateOf(false) }
+    Box(Modifier.fillMaxSize()) {
+        if (tasks.isEmpty()) {
+            Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.TaskAlt, null, Modifier.size(40.dp), tint = CarbonGray50)
+                Spacer(Modifier.height(8.dp))
+                Text("No project tasks", fontWeight = FontWeight.Bold)
+                Text("Add site actions, decisions, or follow-ups.", color = CarbonGray70, fontSize = 12.sp)
+            }
+        } else LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(tasks, key = { it.id }) { task ->
+                Card(colors = CardDefaults.cardColors(containerColor = CarbonWhite), border = BorderStroke(1.dp, CarbonGray20)) {
+                    Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = task.status == "DONE", onCheckedChange = { viewModel.toggleProjectTask(task) })
+                        Column(Modifier.weight(1f)) {
+                            Text(task.title, fontWeight = FontWeight.SemiBold, color = CarbonGray100)
+                            if (task.description.isNotBlank()) Text(task.description, fontSize = 12.sp, color = CarbonGray70)
+                        }
+                        IconButton(onClick = { viewModel.deleteProjectTask(task) }) { Icon(Icons.Default.DeleteOutline, "Delete task") }
+                    }
+                }
+            }
+        }
+        FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+            Icon(Icons.Default.Add, "Add task")
+        }
+    }
+    if (showAdd) {
+        var title by remember { mutableStateOf("") }
+        var description by remember { mutableStateOf("") }
+        AlertDialog(onDismissRequest = { showAdd = false }, title = { Text("Add task") }, text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(title, { title = it }, label = { Text("Task") }, singleLine = true)
+                OutlinedTextField(description, { description = it }, label = { Text("Description (optional)") }, minLines = 2)
+            }
+        }, confirmButton = { TextButton(enabled = title.isNotBlank(), onClick = { viewModel.addProjectTask(title, description); showAdd = false }) { Text("Add") } },
+            dismissButton = { TextButton(onClick = { showAdd = false }) { Text("Cancel") } })
+    }
+}
+
+@Composable
+private fun ProjectSelectionsTab(
+    viewModel: SiteViewModel,
+    project: ProjectEntity?,
+    selectionItems: List<ProjectSelectionItemEntity>
+) {
+    val context = LocalContext.current
+    var showAdd by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Specification / Selection List", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Quantity-only procurement schedule", color = CarbonGray70, fontSize = 11.sp)
+            }
+            TextButton(enabled = selectionItems.isNotEmpty(), onClick = {
+                ExportHelper.exportSelectionListAsPurchaseOrder(context, project?.name ?: "Project", selectionItems)
+            }) { Icon(Icons.Default.FileDownload, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Export PO") }
+        }
+        HorizontalDivider(color = CarbonGray20)
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            if (selectionItems.isEmpty()) Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.Checklist, null, Modifier.size(40.dp), tint = CarbonGray50)
+                Spacer(Modifier.height(8.dp)); Text("No selection items", fontWeight = FontWeight.Bold)
+                Text("Add materials, fixtures, finishes, or equipment.", color = CarbonGray70, fontSize = 12.sp, textAlign = TextAlign.Center)
+            } else LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(selectionItems, key = { it.id }) { item ->
+                    Card(colors = CardDefaults.cardColors(containerColor = CarbonWhite), border = BorderStroke(1.dp, CarbonGray20)) {
+                        Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.Top) {
+                            Checkbox(checked = item.status == "SELECTED", onCheckedChange = { viewModel.toggleProjectSelectionItem(item) })
+                            Column(Modifier.weight(1f)) {
+                                Text(item.itemName, fontWeight = FontWeight.Bold)
+                                Text("${item.quantity} ${item.unit}${item.makeOrBrand.takeIf(String::isNotBlank)?.let { " • $it" } ?: ""}", color = CarbonBlue60, fontSize = 12.sp)
+                                if (item.specification.isNotBlank()) Text(item.specification, fontSize = 12.sp, color = CarbonGray70)
+                            }
+                            IconButton(onClick = { viewModel.deleteProjectSelectionItem(item) }) { Icon(Icons.Default.DeleteOutline, "Delete selection item") }
+                        }
+                    }
+                }
+            }
+            FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) { Icon(Icons.Default.Add, "Add selection item") }
+        }
+    }
+    if (showAdd) SelectionItemDialog(onDismiss = { showAdd = false }) { n, s, b, q, u, r ->
+        viewModel.addProjectSelectionItem(n, s, b, q, u, r); showAdd = false
+    }
+}
+
+@Composable
+private fun SelectionItemDialog(onDismiss: () -> Unit, onAdd: (String, String, String, Double, String, String) -> Unit) {
+    var name by remember { mutableStateOf("") }; var spec by remember { mutableStateOf("") }
+    var brand by remember { mutableStateOf("") }; var quantity by remember { mutableStateOf("1") }
+    var unit by remember { mutableStateOf("Nos") }; var remarks by remember { mutableStateOf("") }
+    val qty = quantity.toDoubleOrNull()
+    AlertDialog(onDismissRequest = onDismiss, title = { Text("Add selection item") }, text = {
+        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(name, { name = it }, label = { Text("Item / material") }, singleLine = true)
+            OutlinedTextField(spec, { spec = it }, label = { Text("Specification") }, minLines = 2)
+            OutlinedTextField(brand, { brand = it }, label = { Text("Make / brand (optional)") }, singleLine = true)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(quantity, { quantity = it }, Modifier.weight(1f), label = { Text("Quantity") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
+                OutlinedTextField(unit, { unit = it }, Modifier.weight(1f), label = { Text("Unit") }, singleLine = true)
+            }
+            OutlinedTextField(remarks, { remarks = it }, label = { Text("Remarks (optional)") })
+        }
+    }, confirmButton = { TextButton(enabled = name.isNotBlank() && qty != null && qty > 0, onClick = { onAdd(name, spec, brand, qty ?: 0.0, unit, remarks) }) { Text("Add") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } })
+}
+
 @Composable
 private fun CanonicalMeasurementLauncher(viewModel: SiteViewModel) {
-    Box(Modifier.fillMaxSize().padding(20.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.TopCenter) {
         Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
             Column(
-                Modifier.fillMaxWidth().padding(20.dp),
+                Modifier.fillMaxWidth().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.TableRows, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(36.dp))
-                Text("Measurement Sheet", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = CarbonGray100)
+                Icon(Icons.Default.TableRows, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(28.dp))
+                Text("Measurement Sheet", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = CarbonGray100)
                 Text(
                     "All project, room, and component shortcuts now use the same spreadsheet-style measurement editor.",
                     textAlign = TextAlign.Center,
@@ -400,7 +525,7 @@ private fun CanonicalMeasurementLauncher(viewModel: SiteViewModel) {
                 ) {
                     Icon(Icons.Default.Straighten, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("OPEN MEASUREMENT SHEET", fontWeight = FontWeight.Bold)
+                    Text("Open Measurement Sheet", fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -435,7 +560,7 @@ fun ProjectContractorsTab(
             ExtendedFloatingActionButton(
                 onClick = { showAddContractorDialog = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("+ Add Contractor", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
+                text = { Text("Add Contractor", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
                 containerColor = CarbonBlue60,
                 contentColor = CarbonWhite,
                 shape = RoundedCornerShape(2.dp),
@@ -1174,7 +1299,7 @@ fun ProjectMeasurementBookTab(
                             ) {
                                 val dimensionBreakdown = buildString {
                                     append("${m.nos.toInt()} nos × ")
-                                    if (m.length > 0) append("${m.length}m ")
+                                    if (m.length > 0) append("${m.length}${m.linearUnitLabel()} ")
                                     if (m.width > 0) append("× ${m.width}m ")
                                     if (m.height > 0) append("× ${m.height}m")
                                     if (m.deduction > 0) append(" - Ded (${m.deduction})")

@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +44,8 @@ import com.example.data.draft.MeasurementDraftKey
 import com.example.data.draft.MeasurementDraftRow
 import com.example.data.draft.MeasurementDraftStore
 import com.example.domain.MeasurementInput
+import com.example.domain.MeasurementUnitConverter
+import com.example.domain.MeasurementUnitSystem
 import com.example.domain.QuantityCalculator
 import com.example.domain.MeasurementRowStatus
 import com.example.domain.MeasurementRowValidation
@@ -81,6 +85,11 @@ data class MeasurementEntryRow(
         )
     }
 }
+
+private data class MeasurementEditorSnapshot(
+    val rows: List<MeasurementEntryRow>,
+    val unitSystem: MeasurementUnitSystem
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -128,11 +137,19 @@ fun DedicatedMeasurementScreen(
             MeasurementDraftKey(project, contractor, item, floor)
         } else null
     }
+    var unitSystem by remember(draftKey, itemUom) {
+        mutableStateOf(MeasurementUnitConverter.infer(itemUom))
+    }
+    val displayUom = remember(calcType, unitSystem, itemUom) {
+        MeasurementUnitConverter.unitFor(calcType, unitSystem, itemUom)
+    }
     var draftLoaded by remember(draftKey) { mutableStateOf(false) }
 
     LaunchedEffect(draftKey) {
         draftLoaded = false
         val restored = draftKey?.let { key -> withContext(Dispatchers.IO) { draftStore.load(key) } }
+        unitSystem = restored?.unitSystem?.let(MeasurementUnitSystem::fromStored)
+            ?: MeasurementUnitConverter.infer(itemUom)
         rows.clear()
         rows.addAll(restored?.rows?.map { it.toEntryRow() } ?: listOf(MeasurementEntryRow(nosText = "1", deductionText = "0")))
         draftLoaded = true
@@ -141,10 +158,10 @@ fun DedicatedMeasurementScreen(
     LaunchedEffect(draftKey, draftLoaded) {
         val key = draftKey ?: return@LaunchedEffect
         if (!draftLoaded) return@LaunchedEffect
-        snapshotFlow { rows.toList().map { it.toDraftRow() } }
-            .collectLatest { snapshot ->
+        snapshotFlow { rows.toList().map { it.toDraftRow() } to unitSystem }
+            .collectLatest { (snapshot, system) ->
                 delay(600)
-                withContext(Dispatchers.IO) { draftStore.save(key, snapshot) }
+                withContext(Dispatchers.IO) { draftStore.save(key, snapshot, system.name) }
             }
     }
 
@@ -157,10 +174,20 @@ fun DedicatedMeasurementScreen(
     var showSuccessDialog by remember { mutableStateOf(false) }
     var savedCount by remember { mutableStateOf(0) }
     var saveError by remember { mutableStateOf<String?>(null) }
-    var undoSnapshot by remember { mutableStateOf<List<MeasurementEntryRow>?>(null) }
+    var undoSnapshot by remember { mutableStateOf<MeasurementEditorSnapshot?>(null) }
     val selectedRowIds = remember { mutableStateListOf<String>() }
     var duplicateCopies by remember { mutableIntStateOf(1) }
     var photoTargetRowId by remember { mutableStateOf<String?>(null) }
+
+    fun changeUnitSystem(target: MeasurementUnitSystem) {
+        if (target == unitSystem) return
+        undoSnapshot = MeasurementEditorSnapshot(rows.map { it.copy() }, unitSystem)
+        rows.indices.forEach { index ->
+            rows[index] = rows[index].convertUnits(calcType, unitSystem, target)
+        }
+        unitSystem = target
+        saveError = null
+    }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         val targetId = photoTargetRowId
         if (uri != null && targetId != null) {
@@ -255,54 +282,56 @@ fun DedicatedMeasurementScreen(
                     color = CarbonGray90,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Title Format: ContractorA | BrickWork230mm | lvl0
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = currentContractor?.name ?: "Contractor",
-                                color = CarbonCyan30,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 14.sp
-                            )
-                            Text(text = "|", color = CarbonGray60, fontWeight = FontWeight.Bold)
-                            Text(
-                                text = itemName.ifBlank { "Item" },
-                                color = CarbonYellow30,
-                                fontWeight = FontWeight.Black,
-                                fontSize = 14.sp
-                            )
-                            Text(text = "|", color = CarbonGray60, fontWeight = FontWeight.Bold)
-                            Text(
-                                text = floorName.ifBlank { "Level 0" },
-                                color = CarbonWhite,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                        }
+                        Text(
+                            text = "${currentContractor?.name ?: "Contractor"} | ${itemName.ifBlank { "Item" }} | ${floorName.ifBlank { "Level" }}",
+                            color = CarbonWhite,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                        // Measurement unit
-                        Surface(
-                            color = CarbonGray80,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonGray70)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                text = itemUom,
-                                color = CarbonGray20,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                text = "ENTRY UNITS",
+                                color = CarbonGray40,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 10.sp,
+                                letterSpacing = 0.5.sp
                             )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                UnitSystemToggle(
+                                    selected = unitSystem,
+                                    onSelect = ::changeUnitSystem
+                                )
+                                Surface(
+                                    color = CarbonGray80,
+                                    shape = RoundedCornerShape(2.dp),
+                                    border = BorderStroke(1.dp, CarbonGray70)
+                                ) {
+                                    Text(
+                                        text = displayUom,
+                                        color = CarbonGray20,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -341,7 +370,7 @@ fun DedicatedMeasurementScreen(
                                 color = CarbonWhite
                             )
                             Text(
-                                text = itemUom,
+                                text = displayUom,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarbonCyan30
@@ -354,7 +383,8 @@ fun DedicatedMeasurementScreen(
                             IconButton(
                                 onClick = {
                                     rows.clear()
-                                    rows.addAll(snapshot)
+                                    rows.addAll(snapshot.rows)
+                                    unitSystem = snapshot.unitSystem
                                     undoSnapshot = null
                                 },
                                 modifier = Modifier.size(38.dp)
@@ -413,7 +443,7 @@ fun DedicatedMeasurementScreen(
                                         contractorName = contName,
                                         itemId = catalogItemId,
                                         itemName = itemName,
-                                        unit = itemUom,
+                                        unit = displayUom,
                                         calculationType = calcType,
                                         description = r.description.trim().ifBlank { "$itemName Entry" },
                                         length = r.length,
@@ -547,10 +577,10 @@ fun DedicatedMeasurementScreen(
                                                     rows.add(
                                                         MeasurementEntryRow(
                                                             description = bw.description.ifBlank { "Plaster over ${bw.itemName}" },
-                                                            lengthText = if (bw.length > 0) bw.length.toString() else "",
-                                                            heightText = if (bw.height > 0) bw.height.toString() else "",
+                                                            lengthText = bw.dimensionText(bw.length, unitSystem),
+                                                            heightText = bw.dimensionText(bw.height, unitSystem),
                                                             nosText = if (bw.nos > 0) bw.nos.toString() else "1",
-                                                            deductionText = if (bw.deduction > 0) bw.deduction.toString() else "0",
+                                                            deductionText = bw.deductionText(calcType, unitSystem),
                                                             remarks = "Imported from ${bw.itemName} (${bw.contractorName})"
                                                         )
                                                     )
@@ -649,7 +679,7 @@ fun DedicatedMeasurementScreen(
                                 }
                                 Button(
                                     onClick = {
-                                        undoSnapshot = rows.toList()
+                                        undoSnapshot = MeasurementEditorSnapshot(rows.toList(), unitSystem)
                                         val originals = rows.filter { it.id in selectedRowIds }
                                         repeat(duplicateCopies) {
                                             rows.addAll(originals.map { it.copy(id = java.util.UUID.randomUUID().toString()) })
@@ -677,13 +707,14 @@ fun DedicatedMeasurementScreen(
                     row = row,
                     calcType = calcType,
                     itemName = itemName,
-                    itemUom = itemUom,
+                    itemUom = displayUom,
+                    dimensionUom = if (unitSystem == MeasurementUnitSystem.METRIC) "m" else "ft",
                     selected = row.id in selectedRowIds,
                     onToggleSelected = {
                         if (row.id in selectedRowIds) selectedRowIds.remove(row.id) else selectedRowIds.add(row.id)
                     },
                     onDuplicate = {
-                        undoSnapshot = rows.toList()
+                        undoSnapshot = MeasurementEditorSnapshot(rows.toList(), unitSystem)
                         rows.add(index + 1, row.copy(id = java.util.UUID.randomUUID().toString()))
                     },
                     onPhotoClick = {
@@ -698,7 +729,7 @@ fun DedicatedMeasurementScreen(
                         rows[index] = updated
                     },
                     onDelete = {
-                        undoSnapshot = rows.toList()
+                        undoSnapshot = MeasurementEditorSnapshot(rows.toList(), unitSystem)
                         if (rows.size > 1) {
                             rows.removeAt(index)
                         } else {
@@ -744,7 +775,7 @@ fun DedicatedMeasurementScreen(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("$savedCount measurement lines saved successfully into the Measurement Book.")
-                    Text("Total Quantity: ${String.format(Locale.getDefault(), "%.2f", totalQuantity)} $itemUom", fontWeight = FontWeight.Bold)
+                    Text("Total Quantity: ${String.format(Locale.getDefault(), "%.2f", totalQuantity)} $displayUom", fontWeight = FontWeight.Bold)
                 }
             },
             confirmButton = {
@@ -784,10 +815,78 @@ private fun MeasurementDraftRow.toEntryRow() = MeasurementEntryRow(
     id, description, lengthText, heightText, widthText, nosText, deductionText, remarks, photoUri
 )
 
+private fun MeasurementEntryRow.convertUnits(
+    type: CalculationType,
+    from: MeasurementUnitSystem,
+    to: MeasurementUnitSystem
+) = copy(
+    lengthText = MeasurementUnitConverter.convertText(lengthText, 1, from, to),
+    widthText = MeasurementUnitConverter.convertText(widthText, 1, from, to),
+    heightText = MeasurementUnitConverter.convertText(heightText, 1, from, to),
+    deductionText = MeasurementUnitConverter.convertText(
+        deductionText,
+        if (type == CalculationType.WALL_PLASTER) 2 else MeasurementUnitConverter.powerFor(type),
+        from,
+        to
+    )
+)
+
+private fun MeasurementEntity.dimensionText(value: Double, target: MeasurementUnitSystem): String {
+    if (value <= 0.0) return ""
+    return MeasurementUnitConverter.convertText(
+        value.toString(),
+        power = 1,
+        from = MeasurementUnitConverter.infer(unit),
+        to = target
+    )
+}
+
+private fun MeasurementEntity.deductionText(type: CalculationType, target: MeasurementUnitSystem): String {
+    if (deduction <= 0.0) return "0"
+    return MeasurementUnitConverter.convertText(
+        deduction.toString(),
+        power = if (type == CalculationType.WALL_PLASTER) 2 else MeasurementUnitConverter.powerFor(type),
+        from = MeasurementUnitConverter.infer(unit),
+        to = target
+    )
+}
+
 private fun MeasurementEntryRow.validation(type: CalculationType): MeasurementRowValidation = MeasurementRowValidator.validate(
     type,
     MeasurementRowValidationInput(description, nosText, lengthText, widthText, heightText, deductionText, photoUri != null, remarks)
 )
+
+@Composable
+private fun UnitSystemToggle(
+    selected: MeasurementUnitSystem,
+    onSelect: (MeasurementUnitSystem) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .border(1.dp, CarbonGray60, RoundedCornerShape(2.dp))
+            .testTag("unit_system_toggle"),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        MeasurementUnitSystem.entries.forEach { system ->
+            val active = system == selected
+            Box(
+                modifier = Modifier
+                    .background(if (active) CarbonBlue60 else CarbonGray90)
+                    .clickable { onSelect(system) }
+                    .testTag("unit_system_${system.name.lowercase()}")
+                    .padding(horizontal = 8.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (system == MeasurementUnitSystem.METRIC) "Metric" else "Imperial",
+                    color = CarbonWhite,
+                    fontSize = 10.sp,
+                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium
+                )
+            }
+        }
+    }
+}
 
 @Composable
 fun MeasurementRowCard(
@@ -796,6 +895,7 @@ fun MeasurementRowCard(
     calcType: CalculationType,
     itemName: String,
     itemUom: String,
+    dimensionUom: String,
     selected: Boolean,
     onToggleSelected: () -> Unit,
     onDuplicate: () -> Unit,
@@ -872,7 +972,7 @@ fun MeasurementRowCard(
             )
             if (calcType != CalculationType.NOS) {
                 CompactNumberCell(
-                    label = "Length",
+                    label = "Length ($dimensionUom)",
                     value = lengthText,
                     tag = "input_row_length_$index",
                     imeAction = if (calcType == CalculationType.RUNNING_LENGTH) ImeAction.Done else ImeAction.Next,
@@ -884,7 +984,7 @@ fun MeasurementRowCard(
             }
             if (calcType == CalculationType.AREA || calcType == CalculationType.VOLUME) {
                 CompactNumberCell(
-                    label = "Breadth",
+                    label = "Breadth ($dimensionUom)",
                     value = widthText,
                     tag = "input_row_breadth_$index",
                     imeAction = if (calcType == CalculationType.AREA) ImeAction.Done else ImeAction.Next,
@@ -896,7 +996,7 @@ fun MeasurementRowCard(
             }
             if (calcType == CalculationType.WALL_PLASTER || calcType == CalculationType.VOLUME) {
                 CompactNumberCell(
-                    label = "Height",
+                    label = "Height ($dimensionUom)",
                     value = heightText,
                     tag = "input_row_height_$index",
                     imeAction = ImeAction.Done,

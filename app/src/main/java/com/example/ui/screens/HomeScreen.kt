@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -97,7 +98,8 @@ fun ProjectsTabContent(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Box(
                             modifier = Modifier
@@ -114,18 +116,22 @@ fun ProjectsTabContent(
                             )
                         }
 
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Accelerated Measurement Book",
+                                text = "Measurement Book",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = CarbonGray100
+                                color = CarbonGray100,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "${projects.size} Active Project${if (projects.size != 1) "s" else ""} • ${measurements.size} Recorded Entries",
                                 fontSize = 11.sp,
                                 color = CarbonBlue60,
-                                fontWeight = FontWeight.Medium
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -170,7 +176,7 @@ fun ProjectsTabContent(
                 CarbonSearchField(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
-                    placeholder = "Search projects by name, client, or site address...",
+                    placeholder = "Search projects, clients, or sites...",
                     testTag = "input_search_projects"
                 )
             }

@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -99,29 +100,20 @@ fun ContractorsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = "Contractors Directory",
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = CarbonGray100
                         )
                         Text(
                             text = "${contractors.size} Registered Contractors with Qualified Items",
                             fontSize = 12.sp,
-                            color = CarbonGray70
+                            color = CarbonGray70,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-                    }
-                    Button(
-                        onClick = { showAddDialog = true },
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        modifier = Modifier.testTag("btn_add_contractor_top")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("New Contractor", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -131,7 +123,7 @@ fun ContractorsScreen(
                 CarbonSearchField(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
-                    placeholder = "Search contractor by name, address, or trade item...",
+                    placeholder = "Search contractors or trades...",
                     testTag = "input_search_contractors"
                 )
             }

@@ -15,6 +15,16 @@ class SiteRepository(private val database: AppDatabase) {
     val allItems: Flow<List<ItemMasterEntity>> = database.itemMasterDao().getAllItems()
     val allMeasurements: Flow<List<MeasurementEntity>> = database.measurementDao().getAllMeasurements()
 
+    fun getProjectTasks(projectId: Long) = database.projectTaskDao().getByProject(projectId)
+    suspend fun insertProjectTask(task: ProjectTaskEntity) = database.projectTaskDao().insert(task)
+    suspend fun updateProjectTask(task: ProjectTaskEntity) = database.projectTaskDao().update(task)
+    suspend fun deleteProjectTask(task: ProjectTaskEntity) = database.projectTaskDao().delete(task)
+
+    fun getProjectSelectionItems(projectId: Long) = database.projectSelectionItemDao().getByProject(projectId)
+    suspend fun insertProjectSelectionItem(item: ProjectSelectionItemEntity) = database.projectSelectionItemDao().insert(item)
+    suspend fun updateProjectSelectionItem(item: ProjectSelectionItemEntity) = database.projectSelectionItemDao().update(item)
+    suspend fun deleteProjectSelectionItem(item: ProjectSelectionItemEntity) = database.projectSelectionItemDao().delete(item)
+
     // Client operations
     suspend fun insertClient(client: ClientEntity): Long =
         database.clientDao().insertClient(client)

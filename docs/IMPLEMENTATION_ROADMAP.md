@@ -59,7 +59,7 @@ Exit criteria: one canonical work catalog with no unresolved duplicate candidate
 
 ## Phase 4 - Measurement sheet domain and safe schema migration
 
-Status: Completed through schema version 10 and test-verified; USB-device migration verification is pending reconnection.
+Status: Completed through schema version 10 and verified from a WAL-consistent device snapshot with all six restored measurements preserved.
 
 - [x] Split measurement sheet headers from linked measurement rows while retaining compatibility snapshots.
 - [x] Introduce immutable formula code, formula version, UOM, item, contractor, floor, and date snapshots.
@@ -74,7 +74,7 @@ Exit criteria: clean quantity-only schema and passing migration tests from every
 
 ## Phase 5 - Review, approval, and audit
 
-Status: Completed locally through schema version 10; USB-device verification is pending reconnection.
+Status: Completed through schema version 10; schema, triggers, restored sheet state, and device launch are verified. Hands-on review-transition testing remains part of field acceptance.
 
 - [x] Draft, submitted, checked, approved, and returned states.
 - [x] Review comments and correction revision increments on resubmission.
@@ -104,6 +104,9 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 
 - [x] Product boundary documented.
 - [x] Target UX and architecture documented.
+- [x] Complete the 360 dp mobile UI audit and resolve header, navigation, duplicate-action, unit-label, and above-the-fold workflow defects.
+- [x] Add project Tasks and a persisted Specification / Selection List.
+- [x] Export a project selection list as a quantity-only purchase order without rates or billing fields.
 - [x] Phased migration plan documented.
 - [x] Remove commercial values from contractor qualification UI.
 - [x] Remove commercial values from the canonical measurement selection and row-entry UI.
@@ -111,7 +114,9 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 - [x] Remove commercial navigation and APIs.
 - [x] Stop commercial writes from the canonical row editor (legacy columns receive zero during compatibility period).
 - [x] Centralize quantity formulas and add formula tests.
+- [x] Metric/Imperial field-entry toggle with atomic row, deduction, quantity, UOM, import, Undo, and draft conversion.
 - [x] Route all active measurement entry points through the canonical editor.
 - [x] Preserve the selected work-item ID through canonical editor sessions and reject orphan measurement saves.
 - [x] Build and migration-test the current schema-10 milestone locally.
-- [ ] Install and smoke-test schema 10 on the USB device; verify preserved row counts, sheet links, review audit data, triggers, and foreign keys.
+- [x] Install schema 10 on the USB device and verify preserved row counts, sheet links, trigger presence, formula/UOM snapshots, and foreign keys.
+- [ ] Complete hands-on field interaction smoke testing for entry, photos, duplication, drafts, and review transitions.

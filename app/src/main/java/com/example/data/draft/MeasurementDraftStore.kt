@@ -18,7 +18,11 @@ data class MeasurementDraftRow(
 )
 
 @JsonClass(generateAdapter = true)
-data class MeasurementDraft(val rows: List<MeasurementDraftRow>, val updatedAt: Long)
+data class MeasurementDraft(
+    val rows: List<MeasurementDraftRow>,
+    val updatedAt: Long,
+    val unitSystem: String = "METRIC"
+)
 
 data class MeasurementDraftKey(val projectId: Long, val contractorId: Long, val itemId: Long, val floorId: Long) {
     val storageKey: String get() = "draft_${projectId}_${contractorId}_${itemId}_${floorId}"
@@ -31,12 +35,15 @@ class MeasurementDraftStore(context: Context) {
     fun load(key: MeasurementDraftKey): MeasurementDraft? = preferences.getString(key.storageKey, null)
         ?.let { runCatching { adapter.fromJson(it) }.getOrNull() }
 
-    fun save(key: MeasurementDraftKey, rows: List<MeasurementDraftRow>) {
+    fun save(key: MeasurementDraftKey, rows: List<MeasurementDraftRow>, unitSystem: String = "METRIC") {
         if (rows.none(::hasContent)) {
             clear(key)
             return
         }
-        preferences.edit().putString(key.storageKey, adapter.toJson(MeasurementDraft(rows, System.currentTimeMillis()))).apply()
+        preferences.edit().putString(
+            key.storageKey,
+            adapter.toJson(MeasurementDraft(rows, System.currentTimeMillis(), unitSystem))
+        ).apply()
     }
 
     fun clear(key: MeasurementDraftKey) {

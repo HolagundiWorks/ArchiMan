@@ -14,12 +14,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-const val DATABASE_SCHEMA_VERSION = 10
+const val DATABASE_SCHEMA_VERSION = 11
 
 @Database(
     entities = [
         ClientEntity::class,
         ProjectEntity::class,
+        ProjectTaskEntity::class,
+        ProjectSelectionItemEntity::class,
         FloorEntity::class,
         RoomEntity::class,
         ComponentEntity::class,
@@ -39,6 +41,8 @@ const val DATABASE_SCHEMA_VERSION = 10
 abstract class AppDatabase : RoomDatabase() {
     abstract fun clientDao(): ClientDao
     abstract fun projectDao(): ProjectDao
+    abstract fun projectTaskDao(): ProjectTaskDao
+    abstract fun projectSelectionItemDao(): ProjectSelectionItemDao
     abstract fun floorDao(): FloorDao
     abstract fun roomDao(): RoomDao
     abstract fun componentDao(): ComponentDao
@@ -61,7 +65,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -226,6 +230,15 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE TABLE measurement_review_events (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sheetId` INTEGER NOT NULL, `fromStatus` TEXT NOT NULL, `toStatus` TEXT NOT NULL, `comment` TEXT NOT NULL, `actor` TEXT NOT NULL, `revision` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`sheetId`) REFERENCES `measurement_sheets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
                 db.execSQL("CREATE INDEX index_measurement_review_events_sheetId ON measurement_review_events(sheetId)")
                 installSheetLockTriggers(db)
+            }
+        }
+
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS project_tasks (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `dueDate` INTEGER, `status` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_project_tasks_projectId ON project_tasks(projectId)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS project_selection_items (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `specification` TEXT NOT NULL, `makeOrBrand` TEXT NOT NULL, `quantity` REAL NOT NULL, `unit` TEXT NOT NULL, `status` TEXT NOT NULL, `remarks` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_project_selection_items_projectId ON project_selection_items(projectId)")
             }
         }
 

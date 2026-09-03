@@ -112,6 +112,14 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedProjectId = MutableStateFlow<Long?>(null)
     val selectedProjectId: StateFlow<Long?> = _selectedProjectId.asStateFlow()
 
+    val projectTasks: StateFlow<List<ProjectTaskEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectTasks) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectSelectionItems: StateFlow<List<ProjectSelectionItemEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectSelectionItems) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val projectContractorRefs: StateFlow<List<ProjectContractorCrossRef>> = selectedProjectId
         .flatMapLatest { projectId ->
             if (projectId == null) flowOf(emptyList())
@@ -255,6 +263,45 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun navigateTo(screen: AppScreen) {
         _currentScreen.value = screen
+    }
+
+    fun addProjectTask(title: String, description: String = "") {
+        val projectId = selectedProjectId.value ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertProjectTask(ProjectTaskEntity(projectId = projectId, title = title.trim(), description = description.trim()))
+        }
+    }
+
+    fun toggleProjectTask(task: ProjectTaskEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateProjectTask(task.copy(status = if (task.status == "DONE") "OPEN" else "DONE"))
+        }
+    }
+
+    fun deleteProjectTask(task: ProjectTaskEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectTask(task) }
+    }
+
+    fun addProjectSelectionItem(name: String, specification: String, brand: String, quantity: Double, unit: String, remarks: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (name.isBlank() || quantity <= 0.0) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertProjectSelectionItem(ProjectSelectionItemEntity(
+                projectId = projectId, itemName = name.trim(), specification = specification.trim(),
+                makeOrBrand = brand.trim(), quantity = quantity, unit = unit.trim().ifBlank { "Nos" }, remarks = remarks.trim()
+            ))
+        }
+    }
+
+    fun toggleProjectSelectionItem(item: ProjectSelectionItemEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateProjectSelectionItem(item.copy(status = if (item.status == "SELECTED") "PENDING" else "SELECTED"))
+        }
+    }
+
+    fun deleteProjectSelectionItem(item: ProjectSelectionItemEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectSelectionItem(item) }
     }
 
     /** Opens the single authoritative measurement editor using current project context. */

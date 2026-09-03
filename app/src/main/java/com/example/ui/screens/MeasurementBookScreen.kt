@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -95,23 +96,28 @@ fun MeasurementBookScreen(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         IconButton(onClick = onNavigateBack, modifier = Modifier.size(36.dp)) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = CarbonGray100)
                         }
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = "Measurement Book (M-Book)",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
-                                color = CarbonGray100
+                                color = CarbonGray100,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
                                 text = "${currentProject?.name ?: "Project"} • Engineering Record",
                                 fontSize = 11.sp,
                                 color = CarbonBlue60,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -353,7 +359,7 @@ fun MeasurementBookScreen(
                                         // Rows
                                         roomMeasurements.forEachIndexed { rIdx, m ->
                                             val dimText = when (m.calculationType) {
-                                                CalculationType.RUNNING_LENGTH -> "${m.nos.toInt()} × ${m.length}m"
+                                                CalculationType.RUNNING_LENGTH -> "${m.nos.toInt()} × ${m.length}${m.linearUnit()}"
                                                 CalculationType.AREA -> "${m.nos.toInt()} × ${m.length} × ${m.width}"
                                                 CalculationType.WALL_PLASTER -> "${m.nos.toInt()} × ${m.length} × ${m.height}${if (m.deduction > 0) " (-${m.deduction})" else ""}"
                                                 CalculationType.VOLUME -> "${m.nos.toInt()} × ${m.length} × ${m.width} × ${m.height}"
@@ -537,6 +543,7 @@ fun MeasurementBookScreen(
 
 @Composable
 private fun SheetWorkflowPanel(viewModel: SiteViewModel, sheets: List<MeasurementSheetEntity>) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
     var actor by rememberSaveable { mutableStateOf("") }
     var returnSheet by remember { mutableStateOf<MeasurementSheetEntity?>(null) }
     var returnComment by remember { mutableStateOf("") }
@@ -552,46 +559,65 @@ private fun SheetWorkflowPanel(viewModel: SiteViewModel, sheets: List<Measuremen
 
     Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("SHEET REVIEW WORKFLOW", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray80)
-            OutlinedTextField(
-                value = actor,
-                onValueChange = { actor = it },
-                label = { Text("Your name / reviewer") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            sheets.sortedByDescending { it.createdAt }.take(20).forEach { sheet ->
-                val status = runCatching { MeasurementSheetStatus.valueOf(sheet.status) }.getOrDefault(MeasurementSheetStatus.DRAFT)
-                Surface(color = CarbonWhite, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
-                    Column(Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(sheet.itemNameSnapshot, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                                Text("${sheet.sheetCode} • Rev ${sheet.revision}", fontSize = 9.sp, color = CarbonGray70)
-                            }
-                            Surface(color = if (status == MeasurementSheetStatus.APPROVED) CarbonGreen60 else CarbonBlue60, shape = RoundedCornerShape(2.dp)) {
-                                Text(status.name, color = CarbonWhite, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
-                            }
-                        }
-                        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            when (status) {
-                                MeasurementSheetStatus.DRAFT, MeasurementSheetStatus.RETURNED -> TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.SUBMITTED) }) { Text("Submit") }
-                                MeasurementSheetStatus.SUBMITTED -> {
-                                    TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.CHECKED) }) { Text("Mark checked") }
-                                    TextButton(enabled = actor.isNotBlank(), onClick = { returnSheet = sheet }) { Text("Return") }
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("SHEET REVIEW WORKFLOW", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray80)
+                    Text("${sheets.size} sheet${if (sheets.size == 1) "" else "s"} • Tap to ${if (expanded) "collapse" else "review"}", fontSize = 10.sp, color = CarbonGray70)
+                }
+                Icon(
+                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = if (expanded) "Collapse review workflow" else "Expand review workflow",
+                    tint = CarbonBlue60
+                )
+            }
+            if (expanded) {
+                OutlinedTextField(
+                    value = actor,
+                    onValueChange = { actor = it },
+                    label = { Text("Your name / reviewer") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                sheets.sortedByDescending { it.createdAt }.take(20).forEach { sheet ->
+                    val status = runCatching { MeasurementSheetStatus.valueOf(sheet.status) }.getOrDefault(MeasurementSheetStatus.DRAFT)
+                    Surface(color = CarbonWhite, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
+                        Column(Modifier.padding(9.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(sheet.itemNameSnapshot, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text("${sheet.sheetCode} • Rev ${sheet.revision}", fontSize = 9.sp, color = CarbonGray70)
                                 }
-                                MeasurementSheetStatus.CHECKED -> {
-                                    TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.APPROVED) }) { Text("Approve") }
-                                    TextButton(enabled = actor.isNotBlank(), onClick = { returnSheet = sheet }) { Text("Return") }
+                                Surface(color = if (status == MeasurementSheetStatus.APPROVED) CarbonGreen60 else CarbonBlue60, shape = RoundedCornerShape(2.dp)) {
+                                    Text(status.name, color = CarbonWhite, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp))
                                 }
-                                MeasurementSheetStatus.APPROVED -> Text("Locked", fontSize = 10.sp, color = CarbonGreen60, modifier = Modifier.padding(12.dp))
                             }
-                            TextButton(onClick = { historySheet = sheet }) { Text("History") }
+                            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                when (status) {
+                                    MeasurementSheetStatus.DRAFT, MeasurementSheetStatus.RETURNED -> TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.SUBMITTED) }) { Text("Submit") }
+                                    MeasurementSheetStatus.SUBMITTED -> {
+                                        TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.CHECKED) }) { Text("Mark checked") }
+                                        TextButton(enabled = actor.isNotBlank(), onClick = { returnSheet = sheet }) { Text("Return") }
+                                    }
+                                    MeasurementSheetStatus.CHECKED -> {
+                                        TextButton(enabled = actor.isNotBlank(), onClick = { transition(sheet, MeasurementSheetStatus.APPROVED) }) { Text("Approve") }
+                                        TextButton(enabled = actor.isNotBlank(), onClick = { returnSheet = sheet }) { Text("Return") }
+                                    }
+                                    MeasurementSheetStatus.APPROVED -> Text("Locked", fontSize = 10.sp, color = CarbonGreen60, modifier = Modifier.padding(12.dp))
+                                }
+                                TextButton(onClick = { historySheet = sheet }) { Text("History") }
+                            }
                         }
                     }
                 }
+                message?.let { Text(it, fontSize = 10.sp, color = CarbonBlue60) }
             }
-            message?.let { Text(it, fontSize = 10.sp, color = CarbonBlue60) }
         }
     }
 
@@ -629,3 +655,6 @@ private fun SheetWorkflowPanel(viewModel: SiteViewModel, sheets: List<Measuremen
         )
     }
 }
+
+private fun MeasurementEntity.linearUnit(): String =
+    if (unit.contains("ft", ignoreCase = true)) " ft" else " m"

@@ -23,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -94,7 +95,8 @@ fun MasterDataScreen(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
                         Box(
                             modifier = Modifier
@@ -110,35 +112,24 @@ fun MasterDataScreen(
                                 color = CarbonWhite
                             )
                         }
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Work Items & Calculation Formulas",
+                                text = "Work Items & Formulas",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = CarbonGray100
+                                color = CarbonGray100,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "BOQ Master Library",
+                                text = "Standard Measurement Library",
                                 fontSize = 11.sp,
                                 color = CarbonBlue60,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-
-                    Button(
-                        onClick = { showAddItemDialog = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = CarbonBlue60,
-                            contentColor = CarbonWhite
-                        ),
-                        shape = RoundedCornerShape(2.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                        modifier = Modifier.testTag("btn_add_item_top")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Add Item", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -188,7 +179,7 @@ fun MasterDataScreen(
                             Text("Import", fontSize = 11.sp)
                         }
                         if (duplicateCandidates.isEmpty()) {
-                            Text("Catalog checked", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = CarbonBlue60)
+                            Text("Verified", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = CarbonBlue60)
                         } else {
                             TextButton(onClick = { showDuplicateReport = true }) {
                                 Text("Review ${duplicateCandidates.size} duplicate${if (duplicateCandidates.size == 1) "" else "s"}", fontSize = 11.sp)

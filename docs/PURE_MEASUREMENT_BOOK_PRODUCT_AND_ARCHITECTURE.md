@@ -46,6 +46,14 @@ The application is the authoritative record of measured quantities. It is not a 
 
 ## 4. Canonical workflow
 
+### Unit-system entry
+
+- The row editor provides a Metric/Imperial toggle after contractor, work item, and floor selection.
+- Switching systems converts every active length, breadth, height, and formula-dependent deduction before recalculating quantities.
+- Linear, area, and volume UOM snapshots are stored as `m`/`ft`, `m²`/`ft²`, and `m³`/`ft³`; count items remain unchanged.
+- Draft recovery retains the selected unit system. Existing saved sheets are immutable snapshots and are never rewritten by an editor toggle.
+- Imported linked measurements are converted from their stored UOM into the currently selected entry system.
+
 ```text
 Projects
   -> Project overview

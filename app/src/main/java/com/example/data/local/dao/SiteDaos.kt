@@ -284,6 +284,24 @@ interface ItemMasterDao {
 }
 
 @Dao
+interface ProjectTaskDao {
+    @Query("SELECT * FROM project_tasks WHERE projectId=:projectId ORDER BY status, createdAt DESC")
+    fun getByProject(projectId: Long): Flow<List<ProjectTaskEntity>>
+    @Insert suspend fun insert(task: ProjectTaskEntity): Long
+    @Update suspend fun update(task: ProjectTaskEntity)
+    @Delete suspend fun delete(task: ProjectTaskEntity)
+}
+
+@Dao
+interface ProjectSelectionItemDao {
+    @Query("SELECT * FROM project_selection_items WHERE projectId=:projectId ORDER BY status, createdAt DESC")
+    fun getByProject(projectId: Long): Flow<List<ProjectSelectionItemEntity>>
+    @Insert suspend fun insert(item: ProjectSelectionItemEntity): Long
+    @Update suspend fun update(item: ProjectSelectionItemEntity)
+    @Delete suspend fun delete(item: ProjectSelectionItemEntity)
+}
+
+@Dao
 interface MeasurementDao {
     @Query("SELECT * FROM measurements ORDER BY date DESC, id DESC")
     fun getAllMeasurements(): Flow<List<MeasurementEntity>>

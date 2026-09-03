@@ -17,6 +17,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -90,29 +91,20 @@ fun ClientsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Column {
+                    Column(modifier = Modifier.fillMaxWidth()) {
                         Text(
                             text = "Clients Directory",
-                            fontSize = 18.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = CarbonGray100
                         )
                         Text(
                             text = "${clients.size} Registered Client${if (clients.size != 1) "s" else ""}",
                             fontSize = 12.sp,
-                            color = CarbonGray70
+                            color = CarbonGray70,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
-                    }
-                    Button(
-                        onClick = { showAddDialog = true },
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        modifier = Modifier.testTag("btn_add_client_top")
-                    ) {
-                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("New Client", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -122,7 +114,7 @@ fun ClientsScreen(
                 CarbonSearchField(
                     query = searchQuery,
                     onQueryChange = { searchQuery = it },
-                    placeholder = "Search clients by name, address, or contact no...",
+                    placeholder = "Search clients...",
                     testTag = "input_search_clients"
                 )
             }

@@ -98,6 +98,30 @@ data class ContractorEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "project_tasks", indices = [Index("projectId")])
+data class ProjectTaskEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val title: String,
+    val description: String = "",
+    val dueDate: Long? = null,
+    val status: String = "OPEN",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "project_selection_items", indices = [Index("projectId")])
+data class ProjectSelectionItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val itemName: String,
+    val specification: String = "",
+    val makeOrBrand: String = "",
+    val quantity: Double = 1.0,
+    val unit: String = "Nos",
+    val status: String = "PENDING",
+    val remarks: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
 @Entity(
     tableName = "contractor_qualified_items",
     indices = [Index(value = ["contractorId", "itemName"], unique = true)]
