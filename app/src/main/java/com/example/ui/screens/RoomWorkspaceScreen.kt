@@ -28,7 +28,7 @@ import com.example.data.local.entity.ComponentType
 import com.example.data.local.entity.ItemMasterEntity
 import com.example.ui.components.BreadcrumbBar
 import com.example.ui.components.BreadcrumbItem
-import com.example.ui.viewmodel.AppScreen
+import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

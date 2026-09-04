@@ -27,8 +27,8 @@ import com.example.data.local.entity.ClientEntity
 import com.example.data.local.entity.ContractorEntity
 import com.example.data.local.entity.ProjectEntity
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
-import com.example.ui.viewmodel.HomeTab
+import com.example.ui.navigation.AppScreen
+import com.example.ui.navigation.HomeTab
 import com.example.ui.viewmodel.SiteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

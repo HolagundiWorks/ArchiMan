@@ -107,6 +107,18 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 - [x] Complete the 360 dp mobile UI audit and resolve header, navigation, duplicate-action, unit-label, and above-the-fold workflow defects.
 - [x] Add project Tasks and a persisted Specification / Selection List.
 - [x] Export a project selection list as a quantity-only purchase order without rates or billing fields.
+- [x] Add the first curated Karnataka PWD SR Buildings 2023-24 work/specification catalog slice with source provenance and no rates.
+- [x] Approve the rate-book scope extension: contractor-owned versioned books, PWD item import, project assignment, and immutable measurement rate snapshots.
+- [x] Deliver the first project Rates workspace, including contractor selection, multiple named/versioned books, PWD item import, rate entry, and project assignment.
+- [x] Show rate and calculated amount snapshots in the M-Book and CSV export without introducing bills or payment workflows.
+- [x] Define the canonical portfolio → project → planning/setup → measurement hierarchy and remove duplicate Record/M-Book destinations from Project Hub.
+- [x] Move application destinations out of the all-purpose ViewModel into a dedicated navigation package.
+- [x] Keep Archi Launcher, Pomodoro and calculator outside AMB as a separate application boundary.
+- [x] Add project schedules, structured meeting minutes and site inspection reports with optional photos in schema 15.
+- [x] Retain material selection and quantity-only purchase-order export under Project Planning.
+- [ ] Build a previewed, user-confirmed import from `/sdcard/Vishwakarma/os-bundle.json`; do not maintain two live project databases.
+- [ ] Add PDF/CSV exports for meeting minutes and inspection reports before retiring standalone Vishwakarma apps.
+- [ ] Split the all-purpose ViewModel, repository, entities and DAOs into measurement, catalogue, project and rate-book feature boundaries.
 - [x] Phased migration plan documented.
 - [x] Remove commercial values from contractor qualification UI.
 - [x] Remove commercial values from the canonical measurement selection and row-entry UI.
@@ -117,6 +129,9 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 - [x] Metric/Imperial field-entry toggle with atomic row, deduction, quantity, UOM, import, Undo, and draft conversion.
 - [x] Route all active measurement entry points through the canonical editor.
 - [x] Preserve the selected work-item ID through canonical editor sessions and reject orphan measurement saves.
-- [x] Build and migration-test the current schema-10 milestone locally.
-- [x] Install schema 10 on the USB device and verify preserved row counts, sheet links, trigger presence, formula/UOM snapshots, and foreign keys.
+- [x] Build and migration-test the current schema-15 milestone locally.
+- [x] Install schema 15 on the USB device and verify preserved data, PWD catalogue rows, rate-book and project-operations tables, and clean startup.
 - [ ] Complete hands-on field interaction smoke testing for entry, photos, duplication, drafts, and review transitions.
+- [ ] Expand the curated PWD SR starter catalogue into a complete, edition-controlled official dataset after source-by-source validation.
+- [ ] Add rate-book clone/revision, publish/retire lifecycle, effective-date controls, and an assignment history screen.
+- [ ] Add an impact preview before changing a project's applicable rate book; historical measurement snapshots must remain unchanged.

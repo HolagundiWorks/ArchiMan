@@ -5,16 +5,16 @@ $sourceRoot = Join-Path $repositoryRoot "app/src/main/java"
 $manifestPath = Join-Path $repositoryRoot "app/src/main/AndroidManifest.xml"
 $buildFile = Join-Path $repositoryRoot "app/build.gradle.kts"
 
-$commercialPattern = '\b(rate|rates|bill|bills|billing|invoice|invoices|payment|payments|amount|price|cost)\b'
+$prohibitedPattern = '\b(bill|bills|billing|invoice|invoices|payment|payments|retention)\b'
 $activeSourceFiles = Get-ChildItem $sourceRoot -Recurse -File -Filter *.kt |
     Where-Object {
         $_.FullName -notlike '*\data\local\AppDatabase.kt' -and
         $_.FullName -notlike '*\ui\theme\*'
     }
-$commercialMatches = $activeSourceFiles | Select-String -Pattern $commercialPattern -CaseSensitive:$false
-if ($commercialMatches) {
-    $commercialMatches | ForEach-Object { Write-Error "$($_.Path):$($_.LineNumber): $($_.Line.Trim())" }
-    throw "Commercial terminology was found in active product source."
+$prohibitedMatches = $activeSourceFiles | Select-String -Pattern $prohibitedPattern -CaseSensitive:$false
+if ($prohibitedMatches) {
+    $prohibitedMatches | ForEach-Object { Write-Error "$($_.Path):$($_.LineNumber): $($_.Line.Trim())" }
+    throw "Billing or payment functionality was found outside the approved measurement and rate-book scope."
 }
 
 $manifest = Get-Content $manifestPath -Raw
@@ -39,4 +39,4 @@ if (Test-Path $mergedManifest) {
     }
 }
 
-Write-Output "Pure Measurement Book boundary verification passed."
+Write-Output "Measurement and rate-book product boundary verification passed."

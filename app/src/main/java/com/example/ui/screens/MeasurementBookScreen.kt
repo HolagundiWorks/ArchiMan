@@ -32,7 +32,7 @@ import com.example.data.local.entity.MeasurementEntity
 import com.example.data.local.entity.MeasurementSheetEntity
 import com.example.domain.MeasurementSheetStatus
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
+import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 import com.example.util.ExportHelper
 import java.text.SimpleDateFormat
@@ -393,6 +393,15 @@ fun MeasurementBookScreen(
                                                     fontWeight = FontWeight.Bold,
                                                     color = CarbonBlue60,
                                                     modifier = Modifier.weight(1.2f),
+                                                    textAlign = androidx.compose.ui.text.style.TextAlign.End
+                                                )
+                                            }
+                                            if (m.rateSnapshot != null) {
+                                                Text(
+                                                    text = "₹ ${String.format(Locale.getDefault(), "%.2f", m.rateSnapshot)} / ${m.unit}  •  ₹ ${String.format(Locale.getDefault(), "%.2f", m.amountSnapshot ?: 0.0)}",
+                                                    fontSize = 10.sp,
+                                                    color = CarbonGray70,
+                                                    modifier = Modifier.fillMaxWidth(),
                                                     textAlign = androidx.compose.ui.text.style.TextAlign.End
                                                 )
                                             }

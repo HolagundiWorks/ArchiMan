@@ -34,7 +34,7 @@ import coil.compose.AsyncImage
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.MeasurementEntity
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
+import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 import com.example.util.ExportHelper
 import java.text.NumberFormat

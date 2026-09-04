@@ -39,18 +39,18 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
+import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 import com.example.util.ExportHelper
 import java.text.SimpleDateFormat
 import java.util.*
 
-enum class ProjectTab(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    TASKS("Tasks", Icons.Default.TaskAlt),
-    CONTRACTORS("Contractors", Icons.Default.Engineering),
-    MEASUREMENT_BOOK("M-Book", Icons.Default.MenuBook),
-    SELECTIONS("Selections", Icons.Default.Checklist),
-    RECORD_MEASURE("Record", Icons.Default.Straighten)
+enum class ProjectHubSection(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    OVERVIEW("Overview", Icons.Default.Dashboard),
+    PLANNING("Planning", Icons.Default.EventNote),
+    REPORTS("Reports", Icons.Default.Assignment),
+    CONTRACTORS("Team", Icons.Default.Engineering),
+    RATE_BOOKS("Rates", Icons.Default.PriceChange)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,6 +69,11 @@ fun ProjectWorkspaceScreen(
     val allMeasurements by viewModel.measurements.collectAsStateWithLifecycle()
     val projectTasks by viewModel.projectTasks.collectAsStateWithLifecycle()
     val selectionItems by viewModel.projectSelectionItems.collectAsStateWithLifecycle()
+    val schedules by viewModel.projectSchedules.collectAsStateWithLifecycle()
+    val meetingMinutes by viewModel.meetingMinutes.collectAsStateWithLifecycle()
+    val siteInspections by viewModel.siteInspections.collectAsStateWithLifecycle()
+    val rateBooks by viewModel.rateBooks.collectAsStateWithLifecycle()
+    val rateBookAssignments by viewModel.projectRateBookAssignments.collectAsStateWithLifecycle()
 
     val currentProject = projects.firstOrNull { it.id == selectedProjectId } ?: projects.firstOrNull()
     val projectMeasurements = remember(allMeasurements, currentProject) {
@@ -81,9 +86,8 @@ fun ProjectWorkspaceScreen(
         else emptyList()
     }
 
-    var selectedTab by remember { mutableStateOf(ProjectTab.RECORD_MEASURE) }
+    var selectedSection by remember { mutableStateOf(ProjectHubSection.OVERVIEW) }
     var showSwitchProjectDialog by remember { mutableStateOf(false) }
-    var filterContractorForMBook by remember { mutableStateOf<Long?>(null) }
 
     Scaffold(
         containerColor = CarbonWhite,
@@ -230,9 +234,10 @@ fun ProjectWorkspaceScreen(
                     }
                 }
 
-                // 3 Segmented Navigation Tabs
+                // Project Hub contains overview, planning and setup only.
+                // Field entry and M-Book remain persistent project-level actions in the bottom bar.
                 ScrollableTabRow(
-                    selectedTabIndex = selectedTab.ordinal,
+                    selectedTabIndex = selectedSection.ordinal,
                     edgePadding = 8.dp,
                     containerColor = CarbonWhite,
                     contentColor = CarbonBlue60,
@@ -240,31 +245,31 @@ fun ProjectWorkspaceScreen(
                         Divider(color = CarbonGray20, thickness = 1.dp)
                     }
                 ) {
-                    ProjectTab.values().forEach { tab ->
-                        val isSelected = selectedTab == tab
+                    ProjectHubSection.values().forEach { section ->
+                        val isSelected = selectedSection == section
                         Tab(
                             selected = isSelected,
-                            onClick = { selectedTab = tab },
+                            onClick = { selectedSection = section },
                             text = {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Icon(
-                                        imageVector = tab.icon,
+                                        imageVector = section.icon,
                                         contentDescription = null,
                                         modifier = Modifier.size(16.dp),
                                         tint = if (isSelected) CarbonBlue60 else CarbonGray70
                                     )
                                     Text(
-                                        text = tab.title,
+                                        text = section.title,
                                         fontSize = 12.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                                         color = if (isSelected) CarbonBlue60 else CarbonGray70
                                     )
                                 }
                             },
-                            modifier = Modifier.testTag("tab_${tab.name.lowercase()}")
+                            modifier = Modifier.testTag("project_section_${section.name.lowercase()}")
                         )
                     }
                 }
@@ -276,41 +281,42 @@ fun ProjectWorkspaceScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (selectedTab) {
-                ProjectTab.TASKS -> ProjectTasksTab(viewModel, projectTasks)
-                ProjectTab.RECORD_MEASURE -> {
-                    CanonicalMeasurementLauncher(viewModel)
-                }
-                ProjectTab.MEASUREMENT_BOOK -> {
-                    ProjectMeasurementBookTab(
-                        viewModel = viewModel,
-                        currentProject = currentProject,
-                        floors = floors,
-                        contractors = projectContractors,
-                        items = items,
-                        measurements = projectMeasurements,
-                        preselectedContractorId = filterContractorForMBook,
-                        onClearContractorFilter = { filterContractorForMBook = null },
-                        onNavigateToRecord = { selectedTab = ProjectTab.RECORD_MEASURE }
-                    )
-                }
-                ProjectTab.CONTRACTORS -> {
+            when (selectedSection) {
+                ProjectHubSection.OVERVIEW -> ProjectHubOverview(
+                    project = currentProject,
+                    taskCount = projectTasks.size,
+                    selectionCount = selectionItems.size,
+                    scheduleCount = schedules.size,
+                    reportCount = meetingMinutes.size + siteInspections.size,
+                    contractorCount = projectContractors.size,
+                    rateBookCount = rateBookAssignments.size,
+                    measurementCount = projectMeasurements.size,
+                    onOpenPlanning = { selectedSection = ProjectHubSection.PLANNING },
+                    onOpenReports = { selectedSection = ProjectHubSection.REPORTS },
+                    onOpenTeam = { selectedSection = ProjectHubSection.CONTRACTORS },
+                    onOpenRates = { selectedSection = ProjectHubSection.RATE_BOOKS },
+                    onOpenMBook = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) },
+                    onRecord = { viewModel.openCanonicalMeasurement() }
+                )
+                ProjectHubSection.PLANNING -> ProjectPlanningScreen(viewModel, projectTasks, schedules, selectionItems, currentProject)
+                ProjectHubSection.REPORTS -> ProjectReportsScreen(viewModel, meetingMinutes, siteInspections)
+                ProjectHubSection.CONTRACTORS -> {
                     ProjectContractorsTab(
                         viewModel = viewModel,
                         currentProject = currentProject,
                         contractors = projectContractors,
                         allContractors = contractors,
                         measurements = projectMeasurements,
-                        onViewContractorMeasurements = { contractorId ->
-                            filterContractorForMBook = contractorId
-                            selectedTab = ProjectTab.MEASUREMENT_BOOK
-                        }
+                        onViewContractorMeasurements = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) }
                     )
                 }
-                ProjectTab.SELECTIONS -> ProjectSelectionsTab(
+                ProjectHubSection.RATE_BOOKS -> ProjectRateBooksTab(
                     viewModel = viewModel,
                     project = currentProject,
-                    selectionItems = selectionItems
+                    contractors = projectContractors,
+                    pwdItems = items.filter { it.sourceName.isNotBlank() },
+                    rateBooks = rateBooks,
+                    assignments = rateBookAssignments
                 )
             }
         }
@@ -387,11 +393,115 @@ fun ProjectWorkspaceScreen(
     }
 }
 
+@Composable
+private fun ProjectHubOverview(
+    project: ProjectEntity?,
+    taskCount: Int,
+    selectionCount: Int,
+    scheduleCount: Int,
+    reportCount: Int,
+    contractorCount: Int,
+    rateBookCount: Int,
+    measurementCount: Int,
+    onOpenPlanning: () -> Unit,
+    onOpenReports: () -> Unit,
+    onOpenTeam: () -> Unit,
+    onOpenRates: () -> Unit,
+    onOpenMBook: () -> Unit,
+    onRecord: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(12.dp, 12.dp, 12.dp, 28.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text("PROJECT HUB", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60, letterSpacing = 0.7.sp)
+                Text(project?.name ?: "Project overview", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
+                Text("Plan the work, organise the team and control the applicable rates.", fontSize = 12.sp, color = CarbonGray70)
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onRecord, modifier = Modifier.weight(1f), shape = RoundedCornerShape(2.dp)) {
+                    Icon(Icons.Default.Straighten, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Record measurement")
+                }
+                OutlinedButton(onClick = onOpenMBook, modifier = Modifier.weight(1f), shape = RoundedCornerShape(2.dp)) {
+                    Icon(Icons.Default.MenuBook, contentDescription = null, modifier = Modifier.size(17.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Open M-Book")
+                }
+            }
+        }
+        item {
+            Text("PROJECT PLANNING", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp)
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ProjectHubActionCard("Planning", "$taskCount tasks • $scheduleCount events • $selectionCount selections", Icons.Default.EventNote, onOpenPlanning, Modifier.weight(1f))
+                ProjectHubActionCard("Reports", "$reportCount minutes & inspections", Icons.Default.Assignment, onOpenReports, Modifier.weight(1f))
+            }
+        }
+        item {
+            Text("PROJECT SETUP", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp)
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ProjectHubActionCard("Team", "$contractorCount contractors", Icons.Default.Engineering, onOpenTeam, Modifier.weight(1f))
+                ProjectHubActionCard("Rates", "$rateBookCount assigned", Icons.Default.PriceChange, onOpenRates, Modifier.weight(1f))
+            }
+        }
+        item {
+            Surface(
+                color = CarbonGray10,
+                border = BorderStroke(1.dp, CarbonGray20),
+                shape = RoundedCornerShape(2.dp),
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenMBook)
+            ) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.MenuBook, contentDescription = null, tint = CarbonBlue60)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Measurement Book", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("$measurementCount recorded measurement rows", color = CarbonGray70, fontSize = 11.sp)
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CarbonGray60)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProjectHubActionCard(
+    title: String,
+    supportingText: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        color = CarbonWhite,
+        border = BorderStroke(1.dp, CarbonGray20),
+        shape = RoundedCornerShape(2.dp),
+        modifier = modifier.clickable(onClick = onClick)
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Icon(icon, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(22.dp))
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
+            Text(supportingText, fontSize = 10.sp, color = CarbonGray70)
+        }
+    }
+}
+
 private fun MeasurementEntity.linearUnitLabel(): String =
     if (unit.contains("ft", ignoreCase = true)) " ft" else " m"
 
 @Composable
-private fun ProjectTasksTab(viewModel: SiteViewModel, tasks: List<ProjectTaskEntity>) {
+fun ProjectTasksTab(viewModel: SiteViewModel, tasks: List<ProjectTaskEntity>) {
     var showAdd by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         if (tasks.isEmpty()) {
@@ -433,7 +543,7 @@ private fun ProjectTasksTab(viewModel: SiteViewModel, tasks: List<ProjectTaskEnt
 }
 
 @Composable
-private fun ProjectSelectionsTab(
+fun ProjectSelectionsTab(
     viewModel: SiteViewModel,
     project: ProjectEntity?,
     selectionItems: List<ProjectSelectionItemEntity>
@@ -1318,6 +1428,14 @@ fun ProjectMeasurementBookTab(
                                     color = CarbonBlue60
                                 )
                             }
+                        }
+                        if (m.rateSnapshot != null) {
+                            Text(
+                                text = "Rate ₹ ${"%.2f".format(m.rateSnapshot)} / ${m.unit}  •  Amount ₹ ${"%.2f".format(m.amountSnapshot ?: 0.0)}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = CarbonGray80
+                            )
                         }
 
                         // Footer: Contractor tag + Date

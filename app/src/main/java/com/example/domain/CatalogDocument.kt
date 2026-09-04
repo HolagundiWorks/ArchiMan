@@ -13,7 +13,15 @@ data class WorkCatalogDocument(val schemaVersion: Int = 1, val contractorTypes: 
 data class ContractorTypeCatalog(val name: String, val items: List<CatalogWorkItem>)
 
 @JsonClass(generateAdapter = true)
-data class CatalogWorkItem(val name: String, val uom: String, val formula: String, val workType: String)
+data class CatalogWorkItem(
+    val name: String,
+    val uom: String,
+    val formula: String,
+    val workType: String,
+    val specification: String = "",
+    val sourceName: String = "",
+    val sourceItemCode: String = ""
+)
 
 object CatalogDocumentParser {
     private val adapter = Moshi.Builder().build().adapter(WorkCatalogDocument::class.java)
@@ -47,6 +55,9 @@ object CatalogDocumentParser {
                 name = item.name.trim(),
                 unit = item.uom.trim(),
                 calculationType = CalculationType.valueOf(item.formula),
+                specification = item.specification.trim(),
+                sourceName = item.sourceName.trim(),
+                sourceItemCode = item.sourceItemCode.trim(),
                 isPredefined = false
             )
         }

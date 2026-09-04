@@ -302,6 +302,32 @@ interface ProjectSelectionItemDao {
 }
 
 @Dao
+interface ProjectScheduleDao {
+    @Query("SELECT * FROM project_schedules WHERE projectId=:projectId ORDER BY scheduledAt ASC")
+    fun getByProject(projectId: Long): Flow<List<ProjectScheduleEntity>>
+    @Insert suspend fun insert(item: ProjectScheduleEntity): Long
+    @Update suspend fun update(item: ProjectScheduleEntity)
+    @Delete suspend fun delete(item: ProjectScheduleEntity)
+}
+
+@Dao
+interface MeetingMinutesDao {
+    @Query("SELECT * FROM meeting_minutes WHERE projectId=:projectId ORDER BY meetingAt DESC")
+    fun getByProject(projectId: Long): Flow<List<MeetingMinutesEntity>>
+    @Insert suspend fun insert(item: MeetingMinutesEntity): Long
+    @Delete suspend fun delete(item: MeetingMinutesEntity)
+}
+
+@Dao
+interface SiteInspectionDao {
+    @Query("SELECT * FROM site_inspections WHERE projectId=:projectId ORDER BY inspectionAt DESC")
+    fun getByProject(projectId: Long): Flow<List<SiteInspectionEntity>>
+    @Insert suspend fun insert(item: SiteInspectionEntity): Long
+    @Update suspend fun update(item: SiteInspectionEntity)
+    @Delete suspend fun delete(item: SiteInspectionEntity)
+}
+
+@Dao
 interface MeasurementDao {
     @Query("SELECT * FROM measurements ORDER BY date DESC, id DESC")
     fun getAllMeasurements(): Flow<List<MeasurementEntity>>
@@ -384,4 +410,27 @@ interface WorkItemAliasDao {
 
     @Delete
     suspend fun delete(alias: WorkItemAliasEntity)
+}
+
+@Dao
+interface RateBookDao {
+    @Query("SELECT * FROM contractor_rate_books ORDER BY contractorId, createdAt DESC")
+    fun getAllBooks(): Flow<List<ContractorRateBookEntity>>
+
+    @Query("SELECT * FROM contractor_rate_book_items WHERE rateBookId=:rateBookId ORDER BY itemNameSnapshot")
+    fun getItems(rateBookId: Long): Flow<List<ContractorRateBookItemEntity>>
+
+    @Query("SELECT * FROM project_rate_book_assignments WHERE projectId=:projectId")
+    fun getAssignments(projectId: Long): Flow<List<ProjectRateBookAssignmentEntity>>
+
+    @Query("SELECT * FROM project_rate_book_assignments WHERE projectId=:projectId AND contractorId=:contractorId LIMIT 1")
+    suspend fun getAssignment(projectId: Long, contractorId: Long): ProjectRateBookAssignmentEntity?
+
+    @Query("SELECT * FROM contractor_rate_book_items WHERE rateBookId=:rateBookId AND itemId=:itemId LIMIT 1")
+    suspend fun getItem(rateBookId: Long, itemId: Long): ContractorRateBookItemEntity?
+
+    @Insert suspend fun insertBook(book: ContractorRateBookEntity): Long
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertItem(item: ContractorRateBookItemEntity): Long
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun assign(assignment: ProjectRateBookAssignmentEntity): Long
+    @Delete suspend fun deleteItem(item: ContractorRateBookItemEntity)
 }

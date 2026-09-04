@@ -1,6 +1,8 @@
 package com.example.data.local
 
 import android.content.Context
+import android.content.ContentValues
+import android.database.sqlite.SQLiteDatabase
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -14,7 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-const val DATABASE_SCHEMA_VERSION = 11
+const val DATABASE_SCHEMA_VERSION = 15
 
 @Database(
     entities = [
@@ -22,6 +24,9 @@ const val DATABASE_SCHEMA_VERSION = 11
         ProjectEntity::class,
         ProjectTaskEntity::class,
         ProjectSelectionItemEntity::class,
+        ProjectScheduleEntity::class,
+        MeetingMinutesEntity::class,
+        SiteInspectionEntity::class,
         FloorEntity::class,
         RoomEntity::class,
         ComponentEntity::class,
@@ -29,6 +34,9 @@ const val DATABASE_SCHEMA_VERSION = 11
         ContractorEntity::class,
         ContractorQualifiedItemEntity::class,
         ProjectContractorCrossRef::class,
+        ContractorRateBookEntity::class,
+        ContractorRateBookItemEntity::class,
+        ProjectRateBookAssignmentEntity::class,
         ItemMasterEntity::class,
         WorkItemAliasEntity::class,
         MeasurementSheetEntity::class,
@@ -43,6 +51,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
     abstract fun projectTaskDao(): ProjectTaskDao
     abstract fun projectSelectionItemDao(): ProjectSelectionItemDao
+    abstract fun projectScheduleDao(): ProjectScheduleDao
+    abstract fun meetingMinutesDao(): MeetingMinutesDao
+    abstract fun siteInspectionDao(): SiteInspectionDao
     abstract fun floorDao(): FloorDao
     abstract fun roomDao(): RoomDao
     abstract fun componentDao(): ComponentDao
@@ -53,6 +64,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun measurementDao(): MeasurementDao
     abstract fun measurementSheetDao(): MeasurementSheetDao
     abstract fun measurementReviewEventDao(): MeasurementReviewEventDao
+    abstract fun rateBookDao(): RateBookDao
 
     companion object {
         @Volatile
@@ -65,7 +77,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -74,6 +86,11 @@ abstract class AppDatabase : RoomDatabase() {
                         CoroutineScope(Dispatchers.IO).launch {
                             getDatabase(context).seedPredefinedData()
                         }
+                    }
+
+                    override fun onOpen(db: SupportSQLiteDatabase) {
+                        super.onOpen(db)
+                        installPwdCatalog(db)
                     }
                 }).build()
                 INSTANCE = instance
@@ -98,7 +115,26 @@ abstract class AppDatabase : RoomDatabase() {
             ItemMasterEntity(name = "Painting", unit = "m²", calculationType = CalculationType.AREA, isPredefined = true),
             ItemMasterEntity(name = "Waterproofing", unit = "m²", calculationType = CalculationType.AREA, isPredefined = true),
             ItemMasterEntity(name = "Doors/windows", unit = "Nos", calculationType = CalculationType.NOS, isPredefined = true),
-            ItemMasterEntity(name = "False Ceiling", unit = "m²", calculationType = CalculationType.AREA, isPredefined = true)
+            ItemMasterEntity(name = "False Ceiling", unit = "m²", calculationType = CalculationType.AREA, isPredefined = true),
+            ItemMasterEntity(name = "KPWD Pre-construction Anti-termite Treatment", unit = "m²", calculationType = CalculationType.AREA, workType = "Anti-termite Treatment", specification = "Create a continuous approved chemical barrier below and around foundations, wall trenches, plinth filling, wall-floor junctions, external perimeter, expansion joints, aprons, pipes and conduits.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "4.1", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Size Stone Masonry in CM 1:6", unit = "m³", calculationType = CalculationType.VOLUME, workType = "Stone Masonry", specification = "Hard size-stone masonry in foundation and plinth, laid in cement mortar 1:6 and completed to the specified line, level and workmanship.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "5.4", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Laterite Masonry - Foundation CM 1:6", unit = "m³", calculationType = CalculationType.VOLUME, workType = "Stone Masonry", specification = "Laterite size-stone masonry for foundations in cement mortar 1:6; stone to conform to IS 3620 and achieve at least 3.5 N/mm² compressive strength on saturated dry samples.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "5.5", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Laterite Masonry - Superstructure CM 1:6", unit = "m³", calculationType = CalculationType.VOLUME, workType = "Stone Masonry", specification = "Laterite size-stone masonry for superstructure in cement mortar 1:6; stone to conform to IS 3620 and achieve at least 3.5 N/mm² compressive strength on saturated dry samples.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "5.7", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Brick Masonry - Foundation CM 1:6", unit = "m³", calculationType = CalculationType.VOLUME, workType = "Masonry", specification = "Common burnt-clay non-modular bricks, class designation 3.5, laid in foundation and plinth in cement mortar 1:6, including scaffolding and incidental work.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.2", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Brick Masonry - Superstructure CM 1:6", unit = "m³", calculationType = CalculationType.VOLUME, workType = "Masonry", specification = "Common burnt-clay non-modular bricks, class designation 3.5, laid above plinth in all shapes and sizes in cement mortar 1:6, including scaffolding and incidental work.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.8", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Half-brick Masonry - Superstructure CM 1:4", unit = "m²", calculationType = CalculationType.AREA, workType = "Masonry", specification = "Half-brick masonry using class 3.5 common burnt-clay non-modular bricks above plinth up to first-floor level in cement mortar 1:4.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.15", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Fly-ash Brick Masonry - Superstructure CM 1:6", unit = "m³", calculationType = CalculationType.VOLUME, workType = "Masonry", specification = "Non-modular fly-ash bricks conforming to IS 12894, class designation 5.0, laid above plinth up to first-floor level in cement mortar 1:6.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.25", isPredefined = true),
+            ItemMasterEntity(name = "KPWD AAC Block Masonry 100 mm - CM 1:4", unit = "m²", calculationType = CalculationType.AREA, workType = "Masonry", specification = "100 mm AAC block masonry conforming to IS 2185 Part III, above plinth up to first-floor level, laid in cement mortar 1:4.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.26", isPredefined = true),
+            ItemMasterEntity(name = "KPWD AAC Block Masonry with RCC Bands", unit = "m²", calculationType = CalculationType.AREA, workType = "Masonry", specification = "150, 230 or 300 mm AAC blocks conforming to IS 2185 Part III, laid with approved polymer-modified adhesive mortar and RCC bands at sill and lintel levels.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.31", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Solid Concrete Block Wall 200 mm", unit = "m²", calculationType = CalculationType.AREA, workType = "Masonry", specification = "Load-bearing wall using 400 x 200 x 200 mm solid concrete blocks, density above 1800 kg/m³ and compressive strength at least 4 N/mm², conforming to IS 2185 Part I and laid in CM 1:4 per IS 2572.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.32", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Solid Concrete Block Wall 150 mm", unit = "m²", calculationType = CalculationType.AREA, workType = "Masonry", specification = "Load-bearing wall using 400 x 150 x 200 mm solid concrete blocks, density above 1800 kg/m³ and compressive strength at least 4 N/mm², conforming to IS 2185 Part I and laid in CM 1:4 per IS 2572.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.33", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Solid Concrete Block Wall 100 mm", unit = "m²", calculationType = CalculationType.AREA, workType = "Masonry", specification = "Wall using 400 x 100 x 200 mm solid concrete blocks, density above 1800 kg/m³ and compressive strength at least 4 N/mm², conforming to IS 2185 Part I and laid in CM 1:4 per IS 2572.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "6.34", isPredefined = true),
+            ItemMasterEntity(name = "KPWD PUF Insulated Roofing 30 mm", unit = "m²", calculationType = CalculationType.AREA, workType = "Roofing", specification = "30 mm PUF insulated profiled roofing with 0.5 mm external steel sheet, 0.4 mm powder-coated bottom sheet, minimum 240 MPa steel, zinc coating and sealed waterproof overlaps fixed with suitable self-tapping fasteners.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "7.67.1", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Cement Plaster 15 mm - CM 1:6", unit = "m²", calculationType = CalculationType.WALL_PLASTER, workType = "Finishes", specification = "15 mm cement plaster on the rough side of brickwork in cement mortar 1:6, including corner rounding, smooth rendering, scaffolding and curing.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "8.2.2", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Cement Plaster 20 mm - CM 1:6", unit = "m²", calculationType = CalculationType.WALL_PLASTER, workType = "Finishes", specification = "20 mm cement plaster to brick or stone masonry in cement mortar 1:6, including corner rounding, smooth rendering, scaffolding and curing.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "8.3.2", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Cement Plaster 12 mm - CM 1:4 Neat Finish", unit = "m²", calculationType = CalculationType.WALL_PLASTER, workType = "Finishes", specification = "12 mm cement plaster to brick masonry in cement mortar 1:4, finished with a floating coat of neat cement, including corner rounding, smooth rendering, scaffolding and curing.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "8.4.2", isPredefined = true),
+            ItemMasterEntity(name = "KPWD External Granitic Finish", unit = "m²", calculationType = CalculationType.AREA, workType = "Finishes", specification = "Prepare masonry surface, apply approved primer and two coats of granitic finish in the architect-selected shade, followed by two protective tile-guard coats.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "8.83", isPredefined = true),
+            ItemMasterEntity(name = "KPWD Decorative Grooved Bamboo Wall Cladding", unit = "m²", calculationType = CalculationType.AREA, workType = "Flooring & Cladding", specification = "10 mm grooved bamboo-faced MDF panels, nominal size 1220 x 2440 mm, graphene-based PU coating, density about 1300 kg/m³, fixed with MS screws or approved adhesive; fire-, UV-, water- and sound-resistant properties required.", sourceName = "Karnataka PWD SR Buildings 2023-24 Vol. 2", sourceItemCode = "10.26", isPredefined = true)
         )
 
         val MIGRATION_3_4 = object : Migration(3, 4) {
@@ -242,6 +278,71 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE item_master ADD COLUMN specification TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE item_master ADD COLUMN sourceName TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE item_master ADD COLUMN sourceItemCode TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) = installPwdCatalog(db)
+        }
+
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE contractor_rate_books (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `contractorId` INTEGER NOT NULL, `name` TEXT NOT NULL, `version` INTEGER NOT NULL, `status` TEXT NOT NULL, `effectiveFrom` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_contractor_rate_books_contractorId ON contractor_rate_books(contractorId)")
+                db.execSQL("CREATE TABLE contractor_rate_book_items (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `rateBookId` INTEGER NOT NULL, `itemId` INTEGER NOT NULL, `itemNameSnapshot` TEXT NOT NULL, `uomSnapshot` TEXT NOT NULL, `specificationSnapshot` TEXT NOT NULL, `sourceItemCodeSnapshot` TEXT NOT NULL, `rate` REAL NOT NULL, `updatedAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_contractor_rate_book_items_rateBookId ON contractor_rate_book_items(rateBookId)")
+                db.execSQL("CREATE INDEX index_contractor_rate_book_items_itemId ON contractor_rate_book_items(itemId)")
+                db.execSQL("CREATE UNIQUE INDEX index_contractor_rate_book_items_rateBookId_itemId ON contractor_rate_book_items(rateBookId,itemId)")
+                db.execSQL("CREATE TABLE project_rate_book_assignments (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `contractorId` INTEGER NOT NULL, `rateBookId` INTEGER NOT NULL, `assignedAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_project_rate_book_assignments_projectId ON project_rate_book_assignments(projectId)")
+                db.execSQL("CREATE INDEX index_project_rate_book_assignments_contractorId ON project_rate_book_assignments(contractorId)")
+                db.execSQL("CREATE INDEX index_project_rate_book_assignments_rateBookId ON project_rate_book_assignments(rateBookId)")
+                db.execSQL("CREATE UNIQUE INDEX index_project_rate_book_assignments_projectId_contractorId ON project_rate_book_assignments(projectId,contractorId)")
+                db.execSQL("ALTER TABLE measurements ADD COLUMN appliedRateBookId INTEGER")
+                db.execSQL("ALTER TABLE measurements ADD COLUMN rateSnapshot REAL")
+                db.execSQL("ALTER TABLE measurements ADD COLUMN amountSnapshot REAL")
+            }
+        }
+
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE project_schedules (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `title` TEXT NOT NULL, `scheduledAt` INTEGER NOT NULL, `location` TEXT NOT NULL, `notes` TEXT NOT NULL, `status` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_project_schedules_projectId ON project_schedules(projectId)")
+                db.execSQL("CREATE INDEX index_project_schedules_scheduledAt ON project_schedules(scheduledAt)")
+                db.execSQL("CREATE TABLE meeting_minutes (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `title` TEXT NOT NULL, `meetingAt` INTEGER NOT NULL, `location` TEXT NOT NULL, `attendees` TEXT NOT NULL, `discussion` TEXT NOT NULL, `decisions` TEXT NOT NULL, `actionItems` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_meeting_minutes_projectId ON meeting_minutes(projectId)")
+                db.execSQL("CREATE INDEX index_meeting_minutes_meetingAt ON meeting_minutes(meetingAt)")
+                db.execSQL("CREATE TABLE site_inspections (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `inspectionAt` INTEGER NOT NULL, `location` TEXT NOT NULL, `inspector` TEXT NOT NULL, `observation` TEXT NOT NULL, `severity` TEXT NOT NULL, `correctiveAction` TEXT NOT NULL, `dueAt` INTEGER, `status` TEXT NOT NULL, `photoUri` TEXT, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_site_inspections_projectId ON site_inspections(projectId)")
+                db.execSQL("CREATE INDEX index_site_inspections_inspectionAt ON site_inspections(inspectionAt)")
+                db.execSQL("CREATE INDEX index_site_inspections_status ON site_inspections(status)")
+            }
+        }
+
+        private fun installPwdCatalog(db: SupportSQLiteDatabase) {
+            PREDEFINED_ITEMS.filter { it.sourceName.isNotBlank() }.forEach { item ->
+                val workType = item.workType.ifBlank { WorkCatalog.classify("Civil", item.name) }
+                val values = ContentValues().apply {
+                    put("itemCode", WorkCatalog.codeFor(workType, item.name))
+                    put("workType", workType)
+                    put("name", item.name)
+                    put("unit", item.unit)
+                    put("calculationType", item.calculationType.name)
+                    put("specification", item.specification)
+                    put("sourceName", item.sourceName)
+                    put("sourceItemCode", item.sourceItemCode)
+                    put("isPredefined", 1)
+                    put("isActive", 1)
+                }
+                db.insert("item_master", SQLiteDatabase.CONFLICT_IGNORE, values)
+            }
+        }
+
         private fun installSheetLockTriggers(db: SupportSQLiteDatabase) {
             db.execSQL("CREATE TRIGGER IF NOT EXISTS lock_approved_measurement_update BEFORE UPDATE ON measurements WHEN (SELECT status FROM measurement_sheets WHERE id=OLD.sheetId)='APPROVED' BEGIN SELECT RAISE(ABORT, 'Approved measurement sheets are immutable'); END")
             db.execSQL("CREATE TRIGGER IF NOT EXISTS lock_approved_measurement_delete BEFORE DELETE ON measurements WHEN (SELECT status FROM measurement_sheets WHERE id=OLD.sheetId)='APPROVED' BEGIN SELECT RAISE(ABORT, 'Approved measurement sheets are immutable'); END")
@@ -251,11 +352,14 @@ abstract class AppDatabase : RoomDatabase() {
     }
 
     suspend fun seedPredefinedData() {
-        if (itemMasterDao().getCount() == 0) {
-            itemMasterDao().insertAll(PREDEFINED_ITEMS.map {
-                val workType = WorkCatalog.classify("Civil", it.name)
-                it.copy(workType = workType, itemCode = WorkCatalog.codeFor(workType, it.name))
-            })
+        val preparedItems = PREDEFINED_ITEMS.map {
+            val workType = if (it.workType.isNotBlank() && it.sourceName.isNotBlank()) it.workType else WorkCatalog.classify("Civil", it.name)
+            it.copy(workType = workType, itemCode = WorkCatalog.codeFor(workType, it.name))
+        }
+        val isNewDatabase = itemMasterDao().getCount() == 0
+        // Add newly bundled standards to existing databases without replacing user-edited items.
+        itemMasterDao().insertAll(if (isNewDatabase) preparedItems else preparedItems.filter { it.sourceName.isNotBlank() })
+        if (isNewDatabase) {
             
             // 1. Seed Clients
             val clientId1 = clientDao().insertClient(

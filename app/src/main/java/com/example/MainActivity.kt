@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.screens.*
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
-import com.example.ui.viewmodel.HomeTab
+import com.example.ui.navigation.AppScreen
+import com.example.ui.navigation.HomeTab
 import com.example.ui.viewmodel.SiteViewModel
 
 class MainActivity : ComponentActivity() {

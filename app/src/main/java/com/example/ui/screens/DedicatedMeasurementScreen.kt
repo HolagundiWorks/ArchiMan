@@ -52,7 +52,7 @@ import com.example.domain.MeasurementRowValidation
 import com.example.domain.MeasurementRowValidationInput
 import com.example.domain.MeasurementRowValidator
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
+import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

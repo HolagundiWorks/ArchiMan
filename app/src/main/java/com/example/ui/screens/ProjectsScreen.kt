@@ -25,7 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.ContractorEntity
 import com.example.data.local.entity.ProjectEntity
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
+import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)

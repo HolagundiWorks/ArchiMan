@@ -34,7 +34,7 @@ import com.example.domain.WorkCatalog
 import com.example.domain.WorkItemDuplicateDetector
 import com.example.domain.WorkItemDuplicateCandidate
 import com.example.ui.theme.*
-import com.example.ui.viewmodel.AppScreen
+import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,6 +67,8 @@ fun MasterDataScreen(
     }
     val expandedWorkTypes = remember { mutableStateListOf<String>() }
     val duplicateCandidates = remember(items) { WorkItemDuplicateDetector.find(items) }
+    val pwdItemCount = remember(items) { items.count { it.sourceName.isNotBlank() } }
+    val customItemCount = items.size - pwdItemCount
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -114,7 +116,7 @@ fun MasterDataScreen(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Work Items & Formulas",
+                                text = "PWD SR Work Catalogue",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarbonGray100,
@@ -122,7 +124,7 @@ fun MasterDataScreen(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = "Standard Measurement Library",
+                                text = "PWD specifications, custom items & formulas",
                                 fontSize = 11.sp,
                                 color = CarbonBlue60,
                                 fontWeight = FontWeight.SemiBold,
@@ -166,7 +168,7 @@ fun MasterDataScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "STANDARD ITEMS (${items.size})",
+                        text = "PWD SR $pwdItemCount  •  CUSTOM $customItemCount",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = CarbonGray70,
@@ -189,7 +191,10 @@ fun MasterDataScreen(
                 }
             }
 
-            val groupedItems = items.groupBy { it.workType.ifBlank { "General Works" } }.toSortedMap()
+            val groupedItems = items
+                .sortedWith(compareBy<ItemMasterEntity> { it.sourceName.isBlank() }.thenBy { it.sourceItemCode }.thenBy { it.name })
+                .groupBy { it.workType.ifBlank { "General Works" } }
+                .toSortedMap()
             importMessage?.let { message ->
                 Surface(color = CarbonBlue10, border = BorderStroke(1.dp, CarbonBlue60), shape = RoundedCornerShape(2.dp), modifier = Modifier.fillMaxWidth()) {
                     Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -256,6 +261,23 @@ fun MasterDataScreen(
                                     color = CarbonGray100
                                 )
                                 Text(item.itemCode, fontSize = 10.sp, color = CarbonGray60, fontWeight = FontWeight.SemiBold)
+                                if (item.sourceName.isNotBlank()) {
+                                    Text(
+                                        text = "${item.sourceName} • Item ${item.sourceItemCode}",
+                                        fontSize = 10.sp,
+                                        color = CarbonBlue60,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                if (item.specification.isNotBlank()) {
+                                    Text(
+                                        text = item.specification,
+                                        fontSize = 11.sp,
+                                        color = CarbonGray70,
+                                        maxLines = 3,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),

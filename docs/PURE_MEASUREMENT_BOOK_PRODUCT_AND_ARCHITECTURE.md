@@ -2,9 +2,9 @@
 
 ## Product, UX, Architecture, and Delivery Specification
 
-Status: Approved product direction
-Product boundary: Pure construction measurement book
-Explicitly out of scope: rates, prices, amounts, contractor valuation, invoices, bills, retention, payments, and accounting
+Status: Superseded in part by the approved contractor rate-book extension
+Product boundary: Construction measurement book with contractor rate books and project-specific rate application
+Explicitly out of scope: invoices, bills, retention, payments, and accounting
 ## 1. Product purpose
 
 AMB is an offline-first field application for recording, reviewing, approving, and exporting construction measurements. It replaces handwritten measurement sheets while retaining the familiar project, contractor, work type, work item, floor, member description, dimensions, quantity, and unit structure.
@@ -20,7 +20,11 @@ The application is the authoritative record of measured quantities. It is not a 
 5. Destructive actions must be reversible or protected by an explicit confirmation and backup.
 6. Each business concept must have one canonical source of truth.
 7. Field screens show only information required for the current task.
-8. Rates, amounts, bills, and commercial terminology must not appear in the UI, exports, APIs, or active domain model.
+8. Rates are managed only through versioned contractor rate books. Billing, invoicing, retention, payment, and accounting remain out of scope.
+
+### Standards catalog provenance
+
+The bundled standards library uses Karnataka PWD Schedule of Rates for Buildings 2023-24, Volume 2 as the canonical work/specification catalog. Contractors import selected work items into separate versioned rate books and provide their own rates. Projects explicitly select the applicable contractor rate book. New measurements snapshot the selected rate and derived amount so later book changes do not rewrite history.
 
 ## 3. Users and roles
 
@@ -264,7 +268,7 @@ Direct deletion is forbidden when a work item is referenced.
 - Role-based access for create, submit, check, approve, export, and administration.
 - Audit user, device, timestamp, old value, and new value.
 - Configurable backup and retention policy.
-- No rates, amounts, bills, or financial data in exports or APIs.
+- Rate and amount data is exposed only from explicit project rate-book assignments and immutable measurement snapshots; billing and payment data remains excluded.
 
 ## 14. Target Android architecture
 
@@ -302,13 +306,13 @@ A release is not production-ready unless it has:
 - Accessibility checks and touch targets.
 - Static analysis and release build verification in CI.
 
-## 16. Definition of done for pure Measurement Book scope
+## 16. Definition of done for measurement and rate-book scope
 
-- No rate, price, amount, bill, retention, or payment UI.
+- No bill, invoice, retention, payment, or accounting UI.
 - No active billing routes or LAN endpoints.
-- New measurements do not write commercial values.
-- Measurement exports contain quantities only.
-- Contractor setup captures qualifications, not rates.
+- New measurements snapshot the explicitly assigned contractor rate-book rate and derived amount.
+- Measurement exports reconcile quantities, rates, and snapshot amounts.
+- Contractor setup supports multiple named and versioned rate books sourced from the PWD master list.
 - Work-item setup captures UOM and formula, not default rate.
 - Existing databases migrate without losing measurement rows.
 - Automated tests cover formulas and migrations.

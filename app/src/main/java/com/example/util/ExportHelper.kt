@@ -86,7 +86,7 @@ object ExportHelper {
         val sb = StringBuilder()
         // UTF-8 BOM for Excel compatibility
         sb.append("\uFEFF")
-        sb.append("Sr No,Date,Project,Floor,Location / Member,Item of Work,Calculation Formula,Nos,Length (m),Width (m),Height / Depth (m),Deduction,Quantity,Unit,Remarks\n")
+        sb.append("Sr No,Date,Project,Floor,Location / Member,Item of Work,Calculation Formula,Nos,Length (m),Width (m),Height / Depth (m),Deduction,Quantity,Unit,Rate Book ID,Rate,Amount,Remarks\n")
 
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         for ((idx, m) in measurements.withIndex()) {
@@ -98,7 +98,7 @@ object ExportHelper {
             val formulaEscaped = m.calculationType.displayName.replace("\"", "\"\"")
             val remarksEscaped = m.remarks.replace("\"", "\"\"")
 
-            sb.append("${idx + 1},\"$dateStr\",\"$projEscaped\",\"$floorEscaped\",\"$locEscaped\",\"$itemEscaped\",\"$formulaEscaped\",${m.nos},${m.length},${m.width},${m.height},${m.deduction},${m.quantity},\"${m.unit}\",\"$remarksEscaped\"\n")
+            sb.append("${idx + 1},\"$dateStr\",\"$projEscaped\",\"$floorEscaped\",\"$locEscaped\",\"$itemEscaped\",\"$formulaEscaped\",${m.nos},${m.length},${m.width},${m.height},${m.deduction},${m.quantity},\"${m.unit}\",${m.appliedRateBookId ?: ""},${m.rateSnapshot ?: ""},${m.amountSnapshot ?: ""},\"$remarksEscaped\"\n")
         }
 
         try {

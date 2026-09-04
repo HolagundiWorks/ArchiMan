@@ -122,6 +122,48 @@ data class ProjectSelectionItemEntity(
     val remarks: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )
+
+@Entity(tableName = "project_schedules", indices = [Index("projectId"), Index("scheduledAt")])
+data class ProjectScheduleEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val title: String,
+    val scheduledAt: Long,
+    val location: String = "",
+    val notes: String = "",
+    val status: String = "SCHEDULED",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "meeting_minutes", indices = [Index("projectId"), Index("meetingAt")])
+data class MeetingMinutesEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val title: String,
+    val meetingAt: Long,
+    val location: String = "",
+    val attendees: String = "",
+    val discussion: String = "",
+    val decisions: String = "",
+    val actionItems: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "site_inspections", indices = [Index("projectId"), Index("inspectionAt"), Index("status")])
+data class SiteInspectionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val inspectionAt: Long,
+    val location: String,
+    val inspector: String = "",
+    val observation: String,
+    val severity: String = "NORMAL",
+    val correctiveAction: String = "",
+    val dueAt: Long? = null,
+    val status: String = "OPEN",
+    val photoUri: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
+)
 @Entity(
     tableName = "contractor_qualified_items",
     indices = [Index(value = ["contractorId", "itemName"], unique = true)]
@@ -152,6 +194,44 @@ enum class CalculationType(val displayName: String, val defaultUnit: String) {
     NOS("Numbers (Nos)", "Nos")
 }
 
+@Entity(tableName = "contractor_rate_books", indices = [Index("contractorId")])
+data class ContractorRateBookEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val contractorId: Long,
+    val name: String,
+    val version: Int = 1,
+    val status: String = "DRAFT",
+    val effectiveFrom: Long = System.currentTimeMillis(),
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "contractor_rate_book_items",
+    indices = [Index("rateBookId"), Index("itemId"), Index(value = ["rateBookId", "itemId"], unique = true)]
+)
+data class ContractorRateBookItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val rateBookId: Long,
+    val itemId: Long,
+    val itemNameSnapshot: String,
+    val uomSnapshot: String,
+    val specificationSnapshot: String = "",
+    val sourceItemCodeSnapshot: String = "",
+    val rate: Double = 0.0,
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "project_rate_book_assignments",
+    indices = [Index("projectId"), Index("contractorId"), Index("rateBookId"), Index(value = ["projectId", "contractorId"], unique = true)]
+)
+data class ProjectRateBookAssignmentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val contractorId: Long,
+    val rateBookId: Long,
+    val assignedAt: Long = System.currentTimeMillis()
+)
 @Entity(
     tableName = "item_master",
     indices = [Index(value = ["name"], unique = true), Index(value = ["itemCode"], unique = true)]
@@ -164,6 +244,9 @@ data class ItemMasterEntity(
     val name: String,
     val unit: String,
     val calculationType: CalculationType,
+    val specification: String = "",
+    val sourceName: String = "",
+    val sourceItemCode: String = "",
     val isPredefined: Boolean = false,
     val isActive: Boolean = true
 )
@@ -272,6 +355,9 @@ data class MeasurementEntity(
     val nos: Double = 1.0,
     val deduction: Double = 0.0,
     val quantity: Double = 0.0,
+    val appliedRateBookId: Long? = null,
+    val rateSnapshot: Double? = null,
+    val amountSnapshot: Double? = null,
     val floor: String = "",
     val location: String = "",
     val remarks: String = "",

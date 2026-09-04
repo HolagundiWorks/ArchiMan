@@ -11,6 +11,8 @@ import com.example.domain.QuantityCalculator
 import com.example.domain.WorkCatalog
 import com.example.domain.CatalogDocumentParser
 import com.example.domain.MeasurementSheetStatus
+import com.example.ui.navigation.AppScreen
+import com.example.ui.navigation.HomeTab
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -18,26 +20,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
-
-enum class AppScreen(val title: String) {
-    HOME("Home"),
-    PROJECT_WORKSPACE("Project Workspace"),
-    DEDICATED_MEASUREMENT("Record Measurement"),
-    ROOM_WORKSPACE("Room Components"),
-    MEASUREMENT_BOOK("Measurement Book"),
-    REGISTER("Measurements Register"),
-    PROJECTS("Projects"),
-    CLIENTS("Clients"),
-    CONTRACTORS("Contractors"),
-    MASTER_DATA("Items & Master Library"),
-    EXPORT("Export & Quantities")
-}
-
-enum class HomeTab(val label: String) {
-    PROJECTS("Projects"),
-    CLIENTS("Clients"),
-    CONTRACTORS("Contractors")
-}
 
 data class QuickEntryFormState(
     val description: String = "",
@@ -85,6 +67,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val measurementSheets: StateFlow<List<MeasurementSheetEntity>> = repository.getMeasurementSheets()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val rateBooks: StateFlow<List<ContractorRateBookEntity>> = repository.allRateBooks
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Dedicated Measurement Session State
     private val _dedicatedContractorId = MutableStateFlow<Long?>(null)
@@ -118,6 +102,22 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     val projectSelectionItems: StateFlow<List<ProjectSelectionItemEntity>> = selectedProjectId
         .flatMapLatest { it?.let(repository::getProjectSelectionItems) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectSchedules: StateFlow<List<ProjectScheduleEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectSchedules) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val meetingMinutes: StateFlow<List<MeetingMinutesEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getMeetingMinutes) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val siteInspections: StateFlow<List<SiteInspectionEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getSiteInspections) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectRateBookAssignments: StateFlow<List<ProjectRateBookAssignmentEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectRateBookAssignments) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val projectContractorRefs: StateFlow<List<ProjectContractorCrossRef>> = selectedProjectId
@@ -302,6 +302,85 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteProjectSelectionItem(item: ProjectSelectionItemEntity) {
         viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectSelectionItem(item) }
+    }
+
+    fun addProjectSchedule(title: String, scheduledAt: Long, location: String, notes: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertProjectSchedule(ProjectScheduleEntity(projectId = projectId, title = title.trim(), scheduledAt = scheduledAt, location = location.trim(), notes = notes.trim()))
+        }
+    }
+
+    fun toggleProjectSchedule(item: ProjectScheduleEntity) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateProjectSchedule(item.copy(status = if (item.status == "DONE") "SCHEDULED" else "DONE"))
+        }
+    }
+
+    fun deleteProjectSchedule(item: ProjectScheduleEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectSchedule(item) }
+    }
+
+    fun addMeetingMinutes(title: String, meetingAt: Long, location: String, attendees: String, discussion: String, decisions: String, actionItems: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertMeetingMinutes(MeetingMinutesEntity(projectId = projectId, title = title.trim(), meetingAt = meetingAt, location = location.trim(), attendees = attendees.trim(), discussion = discussion.trim(), decisions = decisions.trim(), actionItems = actionItems.trim()))
+        }
+    }
+
+    fun deleteMeetingMinutes(item: MeetingMinutesEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteMeetingMinutes(item) }
+    }
+
+    fun addSiteInspection(location: String, inspector: String, observation: String, severity: String, correctiveAction: String, photoUri: String? = null) {
+        val projectId = selectedProjectId.value ?: return
+        if (location.isBlank() || observation.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertSiteInspection(SiteInspectionEntity(projectId = projectId, inspectionAt = System.currentTimeMillis(), location = location.trim(), inspector = inspector.trim(), observation = observation.trim(), severity = severity, correctiveAction = correctiveAction.trim(), photoUri = photoUri))
+        }
+    }
+
+    fun closeSiteInspection(item: SiteInspectionEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.updateSiteInspection(item.copy(status = if (item.status == "CLOSED") "OPEN" else "CLOSED")) }
+    }
+
+    fun deleteSiteInspection(item: SiteInspectionEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteSiteInspection(item) }
+    }
+
+    fun createRateBook(contractorId: Long, name: String, version: Int = 1, onComplete: (Long) -> Unit = {}) {
+        if (name.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            val id = repository.createRateBook(ContractorRateBookEntity(contractorId = contractorId, name = name.trim(), version = version.coerceAtLeast(1)))
+            withContext(Dispatchers.Main) { onComplete(id) }
+        }
+    }
+
+    fun setRateBookItem(rateBookId: Long, item: ItemMasterEntity, rate: Double) {
+        if (rate < 0.0) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.upsertRateBookItem(ContractorRateBookItemEntity(
+                rateBookId = rateBookId,
+                itemId = item.id,
+                itemNameSnapshot = item.name,
+                uomSnapshot = item.unit,
+                specificationSnapshot = item.specification,
+                sourceItemCodeSnapshot = item.sourceItemCode,
+                rate = rate
+            ))
+        }
+    }
+
+    fun deleteRateBookItem(item: ContractorRateBookItemEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteRateBookItem(item) }
+    }
+
+    fun assignRateBook(projectId: Long, contractorId: Long, rateBookId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.assignRateBook(ProjectRateBookAssignmentEntity(projectId = projectId, contractorId = contractorId, rateBookId = rateBookId))
+        }
     }
 
     /** Opens the single authoritative measurement editor using current project context. */
