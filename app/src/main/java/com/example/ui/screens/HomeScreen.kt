@@ -46,7 +46,7 @@ fun HomeScreen(
         HomeTab.PROJECTS -> ProjectsTabContent(viewModel = viewModel, onNavigate = onNavigate)
         HomeTab.DIRECTORY -> PortfolioDirectoryScreen(viewModel = viewModel)
         HomeTab.WORK_LIBRARY -> MasterDataScreen(viewModel = viewModel)
-        HomeTab.MORE -> PortfolioMoreScreen(onNavigate = onNavigate)
+        HomeTab.PRACTICE -> PortfolioPracticeScreen(onNavigate = onNavigate)
     }
 }
 
@@ -81,15 +81,15 @@ private fun PortfolioDirectoryScreen(viewModel: SiteViewModel) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PortfolioMoreScreen(onNavigate: (AppScreen) -> Unit) {
+private fun PortfolioPracticeScreen(onNavigate: (AppScreen) -> Unit) {
     Scaffold(
         containerColor = CarbonWhite,
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("More", fontWeight = FontWeight.Bold)
-                        Text("Practice tools and shared data", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+                        Text("Practice", fontWeight = FontWeight.Bold)
+                        Text("Company identity, backups and connections", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
                     }
                 }
             )
@@ -100,9 +100,10 @@ private fun PortfolioMoreScreen(onNavigate: (AppScreen) -> Unit) {
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            item { Text("PRACTICE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
-            item { PortfolioToolRow("Company profile", "Practice identity used in reports and documents", Icons.Default.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
-            item { PortfolioToolRow("Local Wi-Fi portal", "Share a read-only project view on this Wi-Fi", Icons.Default.Wifi) { onNavigate(AppScreen.LOCAL_PORTAL) } }
+            item { Text("PRACTICE SETUP", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
+            item { PortfolioToolRow("Company profile & connections", "Logo, practice identity, profile backup and Supabase setup", Icons.Default.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
+            item { Text("LOCAL ACCESS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
+            item { PortfolioToolRow("Local Wi-Fi workspace", "Secure browser access with named users and controlled editing", Icons.Default.Wifi) { onNavigate(AppScreen.LOCAL_PORTAL) } }
         }
     }
 }
@@ -604,8 +605,9 @@ fun CreateProjectWithDetailsDialog(
     var name by remember { mutableStateOf("") }
     var location by remember { mutableStateOf("") }
     var selectedClient by remember { mutableStateOf<ClientEntity?>(clients.firstOrNull()) }
-    val selectedContractorIds = remember { mutableStateListOf<Long>().apply { addAll(contractors.map { it.id }) } }
-    var floorsText by remember { mutableStateOf("Level 0 (Ground Floor), Level 1 (1st Floor), Level 2 (2nd Floor)") }
+    val selectedContractorIds = remember { mutableStateListOf<Long>() }
+    var contractorsExpanded by remember { mutableStateOf(false) }
+    var floorsText by remember { mutableStateOf("Ground Floor") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var clientDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -629,7 +631,7 @@ fun CreateProjectWithDetailsDialog(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Create New Project",
+                            text = "New project",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = CarbonGray100
@@ -660,6 +662,7 @@ fun CreateProjectWithDetailsDialog(
                 }
 
                 // Project Name
+                item { Text("PROJECT ESSENTIALS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60, letterSpacing = 0.6.sp) }
                 item {
                     CarbonInputField(
                         label = "PROJECT NAME *",
@@ -795,7 +798,7 @@ fun CreateProjectWithDetailsDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "ASSIGN CONTRACTORS (Multiple Selection)",
+                                text = "CONTRACTORS (OPTIONAL)",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarbonGray70,
@@ -829,7 +832,12 @@ fun CreateProjectWithDetailsDialog(
                                 }
                             }
                         } else {
-                            Surface(
+                            OutlinedButton(onClick = { contractorsExpanded = !contractorsExpanded }, modifier = Modifier.fillMaxWidth()) {
+                                Text(if (selectedContractorIds.isEmpty()) "Choose contractors later or select now" else "${selectedContractorIds.size} selected")
+                                Spacer(Modifier.weight(1f))
+                                Icon(if (contractorsExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+                            }
+                            if (contractorsExpanded) Surface(
                                 shape = RoundedCornerShape(2.dp),
                                 border = BorderStroke(1.dp, CarbonGray30),
                                 color = CarbonGray10,
@@ -870,9 +878,10 @@ fun CreateProjectWithDetailsDialog(
                 }
 
                 // Floor Levels
+                item { Text("MEASUREMENT STRUCTURE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60, letterSpacing = 0.6.sp) }
                 item {
                     CarbonInputField(
-                        label = "FLOOR / LEVEL NAMES (Comma-separated)",
+                        label = "LEVEL NAMES (COMMA-SEPARATED)",
                         value = floorsText,
                         onValueChange = { floorsText = it },
                         placeholder = "Level 0, Level 1, Level 2, Terrace",
@@ -899,10 +908,14 @@ fun CreateProjectWithDetailsDialog(
                         Button(
                             onClick = {
                                 if (name.isBlank()) {
-                                    errorMessage = "Please enter a valid project name."
+                                    errorMessage = "Enter the project name."
+                                } else if (location.isBlank()) {
+                                    errorMessage = "Enter the site address or location."
+                                } else if (selectedClient == null) {
+                                    errorMessage = "Select or create a client before creating the project."
                                 } else {
-                                    val clientName = selectedClient?.name ?: "Client"
-                                    val clientId = selectedClient?.id ?: 0L
+                                    val clientName = selectedClient!!.name
+                                    val clientId = selectedClient!!.id
                                     val floorsList = floorsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
                                     onCreate(
                                         name.trim(),
@@ -920,7 +933,7 @@ fun CreateProjectWithDetailsDialog(
                             shape = RoundedCornerShape(2.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
                         ) {
-                            Text("Create Project", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CarbonWhite)
+                            Text("Create", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CarbonWhite)
                         }
                     }
                 }

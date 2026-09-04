@@ -1,7 +1,7 @@
 # ArchiMan Material 3 Migration
 
 - Migration date: 4 September 2026
-- Application baseline: Room schema 19
+- Application baseline: Room schema 21
 - UI technology: Jetpack Compose Material 3
 
 ## Outcome

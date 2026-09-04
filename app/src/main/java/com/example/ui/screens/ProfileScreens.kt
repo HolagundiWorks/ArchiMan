@@ -1,12 +1,19 @@
 package com.example.ui.screens
 
 import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material.icons.filled.WifiOff
@@ -17,10 +24,14 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.BuildConfig
+import coil.compose.AsyncImage
+import com.example.company.CompanyProfileBackupManager
 import com.example.data.local.DATABASE_SCHEMA_VERSION
 import com.example.data.local.entity.CompanyProfileEntity
 import com.example.data.local.entity.ProjectEntity
@@ -30,11 +41,19 @@ import com.example.ui.viewmodel.SiteViewModel
 import com.example.util.ExportHelper
 import java.text.SimpleDateFormat
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPortal: () -> Unit) {
     val saved by viewModel.companyProfile.collectAsStateWithLifecycle()
+    val supabaseState by viewModel.supabaseConnectionState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbar = remember { SnackbarHostState() }
+    val backupManager = remember(context) { CompanyProfileBackupManager(context) }
     var practiceName by remember { mutableStateOf("") }
     var legalName by remember { mutableStateOf("") }
     var companyType by remember { mutableStateOf("Architecture practice") }
@@ -52,6 +71,11 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
     var principalName by remember { mutableStateOf("") }
     var principalQualification by remember { mutableStateOf("") }
     var practiceRegistrationDetails by remember { mutableStateOf("") }
+    var logoUri by remember { mutableStateOf<String?>(null) }
+    var pendingImport by remember { mutableStateOf<CompanyProfileEntity?>(null) }
+    var supabaseUrl by remember { mutableStateOf("") }
+    var supabaseKey by remember { mutableStateOf("") }
+    var showSupabaseKey by remember { mutableStateOf(false) }
 
     LaunchedEffect(saved) {
         saved?.let {
@@ -72,10 +96,40 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             principalName = it.principalName
             principalQualification = it.principalQualification
             practiceRegistrationDetails = it.practiceRegistrationDetails
+            logoUri = it.logoUri
+        }
+    }
+
+    LaunchedEffect(supabaseState.projectUrl, supabaseState.publishableKey) {
+        supabaseUrl = supabaseState.projectUrl
+        supabaseKey = supabaseState.publishableKey
+    }
+
+    val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            runCatching { withContext(Dispatchers.IO) { backupManager.storeLogo(uri) } }
+                .onSuccess { logoUri = it; snackbar.showSnackbar("Logo added. Save the profile to keep it.") }
+                .onFailure { snackbar.showSnackbar(it.message ?: "Could not add the logo.") }
+        }
+    }
+    val backupExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val profile = saved
+        if (uri != null && profile != null) scope.launch {
+            runCatching { withContext(Dispatchers.IO) { backupManager.exportTo(uri, profile) } }
+                .onSuccess { snackbar.showSnackbar("Company profile backup exported.") }
+                .onFailure { snackbar.showSnackbar(it.message ?: "Could not export the backup.") }
+        }
+    }
+    val backupImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            runCatching { withContext(Dispatchers.IO) { backupManager.importFrom(uri) } }
+                .onSuccess { pendingImport = it }
+                .onFailure { snackbar.showSnackbar(it.message ?: "Could not import the backup.") }
         }
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 title = { Text("Company profile") },
@@ -87,13 +141,26 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Icon(Icons.Default.Business, null, modifier = Modifier.size(32.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(96.dp)) {
+                    if (logoUri.isNullOrBlank()) Icon(Icons.Default.Business, "Company logo", modifier = Modifier.padding(24.dp))
+                    else AsyncImage(model = logoUri, contentDescription = "Company logo", modifier = Modifier.fillMaxSize())
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(onClick = { logoPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (logoUri == null) "Add logo" else "Change logo")
+                    }
+                    if (logoUri != null) TextButton(onClick = { logoUri = null }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Remove")
+                    }
+                }
+            }
             Text("Practice identity", style = MaterialTheme.typography.titleMedium)
             Text("Used on drawing registers, transmittals, reports and handover documents.", style = MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick = onOpenPortal, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Wifi, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Local Wi-Fi web portal")
+                Text("Local Wi-Fi workspace")
             }
             OutlinedTextField(practiceName, { practiceName = it }, label = { Text("Practice / company name*") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(legalName, { legalName = it }, label = { Text("Legal name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -116,6 +183,34 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             Text("Tax identifiers", style = MaterialTheme.typography.titleSmall)
             OutlinedTextField(pan, { pan = it.uppercase(Locale.ROOT).take(10) }, label = { Text("PAN (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(gstin, { gstin = it.uppercase(Locale.ROOT).take(15) }, label = { Text("GSTIN (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            HorizontalDivider()
+            Text("Company backup", style = MaterialTheme.typography.titleSmall)
+            Text("Export or restore only the company profile and logo. Project and measurement data are not included.", style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(enabled = saved != null, onClick = { backupExporter.launch("ArchiMan-company-profile.json") }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export")
+                }
+                OutlinedButton(onClick = { backupImporter.launch(arrayOf("application/json", "text/*")) }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Download, null); Spacer(Modifier.width(4.dp)); Text("Import")
+                }
+            }
+            HorizontalDivider()
+            Text("Supabase connection", style = MaterialTheme.typography.titleSmall)
+            Text("Optional platform connection. Connecting does not upload or synchronise data. Use only a publishable key; Row Level Security must be configured in Supabase.", style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(supabaseUrl, { supabaseUrl = it }, label = { Text("Project URL") }, placeholder = { Text("https://your-project.supabase.co") }, modifier = Modifier.fillMaxWidth(), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
+            OutlinedTextField(
+                supabaseKey, { supabaseKey = it }, label = { Text("Publishable key") }, placeholder = { Text("sb_publishable_…") },
+                modifier = Modifier.fillMaxWidth(), singleLine = true,
+                visualTransformation = if (showSupabaseKey) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = { TextButton(onClick = { showSupabaseKey = !showSupabaseKey }) { Text(if (showSupabaseKey) "Hide" else "Show") } }
+            )
+            Text(supabaseState.message, style = MaterialTheme.typography.bodySmall, color = if (supabaseState.isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(enabled = !supabaseState.isTesting && supabaseUrl.isNotBlank() && supabaseKey.isNotBlank(), onClick = { viewModel.configureSupabase(supabaseUrl, supabaseKey) }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Cloud, null); Spacer(Modifier.width(4.dp)); Text(if (supabaseState.isTesting) "Testing…" else "Save & test")
+                }
+                if (supabaseState.projectUrl.isNotBlank()) OutlinedButton(onClick = viewModel::clearSupabaseConnection) { Text("Clear") }
+            }
             Button(
                 enabled = practiceName.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
@@ -127,7 +222,7 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
                             email = email.trim(), website = website.trim(), pan = pan.trim(), gstin = gstin.trim(),
                             coaRegistrationNumber = coaNumber.trim(), principalName = principalName.trim(),
                             principalQualification = principalQualification.trim(), practiceRegistrationDetails = practiceRegistrationDetails.trim(),
-                            logoUri = saved?.logoUri
+                            logoUri = logoUri
                         )
                     )
                     onBack()
@@ -135,12 +230,25 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             ) { Text("Save company profile") }
         }
     }
+
+    pendingImport?.let { imported ->
+        AlertDialog(
+            onDismissRequest = { backupManager.discardImportedLogo(imported.logoUri); pendingImport = null },
+            title = { Text("Restore company profile?") },
+            text = { Text("This will replace the current company profile with “${imported.practiceName}”. Projects, measurements and Supabase settings will not be changed.") },
+            confirmButton = { Button(onClick = { viewModel.saveCompanyProfile(imported); pendingImport = null; scope.launch { snackbar.showSnackbar("Company profile restored.") } }) { Text("Restore") } },
+            dismissButton = { TextButton(onClick = { backupManager.discardImportedLogo(imported.logoUri); pendingImport = null }) { Text("Cancel") } }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
     val state by viewModel.localPortalState.collectAsStateWithLifecycle()
+    val users by viewModel.localUsers.collectAsStateWithLifecycle()
+    val auditEvents by viewModel.portalAuditEvents.collectAsStateWithLifecycle()
+    val userMessage by viewModel.portalUserMessage.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     val projects by viewModel.projects.collectAsStateWithLifecycle()
@@ -148,10 +256,11 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
     val items by viewModel.items.collectAsStateWithLifecycle()
     val measurements by viewModel.measurements.collectAsStateWithLifecycle()
     val measurementSheets by viewModel.measurementSheets.collectAsStateWithLifecycle()
+    var showAddUser by remember { mutableStateOf(false) }
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Local Wi-Fi portal") },
+                title = { Text("Local Wi-Fi workspace") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
             )
         }
@@ -161,38 +270,79 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Icon(if (state.isRunning) Icons.Default.Wifi else Icons.Default.WifiOff, null, modifier = Modifier.size(42.dp))
-            Text(if (state.isRunning) "Portal is available" else "Share ArchiMan on this Wi-Fi", style = MaterialTheme.typography.titleLarge)
+            Text(if (state.isRunning) "Workspace is available" else "Use ArchiMan from a browser", style = MaterialTheme.typography.titleLarge)
             Text(
-                "A browser on the same local Wi-Fi can view projects and the selected project's tasks, schedule, inspections and drawings. Access is read-only and requires the PIN shown here.",
+                "People on the same trusted Wi-Fi can sign in with their own account. Editors can add tasks, approvals and backlog actions; viewers can inspect live project information.",
                 style = MaterialTheme.typography.bodyMedium
             )
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            userMessage?.let {
+                Surface(color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(it, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                        TextButton(onClick = viewModel::clearPortalUserMessage) { Text("Dismiss") }
+                    }
+                }
+            }
             if (state.isRunning) {
                 Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Text("WEB ADDRESS", style = MaterialTheme.typography.labelSmall)
+                        Text("SECURE WEB ADDRESS", style = MaterialTheme.typography.labelSmall)
                         Text(state.url, style = MaterialTheme.typography.titleMedium)
-                        Text("ACCESS PIN", style = MaterialTheme.typography.labelSmall)
-                        Text(state.pin, style = MaterialTheme.typography.headlineMedium)
-                        Text("Session automatically stops after one hour.", style = MaterialTheme.typography.bodySmall)
-                        OutlinedButton(onClick = { clipboard.setText(AnnotatedString("${state.url}\nPIN: ${state.pin}")) }) {
+                        Text("CERTIFICATE FINGERPRINT", style = MaterialTheme.typography.labelSmall)
+                        Text(state.certificateFingerprint, style = MaterialTheme.typography.bodySmall)
+                        Text("The workspace stops after one hour. Each browser login lasts up to 30 minutes.", style = MaterialTheme.typography.bodySmall)
+                        OutlinedButton(onClick = { clipboard.setText(AnnotatedString("${state.url}\nCertificate SHA-256: ${state.certificateFingerprint}")) }) {
                             Icon(Icons.Default.ContentCopy, null)
                             Spacer(Modifier.width(6.dp))
                             Text("Copy connection details")
                         }
                     }
                 }
-                Text("Keep this screen or ArchiMan open. Stop sharing when finished. Use only on a trusted Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
+                Text("A browser may show a one-time certificate warning because the phone creates its own local certificate. Compare its SHA-256 fingerprint with the value above before continuing. Use only on a trusted Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
                 Button(onClick = viewModel::stopLocalPortal, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                    Text("Stop portal")
+                    Text("Stop workspace")
                 }
             } else {
-                Button(onClick = viewModel::startLocalPortal, modifier = Modifier.fillMaxWidth()) {
+                Button(enabled = users.any { it.isActive }, onClick = viewModel::startLocalPortal, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Wifi, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Start read-only portal")
+                    Text("Start secure workspace")
                 }
                 Text("Nothing is uploaded to the internet. The address works only from devices that can reach this phone on the same Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
+            }
+            HorizontalDivider()
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Portal users", style = MaterialTheme.typography.titleMedium)
+                    Text("Admin manages access · Editor can add records · Viewer can only view", style = MaterialTheme.typography.bodySmall)
+                }
+                TextButton(onClick = { showAddUser = true }) { Text("Add user") }
+            }
+            if (users.isEmpty()) {
+                Surface(color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Create an administrator before starting the workspace.")
+                        Button(onClick = { showAddUser = true }) { Text("Create administrator") }
+                    }
+                }
+            } else users.forEach { user ->
+                Surface(tonalElevation = 1.dp, modifier = Modifier.fillMaxWidth()) {
+                    Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Column(Modifier.weight(1f)) {
+                            Text(user.displayName, style = MaterialTheme.typography.titleSmall)
+                            Text("@${user.username} · ${user.role.lowercase().replaceFirstChar(Char::uppercase)}", style = MaterialTheme.typography.bodySmall)
+                            user.lastLoginAt?.let { Text("Last sign-in ${SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(it)}", style = MaterialTheme.typography.labelSmall) }
+                        }
+                        Switch(checked = user.isActive, onCheckedChange = { viewModel.setLocalUserActive(user, it) })
+                    }
+                }
+            }
+            if (auditEvents.isNotEmpty()) {
+                Text("Recent web changes", style = MaterialTheme.typography.titleMedium)
+                auditEvents.take(5).forEach { event ->
+                    Text("${event.username} · ${event.action.removePrefix("ADD_").lowercase()} · ${event.summary}", style = MaterialTheme.typography.bodySmall)
+                }
             }
             HorizontalDivider()
             OutlinedButton(
@@ -223,6 +373,50 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
             ) { Text("Share support diagnostics") }
         }
     }
+
+    if (showAddUser) {
+        PortalUserDialog(
+            firstUser = users.isEmpty(),
+            onDismiss = { showAddUser = false },
+            onCreate = { username, displayName, password, role ->
+                viewModel.createLocalUser(username, displayName, password, role)
+                showAddUser = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PortalUserDialog(firstUser: Boolean, onDismiss: () -> Unit, onCreate: (String, String, String, String) -> Unit) {
+    var username by remember { mutableStateOf("") }
+    var displayName by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmation by remember { mutableStateOf("") }
+    var role by remember { mutableStateOf(if (firstUser) "ADMIN" else "EDITOR") }
+    var roleMenu by remember { mutableStateOf(false) }
+    val valid = username.matches(Regex("[A-Za-z0-9._-]{3,40}")) && displayName.isNotBlank() && password.length in 10..128 && password == confirmation
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (firstUser) "Create portal administrator" else "Add portal user") },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(displayName, { displayName = it }, label = { Text("Display name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(username, { username = it.lowercase(Locale.ROOT).filter { char -> char.isLetterOrDigit() || char in "._-" } }, label = { Text("Username") }, supportingText = { Text("3–40 letters, numbers, dot, dash or underscore") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                ExposedDropdownMenuBox(expanded = roleMenu, onExpandedChange = { if (!firstUser) roleMenu = it }) {
+                    OutlinedTextField(role.lowercase().replaceFirstChar(Char::uppercase), {}, readOnly = true, enabled = !firstUser, label = { Text("Role") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(roleMenu) }, modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth())
+                    ExposedDropdownMenu(expanded = roleMenu, onDismissRequest = { roleMenu = false }) {
+                        listOf("ADMIN", "EDITOR", "VIEWER").forEach { option -> DropdownMenuItem(text = { Text(option.lowercase().replaceFirstChar(Char::uppercase)) }, onClick = { role = option; roleMenu = false }) }
+                    }
+                }
+                OutlinedTextField(password, { password = it.take(128) }, label = { Text("Password") }, supportingText = { Text("At least 10 characters") }, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(confirmation, { confirmation = it.take(128) }, label = { Text("Confirm password") }, isError = confirmation.isNotEmpty() && confirmation != password, visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth(), singleLine = true)
+                if (firstUser) Text("The first account is always an administrator so access cannot be locked out.", style = MaterialTheme.typography.bodySmall)
+            }
+        },
+        confirmButton = { Button(enabled = valid, onClick = { onCreate(username, displayName.trim(), password, role) }) { Text("Create user") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable

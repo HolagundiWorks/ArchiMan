@@ -21,7 +21,20 @@ enum class HomeTab(val label: String) {
     PROJECTS("Projects"),
     DIRECTORY("Directory"),
     WORK_LIBRARY("Work Library"),
-    MORE("More")
+    PRACTICE("Practice")
+}
+
+/** Pages within the currently selected project. Kept outside composables so bottom navigation and back handling agree. */
+enum class ProjectSection {
+    OVERVIEW,
+    BRIEF_SCOPE,
+    PLANNING,
+    MORE,
+    DRAWINGS,
+    REPORTS,
+    CONTROLS,
+    CONTRACTORS,
+    RATE_BOOKS
 }
 
 enum class DirectorySection(val label: String) {

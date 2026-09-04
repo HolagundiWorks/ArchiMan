@@ -46,26 +46,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.*
 import com.example.ui.theme.*
 import com.example.ui.navigation.AppScreen
+import com.example.ui.navigation.ProjectSection
 import com.example.ui.viewmodel.SiteViewModel
 import com.example.util.ExportHelper
 import java.text.SimpleDateFormat
 import java.util.*
-
-enum class ProjectHubSection(
-    val title: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector,
-    val primary: Boolean = true
-) {
-    OVERVIEW("Overview", Icons.Default.Dashboard),
-    BRIEF_SCOPE("Brief", Icons.AutoMirrored.Filled.FactCheck),
-    PLANNING("Planning", Icons.AutoMirrored.Filled.EventNote),
-    MORE("More", Icons.Default.MoreHoriz),
-    DRAWINGS("Drawings", Icons.Default.Architecture, primary = false),
-    REPORTS("Site reports", Icons.AutoMirrored.Filled.Assignment, primary = false),
-    CONTROLS("Controls", Icons.AutoMirrored.Filled.Rule, primary = false),
-    CONTRACTORS("Team", Icons.Default.Engineering, primary = false),
-    RATE_BOOKS("Rate books", Icons.Default.PriceChange, primary = false)
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,7 +58,6 @@ fun ProjectWorkspaceScreen(
     viewModel: SiteViewModel,
     onNavigateBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val projects by viewModel.projects.collectAsStateWithLifecycle()
     val selectedProjectId by viewModel.selectedProjectId.collectAsStateWithLifecycle()
     val floors by viewModel.floors.collectAsStateWithLifecycle()
@@ -96,6 +80,7 @@ fun ProjectWorkspaceScreen(
     val onboardingResponses by viewModel.projectOnboardingResponses.collectAsStateWithLifecycle()
     val approvals by viewModel.projectApprovals.collectAsStateWithLifecycle()
     val backlog by viewModel.projectBacklog.collectAsStateWithLifecycle()
+    val selectedSection by viewModel.selectedProjectSection.collectAsStateWithLifecycle()
 
     val currentProject = projects.firstOrNull { it.id == selectedProjectId } ?: projects.firstOrNull()
     val projectMeasurements = remember(allMeasurements, currentProject) {
@@ -108,10 +93,26 @@ fun ProjectWorkspaceScreen(
         else emptyList()
     }
 
-    var selectedSection by remember { mutableStateOf(ProjectHubSection.OVERVIEW) }
-    val primarySections = remember { ProjectHubSection.values().filter(ProjectHubSection::primary) }
     var showSwitchProjectDialog by remember { mutableStateOf(false) }
     var showProjectProfileDialog by remember { mutableStateOf(false) }
+    val sectionTitle = when (selectedSection) {
+        ProjectSection.OVERVIEW -> "Project overview"
+        ProjectSection.BRIEF_SCOPE -> "Brief & scope"
+        ProjectSection.PLANNING -> "Planning"
+        ProjectSection.MORE -> "Project tools"
+        ProjectSection.DRAWINGS -> "Drawings"
+        ProjectSection.REPORTS -> "Site reports"
+        ProjectSection.CONTROLS -> "Onboarding & controls"
+        ProjectSection.CONTRACTORS -> "Project team"
+        ProjectSection.RATE_BOOKS -> "Rate books"
+    }
+    val navigateUp: () -> Unit = {
+        when (selectedSection) {
+            ProjectSection.OVERVIEW -> onNavigateBack()
+            ProjectSection.MORE, ProjectSection.BRIEF_SCOPE, ProjectSection.PLANNING -> viewModel.setProjectSection(ProjectSection.OVERVIEW)
+            else -> viewModel.setProjectSection(ProjectSection.MORE)
+        }
+    }
 
     Scaffold(
         containerColor = CarbonWhite,
@@ -144,7 +145,7 @@ fun ProjectWorkspaceScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         IconButton(
-                            onClick = onNavigateBack,
+                            onClick = navigateUp,
                             modifier = Modifier
                                 .size(36.dp)
                                 .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
@@ -152,7 +153,7 @@ fun ProjectWorkspaceScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back to Projects",
+                                contentDescription = if (selectedSection == ProjectSection.OVERVIEW) "Back to projects" else "Back in project",
                                 tint = CarbonGray100,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -167,51 +168,26 @@ fun ProjectWorkspaceScreen(
                                 maxLines = 1
                             )
                             Text(
-                                text = currentProject?.siteLocation?.ifBlank { "Project Hub" } ?: "Construction Site",
+                                text = listOf(sectionTitle, currentProject?.siteLocation.orEmpty()).filter(String::isNotBlank).joinToString(" · "),
                                 fontSize = 11.sp,
                                 color = CarbonGray70
                             )
                         }
                     }
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        IconButton(
-                            onClick = { showSwitchProjectDialog = true },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
-                                .testTag("btn_switch_project")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SwapHoriz,
-                                contentDescription = "Switch Project",
-                                tint = CarbonBlue60,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = {
-                                if (projectMeasurements.isNotEmpty()) {
-                                    ExportHelper.printMeasurementSheetPdf(
-                                        context = context,
-                                        projectName = currentProject?.name ?: "Project",
-                                        measurements = projectMeasurements
-                                    )
-                                }
-                            },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
-                                .testTag("btn_quick_pdf_print")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Print,
-                                contentDescription = "Print M-Book",
-                                tint = CarbonGray80,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                    IconButton(
+                        onClick = { showSwitchProjectDialog = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
+                            .testTag("btn_switch_project")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SwapHoriz,
+                            contentDescription = "Switch Project",
+                            tint = CarbonBlue60,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
 
@@ -227,20 +203,14 @@ fun ProjectWorkspaceScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Column {
-                                Text("ENTRIES", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = CarbonGray60)
-                                Text("${projectMeasurements.size} Recorded", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
-                            }
-                            Column {
-                                Text("CONTRACTORS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = CarbonGray60)
-                                Text("${projectContractors.size} Active", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
-                            }
-                            Column {
-                                Text("FLOORS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = CarbonGray60)
-                                Text("${floors.size} Levels", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
-                            }
-                        }
+                        Text(
+                            "${projectMeasurements.size} entries  ·  ${projectContractors.size} team  ·  ${floors.size} levels",
+                            modifier = Modifier.weight(1f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = CarbonGray80,
+                            maxLines = 1
+                        )
 
                         Surface(
                             color = CarbonBlue10,
@@ -248,7 +218,7 @@ fun ProjectWorkspaceScreen(
                             border = BorderStroke(1.dp, CarbonBlue60)
                         ) {
                             Text(
-                                text = "ACTIVE SITE",
+                                text = currentProject?.status?.replace('_', ' ') ?: "ACTIVE",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarbonBlue60,
@@ -258,44 +228,6 @@ fun ProjectWorkspaceScreen(
                     }
                 }
 
-                // Project Hub contains overview, planning and setup only.
-                // Field entry and M-Book remain persistent project-level actions in the bottom bar.
-                TabRow(
-                    selectedTabIndex = primarySections.indexOf(if (selectedSection.primary) selectedSection else ProjectHubSection.MORE),
-                    containerColor = CarbonWhite,
-                    contentColor = CarbonBlue60,
-                    divider = {
-                        HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
-                    }
-                ) {
-                    primarySections.forEach { section ->
-                        val isSelected = selectedSection == section || (section == ProjectHubSection.MORE && !selectedSection.primary)
-                        Tab(
-                            selected = isSelected,
-                            onClick = { selectedSection = section },
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = section.icon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = if (isSelected) CarbonBlue60 else CarbonGray70
-                                    )
-                                    Text(
-                                        text = section.title,
-                                        fontSize = 12.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) CarbonBlue60 else CarbonGray70
-                                    )
-                                }
-                            },
-                            modifier = Modifier.testTag("project_section_${section.name.lowercase()}")
-                        )
-                    }
-                }
             }
         }
     ) { innerPadding ->
@@ -305,7 +237,7 @@ fun ProjectWorkspaceScreen(
                 .padding(innerPadding)
         ) {
             when (selectedSection) {
-                ProjectHubSection.OVERVIEW -> ProjectHubOverview(
+                ProjectSection.OVERVIEW -> ProjectHubOverview(
                     project = currentProject,
                     taskCount = projectTasks.size,
                     selectionCount = selectionItems.size,
@@ -315,35 +247,34 @@ fun ProjectWorkspaceScreen(
                     measurementCount = projectMeasurements.size,
                     briefStatus = consultancyProfile?.briefStatus ?: "NOT_STARTED",
                     onEditProfile = { showProjectProfileDialog = true },
-                    onOpenBrief = { selectedSection = ProjectHubSection.BRIEF_SCOPE },
-                    onOpenPlanning = { selectedSection = ProjectHubSection.PLANNING },
-                    onOpenMore = { selectedSection = ProjectHubSection.MORE }
+                    onOpenBrief = { viewModel.setProjectSection(ProjectSection.BRIEF_SCOPE) },
+                    onOpenPlanning = { viewModel.setProjectSection(ProjectSection.PLANNING) },
+                    onOpenMore = { viewModel.setProjectSection(ProjectSection.MORE) }
                 )
-                ProjectHubSection.BRIEF_SCOPE -> ProjectBriefScopeScreen(
-                    viewModel = viewModel,
-                    project = currentProject,
-                    savedProfile = consultancyProfile,
-                    scopeItems = scopeItems
-                )
-                ProjectHubSection.PLANNING -> ProjectPlanningScreen(viewModel, projectTasks, schedules, selectionItems, currentProject)
-                ProjectHubSection.MORE -> ProjectMoreMenu(
+                ProjectSection.BRIEF_SCOPE -> ProjectSecondarySection("Project brief & scope") {
+                    ProjectBriefScopeScreen(viewModel, currentProject, consultancyProfile, scopeItems)
+                }
+                ProjectSection.PLANNING -> ProjectSecondarySection("Planning") {
+                    ProjectPlanningScreen(viewModel, projectTasks, schedules, selectionItems, currentProject)
+                }
+                ProjectSection.MORE -> ProjectMoreMenu(
                     drawingCount = projectDrawings.size,
                     reportCount = meetingMinutes.size + siteInspections.size,
                     contractorCount = projectContractors.size,
                     rateBookCount = rateBookAssignments.size,
                     controlCount = approvals.count { it.status != "APPROVED" } + backlog.count { it.status == "OPEN" },
-                    onSelect = { selectedSection = it }
+                    onSelect = viewModel::setProjectSection
                 )
-                ProjectHubSection.DRAWINGS -> ProjectSecondarySection("Drawings", { selectedSection = ProjectHubSection.MORE }) {
+                ProjectSection.DRAWINGS -> ProjectSecondarySection("Drawings") {
                     DrawingRegisterScreen(viewModel, projectDrawings, drawingRevisions, drawingTransmittals)
                 }
-                ProjectHubSection.REPORTS -> ProjectSecondarySection("Site reports", { selectedSection = ProjectHubSection.MORE }) {
+                ProjectSection.REPORTS -> ProjectSecondarySection("Site reports") {
                     ProjectReportsScreen(viewModel, meetingMinutes, siteInspections)
                 }
-                ProjectHubSection.CONTROLS -> ProjectSecondarySection("Onboarding & controls", { selectedSection = ProjectHubSection.MORE }) {
+                ProjectSection.CONTROLS -> ProjectSecondarySection("Onboarding & controls") {
                     ProjectControlsScreen(viewModel, currentProject, onboardingResponses, approvals, backlog)
                 }
-                ProjectHubSection.CONTRACTORS -> ProjectSecondarySection("Project team", { selectedSection = ProjectHubSection.MORE }) {
+                ProjectSection.CONTRACTORS -> ProjectSecondarySection("Project team") {
                     ProjectContractorsTab(
                         viewModel = viewModel,
                         currentProject = currentProject,
@@ -353,7 +284,7 @@ fun ProjectWorkspaceScreen(
                         onViewContractorMeasurements = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) }
                     )
                 }
-                ProjectHubSection.RATE_BOOKS -> ProjectSecondarySection("Rate books", { selectedSection = ProjectHubSection.MORE }) {
+                ProjectSection.RATE_BOOKS -> ProjectSecondarySection("Rate books") {
                     ProjectRateBooksTab(
                         viewModel = viewModel,
                         project = currentProject,
@@ -456,7 +387,7 @@ private fun ProjectMoreMenu(
     contractorCount: Int,
     rateBookCount: Int,
     controlCount: Int,
-    onSelect: (ProjectHubSection) -> Unit
+    onSelect: (ProjectSection) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -467,11 +398,16 @@ private fun ProjectMoreMenu(
             Text("Project tools", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Documents, field records and project setup", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
         }
-        item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", Icons.Default.Architecture) { onSelect(ProjectHubSection.DRAWINGS) } }
-        item { ProjectMoreRow("Site reports", "$reportCount meeting minutes and inspection reports", Icons.AutoMirrored.Filled.Assignment) { onSelect(ProjectHubSection.REPORTS) } }
-        item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", Icons.AutoMirrored.Filled.Rule) { onSelect(ProjectHubSection.CONTROLS) } }
-        item { ProjectMoreRow("Project team", "$contractorCount assigned contractors", Icons.Default.Engineering) { onSelect(ProjectHubSection.CONTRACTORS) } }
-        item { ProjectMoreRow("Rate books", "$rateBookCount rate books applied to this project", Icons.Default.PriceChange) { onSelect(ProjectHubSection.RATE_BOOKS) } }
+        item { Text("CORE WORKFLOW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
+        item { ProjectMoreRow("Project brief & scope", "Requirements, site data, deliverables and responsibilities", Icons.AutoMirrored.Filled.FactCheck) { onSelect(ProjectSection.BRIEF_SCOPE) } }
+        item { ProjectMoreRow("Planning", "Tasks, schedules and material selections", Icons.AutoMirrored.Filled.EventNote) { onSelect(ProjectSection.PLANNING) } }
+        item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", Icons.AutoMirrored.Filled.Rule) { onSelect(ProjectSection.CONTROLS) } }
+        item { Text("DOCUMENTS & SITE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
+        item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", Icons.Default.Architecture) { onSelect(ProjectSection.DRAWINGS) } }
+        item { ProjectMoreRow("Site reports", "$reportCount meeting minutes and inspection reports", Icons.AutoMirrored.Filled.Assignment) { onSelect(ProjectSection.REPORTS) } }
+        item { Text("TEAM & RATE BOOKS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
+        item { ProjectMoreRow("Project team", "$contractorCount assigned contractors", Icons.Default.Engineering) { onSelect(ProjectSection.CONTRACTORS) } }
+        item { ProjectMoreRow("Rate books", "$rateBookCount rate books applied to this project", Icons.Default.PriceChange) { onSelect(ProjectSection.RATE_BOOKS) } }
     }
 }
 
@@ -503,19 +439,10 @@ private fun ProjectMoreRow(
 }
 
 @Composable
-private fun ProjectSecondarySection(title: String, onBack: () -> Unit, content: @Composable () -> Unit) {
+private fun ProjectSecondarySection(title: String, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         Surface(color = CarbonGray10, modifier = Modifier.fillMaxWidth()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().clickable(onClick = onBack).padding(horizontal = 12.dp, vertical = 9.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Project tools", color = CarbonBlue60, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CarbonGray50, modifier = Modifier.size(16.dp))
-                Text(title, color = CarbonGray100, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-            }
+            Text(title, color = CarbonGray100, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
         }
         Box(Modifier.weight(1f)) { content() }
     }

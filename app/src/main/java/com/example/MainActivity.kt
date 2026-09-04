@@ -31,6 +31,7 @@ import com.example.ui.screens.*
 import com.example.ui.theme.*
 import com.example.ui.navigation.AppScreen
 import com.example.ui.navigation.HomeTab
+import com.example.ui.navigation.ProjectSection
 import com.example.ui.viewmodel.SiteViewModel
 
 class MainActivity : ComponentActivity() {
@@ -57,6 +58,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
     val homeTab by viewModel.selectedHomeTab.collectAsStateWithLifecycle()
     val selectedProjectId by viewModel.selectedProjectId.collectAsStateWithLifecycle()
+    val projectSection by viewModel.selectedProjectSection.collectAsStateWithLifecycle()
 
     var showRecordMeasurementWizard by remember { mutableStateOf(false) }
 
@@ -64,13 +66,19 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
     if (currentScreen != AppScreen.HOME) {
         BackHandler {
             when (currentScreen) {
-                AppScreen.PROJECT_WORKSPACE -> viewModel.navigateTo(AppScreen.HOME)
+                AppScreen.PROJECT_WORKSPACE -> {
+                    when (projectSection) {
+                        ProjectSection.OVERVIEW -> viewModel.navigateTo(AppScreen.HOME)
+                        ProjectSection.MORE, ProjectSection.BRIEF_SCOPE, ProjectSection.PLANNING -> viewModel.setProjectSection(ProjectSection.OVERVIEW)
+                        else -> viewModel.setProjectSection(ProjectSection.MORE)
+                    }
+                }
                 AppScreen.DEDICATED_MEASUREMENT -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.ROOM_WORKSPACE -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.MEASUREMENT_BOOK -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.CLIENTS, AppScreen.CONTRACTORS, AppScreen.COMPANY_PROFILE, AppScreen.LOCAL_PORTAL -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.MASTER_DATA -> viewModel.navigateTo(
-                    if (homeTab == HomeTab.MORE || selectedProjectId == null) AppScreen.HOME else AppScreen.PROJECT_WORKSPACE
+                    if (homeTab == HomeTab.PRACTICE || selectedProjectId == null) AppScreen.HOME else AppScreen.PROJECT_WORKSPACE
                 )
                 AppScreen.REGISTER -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.PROJECTS -> viewModel.navigateTo(AppScreen.HOME)
@@ -84,7 +92,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
         currentScreen == AppScreen.ROOM_WORKSPACE ||
         currentScreen == AppScreen.MEASUREMENT_BOOK ||
         currentScreen == AppScreen.REGISTER ||
-        (currentScreen == AppScreen.MASTER_DATA && homeTab != HomeTab.MORE)
+        (currentScreen == AppScreen.MASTER_DATA && homeTab != HomeTab.PRACTICE)
 
     Scaffold(
         containerColor = CarbonWhite,
@@ -137,10 +145,10 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             viewModel.setHomeTab(HomeTab.DIRECTORY)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.ContactPage, contentDescription = "Directory") },
+                        icon = { Icon(Icons.Default.ContactPage, contentDescription = "Contacts") },
                         label = {
                             Text(
-                                "Directory",
+                                "Contacts",
                                 fontSize = 11.sp,
                                 fontWeight = if (homeTab == HomeTab.DIRECTORY) FontWeight.Bold else FontWeight.Normal
                             )
@@ -165,7 +173,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         icon = { Icon(Icons.Default.AccountTree, contentDescription = "Work library") },
                         label = {
                             Text(
-                                "Work List",
+                                "Library",
                                 fontSize = 11.sp,
                                 fontWeight = if (homeTab == HomeTab.WORK_LIBRARY) FontWeight.Bold else FontWeight.Normal
                             )
@@ -182,17 +190,17 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
 
                     // 4. Infrequent practice tools and shared data
                     NavigationBarItem(
-                        selected = homeTab == HomeTab.MORE,
+                        selected = homeTab == HomeTab.PRACTICE,
                         onClick = {
-                            viewModel.setHomeTab(HomeTab.MORE)
+                            viewModel.setHomeTab(HomeTab.PRACTICE)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.MoreHoriz, contentDescription = "More") },
+                        icon = { Icon(Icons.Default.Domain, contentDescription = "Practice") },
                         label = {
                             Text(
-                                "More",
+                                "Practice",
                                 fontSize = 11.sp,
-                                fontWeight = if (homeTab == HomeTab.MORE) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (homeTab == HomeTab.PRACTICE) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -221,14 +229,15 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         }
                         .testTag("inside_project_bottom_navigation")
                 ) {
-                    val isWorkspaceActive = currentScreen == AppScreen.PROJECT_WORKSPACE || currentScreen == AppScreen.ROOM_WORKSPACE
+                    val isWorkspaceActive = (currentScreen == AppScreen.PROJECT_WORKSPACE && projectSection != ProjectSection.MORE) || currentScreen == AppScreen.ROOM_WORKSPACE
+                    val isMoreActive = currentScreen == AppScreen.PROJECT_WORKSPACE && projectSection == ProjectSection.MORE
                     val isMBookActive = currentScreen == AppScreen.MEASUREMENT_BOOK || currentScreen == AppScreen.REGISTER
                     val isWorkListActive = currentScreen == AppScreen.MASTER_DATA
 
                     // 1. Project overview
                     NavigationBarItem(
                         selected = isWorkspaceActive,
-                        onClick = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) },
+                        onClick = { viewModel.setProjectSection(ProjectSection.OVERVIEW); viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) },
                         icon = { Icon(Icons.Default.Dashboard, contentDescription = "Project") },
                         label = {
                             Text(
@@ -311,6 +320,22 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             unselectedTextColor = CarbonGray70
                         ),
                         modifier = Modifier.testTag("project_nav_mbook")
+                    )
+
+                    // 5. Project setup, documents and specialist registers.
+                    NavigationBarItem(
+                        selected = isMoreActive,
+                        onClick = { viewModel.setProjectSection(ProjectSection.MORE); viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) },
+                        icon = { Icon(Icons.Default.MoreHoriz, contentDescription = "More project tools") },
+                        label = { Text("More", fontSize = 11.sp, fontWeight = if (isMoreActive) FontWeight.Bold else FontWeight.Normal) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = CarbonBlue60,
+                            selectedTextColor = CarbonBlue60,
+                            indicatorColor = CarbonBlue10,
+                            unselectedIconColor = CarbonGray70,
+                            unselectedTextColor = CarbonGray70
+                        ),
+                        modifier = Modifier.testTag("project_nav_more")
                     )
                 }
             }

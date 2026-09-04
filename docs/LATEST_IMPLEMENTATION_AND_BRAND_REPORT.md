@@ -20,7 +20,7 @@ The product is not an ERP accounting package. Contractor rates are supported thr
 | Android application label | ArchiMan |
 | Gradle root project | ArchiMan |
 | In-app mastheads | ArchiMan / context-specific screen title |
-| Local portal | ArchiMan-branded read-only project portal |
+| Local workspace | ArchiMan-branded HTTPS workspace with named accounts, role controls and audited quick entry |
 | Exports and diagnostics | ArchiMan-branded filenames and headings |
 | Documentation | ArchiMan terminology and schema-18 baseline |
 
@@ -31,37 +31,39 @@ The Android package ID `com.aistudio.sitemeasure.qvtrpl` and Room filename `site
 ```text
 Portfolio
 ├── Projects
-├── Directory
+├── Contacts
 │   ├── Clients
 │   └── Contractors
-├── Work List
-└── More
-    ├── Company Profile
+├── Library
+└── Practice
+    ├── Company Profile, Backup & Connections
     └── Local Wi-Fi Portal / Support Diagnostics
 
 Selected Project
 ├── Project
-│   ├── Overview
-│   ├── Brief
-│   ├── Planning
-│   └── More
+├── Work
+├── Record
+├── M-Book
+└── More
+    ├── Brief & Scope
+    ├── Planning
+    ├── Onboarding & Controls
 │       ├── Drawings
 │       ├── Site Reports
 │       ├── Onboarding & Controls
 │       ├── Project Team
 │       └── Rate Books
-├── Work
-├── Record
-└── M-Book
 ```
 
-This hierarchy follows the comparative UX study: project context is selected before project tools, frequent field actions remain persistent, and long-tail tools move under labelled More menus.
+This hierarchy follows the comparative UX study: project context is selected before project tools, frequent field actions remain persistent, and long-tail tools move under labelled More menus. The former project tab row has been removed so the bottom bar is the only permanent project navigation surface.
 
 ## Latest implemented capabilities
 
 ### Practice and project setup
 
 - Expanded company/practice profile with company type, country, PAN, principal, qualification and registration fields.
+- Company logo selection with a durable app-managed copy for reports and future branded outputs.
+- Portable JSON company-profile backup and confirmation-based restore, including an optional embedded logo; project and measurement records are intentionally excluded.
 - Expanded client directory with type, contact person, email, correspondence address, preferred communication and notes.
 - Project profile with project code/type/status, client/location, architect, programme dates and area data.
 - Project-specific execution levels rather than a fixed floor count.
@@ -127,7 +129,9 @@ Native DWG rendering, calibrated graphical measurement and full annotation tooli
 ### Offline access and operations
 
 - Room/SQLite remains the local source of truth.
-- User-started, PIN-authenticated, read-only web portal on the phone's current Wi-Fi network.
+- Optional Supabase Project URL and publishable-key setup with an API-gateway connection test. Secret/service-role keys are rejected, and connecting does not enable upload or synchronisation.
+- User-started, named-user HTTPS web workspace on the phone's current Wi-Fi network.
+- Admin, Editor and Viewer access; audited task, approval and backlog quick entry for authorised users.
 - One-hour portal timeout and no silent cloud upload.
 - Privacy-safe support diagnostics.
 - Support diagnostics are available from the Local Wi-Fi Portal screen; the obsolete portfolio measurement-export screen has been removed.
@@ -155,11 +159,11 @@ All current migrations are explicit; destructive fallback is not enabled.
 
 ## Verification status
 
-- Schema-19 `testDebugUnitTest` and `assembleDebug`: passed.
+- Schema-21 `testDebugUnitTest` (61 tests) and `assembleDebug`: passed.
 - Automated tests: 54 passed, 0 failed.
 - Product-boundary regression check: passed.
 - Latest debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
-- Schema-19 USB upgrade: installed on Samsung SM-M115F; app log confirmed migration 18→19 and clean startup.
+- Schema-21 USB upgrade: installed in place on Samsung SM-M115F; clean app-process startup confirmed with no fatal or migration error.
 - Material 3 design-foundation update: installed and launched successfully on the same device.
 - Full field-data reconciliation and interaction/accessibility acceptance: pending.
 
@@ -167,7 +171,7 @@ All current migrations are explicit; destructive fallback is not enabled.
 
 ### Next release priorities
 
-1. Complete schema-19 field-data reconciliation and full interaction/accessibility smoke testing on the upgraded device.
+1. Complete schema-21 field-data reconciliation, browser-to-phone HTTPS acceptance and full interaction/accessibility smoke testing on the upgraded device.
 2. Versioned project-type onboarding templates and generated reviewed brief snapshots.
 3. Rate-book lifecycle, clone/revision, effective dates, assignment history and change-impact preview.
 4. Controlled drawing-file intake, managed storage and transmittal/report exports.

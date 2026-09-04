@@ -16,7 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-const val DATABASE_SCHEMA_VERSION = 20
+const val DATABASE_SCHEMA_VERSION = 21
 
 @Database(
     entities = [
@@ -27,6 +27,8 @@ const val DATABASE_SCHEMA_VERSION = 20
         ProjectOnboardingResponseEntity::class,
         ProjectApprovalEntity::class,
         ProjectBacklogEntity::class,
+        LocalUserEntity::class,
+        PortalAuditEventEntity::class,
         CompanyProfileEntity::class,
         ProjectTaskEntity::class,
         ProjectSelectionItemEntity::class,
@@ -62,6 +64,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao
     abstract fun companyProfileDao(): CompanyProfileDao
     abstract fun projectConsultancyDao(): ProjectConsultancyDao
+    abstract fun portalAccessDao(): PortalAccessDao
     abstract fun projectTaskDao(): ProjectTaskDao
     abstract fun projectSelectionItemDao(): ProjectSelectionItemDao
     abstract fun projectScheduleDao(): ProjectScheduleDao
@@ -91,12 +94,13 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         installSheetLockTriggers(db)
                         installDocumentControlTriggers(db)
+                        installPortalAuditTriggers(db)
                         // Seed predefined items & structure
                         CoroutineScope(Dispatchers.IO).launch {
                             getDatabase(context).seedPredefinedData()
@@ -106,6 +110,7 @@ abstract class AppDatabase : RoomDatabase() {
                     override fun onOpen(db: SupportSQLiteDatabase) {
                         super.onOpen(db)
                         installPwdCatalog(db)
+                        installPortalAuditTriggers(db)
                     }
                 }).build()
                 INSTANCE = instance
@@ -432,6 +437,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_20_21 = object : Migration(20, 21) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE local_users (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `username` TEXT NOT NULL, `displayName` TEXT NOT NULL, `passwordHash` TEXT NOT NULL, `passwordSalt` TEXT NOT NULL, `passwordIterations` INTEGER NOT NULL, `role` TEXT NOT NULL, `isActive` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastLoginAt` INTEGER)")
+                db.execSQL("CREATE UNIQUE INDEX index_local_users_username ON local_users(username)")
+                db.execSQL("CREATE TABLE portal_audit_events (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `userId` INTEGER NOT NULL, `username` TEXT NOT NULL, `action` TEXT NOT NULL, `entityType` TEXT NOT NULL, `entityId` INTEGER, `projectId` INTEGER, `summary` TEXT NOT NULL, `sourceAddress` TEXT NOT NULL, `occurredAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_portal_audit_events_userId ON portal_audit_events(userId)")
+                db.execSQL("CREATE INDEX index_portal_audit_events_projectId ON portal_audit_events(projectId)")
+                db.execSQL("CREATE INDEX index_portal_audit_events_occurredAt ON portal_audit_events(occurredAt)")
+                installPortalAuditTriggers(db)
+            }
+        }
+
         private fun installPwdCatalog(db: SupportSQLiteDatabase) {
             PREDEFINED_ITEMS.filter { it.sourceName.isNotBlank() }.forEach { item ->
                 val workType = item.workType.ifBlank { WorkCatalog.classify("Civil", item.name) }
@@ -456,6 +473,11 @@ abstract class AppDatabase : RoomDatabase() {
             db.execSQL("CREATE TRIGGER IF NOT EXISTS lock_approved_measurement_delete BEFORE DELETE ON measurements WHEN (SELECT status FROM measurement_sheets WHERE id=OLD.sheetId)='APPROVED' BEGIN SELECT RAISE(ABORT, 'Approved measurement sheets are immutable'); END")
             db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_review_event_update BEFORE UPDATE ON measurement_review_events BEGIN SELECT RAISE(ABORT, 'Review events are immutable'); END")
             db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_review_event_delete BEFORE DELETE ON measurement_review_events BEGIN SELECT RAISE(ABORT, 'Review events are immutable'); END")
+        }
+
+        private fun installPortalAuditTriggers(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_portal_audit_update BEFORE UPDATE ON portal_audit_events BEGIN SELECT RAISE(ABORT, 'Portal audit events are immutable'); END")
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_portal_audit_delete BEFORE DELETE ON portal_audit_events BEGIN SELECT RAISE(ABORT, 'Portal audit events are immutable'); END")
         }
 
         private fun installDocumentControlTriggers(db: SupportSQLiteDatabase) {

@@ -2,7 +2,7 @@
 
 - Source reviewed: `C:\Users\holag\Downloads\Architecture Consultancy ERP.md`
 - Review date: 4 September 2026
-- ArchiMan implementation baseline: Room schema 19
+- ArchiMan implementation baseline: Room schema 21
 
 ## Interpretation rule
 
@@ -13,7 +13,7 @@ The downloaded file is a product and architecture proposal. Its embedded develop
 | ERP v3 area | Before this update | Decision and current status |
 |---|---|---|
 | Android local-first database | Implemented with Room/SQLite | Retained as authoritative source |
-| Phone-hosted LAN portal | Implemented as explicit PIN-authenticated read-only portal | Retained; writable concurrent ERP access deferred |
+| Phone-hosted LAN workspace | Implemented as explicit named-user HTTPS workspace with role controls and audited quick entry | Retained; unrestricted concurrent database access remains excluded |
 | Company profile | Partially implemented | Expanded in schema 19 |
 | Client directory | Basic name/address/phone | Expanded in schema 19 |
 | Projects, brief and consultancy | Implemented foundation in schemas 17–18 | Retained and expanded with site data in schema 19 |
@@ -24,14 +24,14 @@ The downloaded file is a product and architecture proposal. Its embedded develop
 | Contractor rate books | Implemented foundation | Retained; not consultancy billing |
 | Old portfolio measurement export screen | Duplicated M-Book export capability | Removed; M-Book remains export owner |
 | Local users/RBAC/project access | Not implemented | Accepted as a prerequisite design programme, not claimed as current |
-| Multi-user writable LAN browser | Not implemented | Deferred until authentication, authorization, concurrency and recovery controls exist |
+| Multi-user writable LAN browser | Controlled write slice implemented | Named accounts and audited task/approval/backlog entry are available; conflict-sensitive measurement and document writes remain deferred |
 | Encrypted company package | Android backup controls/runbook only | Accepted roadmap item; format and cryptography require implementation and restore tests |
 | Supabase backup/sync | Not implemented | Optional future evaluation; backup and sync must remain separate |
 | WordPress | Not used | Explicitly rejected as a core dependency |
 | Finance, fees, invoices and payments | Deliberately absent | Excluded |
 | Tax engine and tax percentages | Deliberately absent | Excluded; values in the proposal are not treated as legal guidance |
 
-## Implemented in schema 19
+## Implemented foundation (schemas 19–21)
 
 ### Practice identity
 
@@ -112,17 +112,18 @@ These remain subordinate to the existing drawing, RFI/submittal/site-instruction
 - Supabase service credentials in the browser or ordinary client devices.
 - Always-on LAN exposure or database-port exposure.
 
-## Security gates before writable LAN access
+## Writable LAN security status
 
-The current PIN-authenticated read-only portal will not be promoted to writable multi-user ERP access until all of the following exist and are tested:
+The schema-21 workspace implements the first controlled write slice. Status of the security gates is:
 
-- local user authentication with modern password hashing;
-- role and project authorization enforced below the UI;
-- rate limiting, session expiry/revocation and connection audit;
-- transactional write services and optimistic conflict detection;
+- [x] local user authentication with PBKDF2-HMAC-SHA256 password hashing;
+- [x] Admin, Editor and Viewer authorization enforced by the server;
+- [x] login rate limiting, session expiry, explicit shutdown and append-only change audit;
+- [x] CSRF-protected, validated write services for tasks, approvals and backlog actions;
+- [ ] project-specific user assignments and optimistic conflict detection;
 - controlled file access with no raw filesystem paths;
 - backup/restore and failure-recovery drills;
-- a defined HTTPS or trusted-network transport strategy; and
+- [x] phone-generated HTTPS with a user-verifiable SHA-256 certificate fingerprint; and
 - hands-on concurrent-use testing.
 
 ## Recommended delivery order
@@ -131,7 +132,7 @@ The current PIN-authenticated read-only portal will not be promoted to writable 
 2. Add installation identity, system health and storage visibility.
 3. Design and test encrypted company-package export/restore.
 4. Add users, roles, project assignments and cross-feature audit.
-5. Build authenticated read-only role-aware LAN views.
-6. Add carefully scoped writable LAN services.
+5. Expand authenticated role-aware LAN views.
+6. Expand carefully scoped writable LAN services only after each domain's validation and conflict rules are defined.
 7. Evaluate optional backup connector.
 8. Consider synchronization only after conflict semantics are proven.

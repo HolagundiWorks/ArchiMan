@@ -2,7 +2,7 @@
 
 ## Product, UX, Architecture, and Delivery Specification
 
-Status: Current product and architecture baseline at Room schema 19, reviewed 4 September 2026
+Status: Current product and architecture baseline at Room schema 21, reviewed 4 September 2026
 Product boundary: Offline-first architectural consultancy management with a field Measurement Book, project administration and contractor rate books
 Explicitly out of scope: invoices, bills, retention, payments, and accounting
 
@@ -276,7 +276,7 @@ Direct deletion is forbidden when a work item is referenced.
 
 - LAN access disabled by default.
 - Authenticated, time-limited pairing if LAN access remains.
-- Read-only LAN mode by default.
+- LAN workspace is off by default and requires explicit phone-side start; browser rights follow the signed-in user's role.
 - No plain unauthenticated mutation endpoints.
 - Role-based access for create, submit, check, approve, export, and administration.
 - Audit user, device, timestamp, old value, and new value.
@@ -322,7 +322,7 @@ A release is not production-ready unless it has:
 ## 16. Definition of done for measurement and rate-book scope
 
 - No bill, invoice, retention, payment, or accounting UI.
-- No billing routes. The only LAN endpoints are the authenticated read-only portfolio portal and health check, enabled by explicit user action.
+- No billing routes. LAN access is explicitly user-started, authenticated and HTTPS-protected. Role-checked quick-entry endpoints write only validated tasks, approvals and backlog actions and record immutable audit events; there is no raw database endpoint.
 - New measurements snapshot the explicitly assigned contractor rate-book rate and derived amount.
 - Measurement exports reconcile quantities, rates, and snapshot amounts.
 - Contractor setup supports multiple named and versioned rate books sourced from the PWD master list.

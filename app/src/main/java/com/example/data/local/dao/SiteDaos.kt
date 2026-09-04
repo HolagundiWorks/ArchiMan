@@ -334,6 +334,23 @@ interface ProjectConsultancyDao {
 }
 
 @Dao
+interface PortalAccessDao {
+    @Query("SELECT * FROM local_users ORDER BY isActive DESC, displayName, username")
+    fun observeUsers(): Flow<List<LocalUserEntity>>
+
+    @Query("SELECT * FROM local_users WHERE lower(username)=lower(:username) LIMIT 1")
+    suspend fun findUser(username: String): LocalUserEntity?
+
+    @Insert suspend fun insertUser(user: LocalUserEntity): Long
+    @Update suspend fun updateUser(user: LocalUserEntity)
+
+    @Query("SELECT * FROM portal_audit_events ORDER BY occurredAt DESC, id DESC LIMIT :limit")
+    fun observeAuditEvents(limit: Int = 200): Flow<List<PortalAuditEventEntity>>
+
+    @Insert suspend fun insertAuditEvent(event: PortalAuditEventEntity): Long
+}
+
+@Dao
 interface ProjectTaskDao {
     @Query("SELECT * FROM project_tasks WHERE projectId=:projectId ORDER BY status, createdAt DESC")
     fun getByProject(projectId: Long): Flow<List<ProjectTaskEntity>>

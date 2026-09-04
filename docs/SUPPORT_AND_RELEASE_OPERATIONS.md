@@ -1,10 +1,10 @@
 # Support and Release Operations
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 19, reviewed 4 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 4 September 2026.
 
 ## Scope
 
-ArchiMan is offline-first. Support and release processes must preserve that boundary: contractor rate books and immutable measurement valuation snapshots are supported, but bills, invoices, receipts, payments, accounting, background cloud access, internet APIs and silent data upload are not. A user-started, PIN-authenticated, read-only portal on the current local Wi-Fi network is permitted.
+ArchiMan is offline-first. Support and release processes must preserve that boundary: contractor rate books and immutable measurement valuation snapshots are supported, but bills, invoices, receipts, payments, accounting, background cloud access and silent data upload are not. A user-started, named-user HTTPS workspace on the current local Wi-Fi network is permitted. Editors and administrators may add controlled project records; viewers cannot write.
 
 ## Privacy-safe support diagnostics
 
@@ -29,9 +29,9 @@ From the repository root, run:
 ./scripts/verify-product-boundary.ps1
 ```
 
-The first boundary check rejects active billing terminology, unapproved network/cloud dependencies, or outbound cleartext configuration. It verifies the two permissions required by the approved local Wi-Fi portal. The second invocation also checks the merged debug manifest produced by the build.
+The first boundary check rejects active billing terminology, unapproved network/cloud dependencies, or outbound cleartext configuration. It verifies the permissions required by the approved local Wi-Fi workspace. The second invocation also checks the merged debug manifest produced by the build.
 
-The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, profile, consultancy-scope and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`. The current schema-19 baseline includes a preserving 18→19 migration test.
+The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, profile, consultancy-scope, portal-security and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`. The schema-21 baseline includes a preserving 20→21 migration test and immutable portal-audit verification.
 
 ## Continuous integration
 
@@ -50,4 +50,4 @@ CI establishes source and build quality; it does not replace USB migration accep
 
 ## Deferred platform capabilities
 
-Organizations, RBAC, managed synchronization, fleet management, remote/cloud access, and writable web workflows require a separately approved threat model and deployment architecture. The approved local portal remains user-started, same-Wi-Fi, PIN-authenticated and read-only.
+Organisation-wide identity, project-specific permissions, managed synchronization, fleet management, remote/cloud access and concurrent conflict resolution remain deferred. The local workspace is user-started and same-Wi-Fi only; it currently exposes controlled task, approval and backlog quick entry rather than unrestricted database access.

@@ -1,6 +1,6 @@
 # Vishwakarma Architect OS Consolidation
 
-> Current baseline: ArchiMan schema 19. Archi Launcher remains a separate application boundary.
+> Current baseline: ArchiMan schema 21. Archi Launcher remains a separate application boundary.
 
 ## Product decision
 
@@ -66,7 +66,7 @@ Project
 
 - Schema 15 project schedules, meeting minutes and site inspections.
 - Schema 16 drawing register, revision, transmittal and markup metadata foundation.
-- Schema 17 company and project profiles plus the PIN-authenticated local portal.
+- Company and project profiles plus the schema-21 named-user, role-controlled local HTTPS workspace.
 - Schema 18 project consultancy profile and Brief & Scope register.
 - Planning and Site Reports hierarchy under the current project navigation.
 - Optional inspection photographs.

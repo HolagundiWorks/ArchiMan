@@ -4,6 +4,7 @@ $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $sourceRoot = Join-Path $repositoryRoot "app/src/main/java"
 $manifestPath = Join-Path $repositoryRoot "app/src/main/AndroidManifest.xml"
 $buildFile = Join-Path $repositoryRoot "app/build.gradle.kts"
+$portalFile = Join-Path $sourceRoot "com/example/portal/LocalPortalServer.kt"
 
 $prohibitedPattern = '\b(bill|bills|billing|invoice|invoices|payment|payments|retention)\b'
 $activeSourceFiles = Get-ChildItem $sourceRoot -Recurse -File -Filter *.kt |
@@ -31,6 +32,20 @@ if ($build -match $networkDependencyPattern) {
     throw "An active network/cloud dependency was found in the application build."
 }
 
+$portal = Get-Content $portalFile -Raw
+$requiredPortalControls = @(
+    'secureTransport: Boolean = true',
+    'HttpOnly; SameSite=Strict',
+    'MessageDigest.isEqual',
+    'session.principal.role !in setOf("ADMIN", "EDITOR")',
+    'LOGIN_BLOCK_MS'
+)
+foreach ($control in $requiredPortalControls) {
+    if (-not $portal.Contains($control)) {
+        throw "The local Wi-Fi workspace is missing a required authentication or transport control: $control"
+    }
+}
+
 $mergedManifest = Join-Path $repositoryRoot "app/build/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml"
 if (Test-Path $mergedManifest) {
     $merged = Get-Content $mergedManifest -Raw
@@ -39,4 +54,4 @@ if (Test-Path $mergedManifest) {
     }
 }
 
-Write-Output "Measurement, rate-book, and authenticated local Wi-Fi portal product boundary verification passed."
+Write-Output "Measurement, rate-book, and authenticated local Wi-Fi workspace product boundary verification passed."

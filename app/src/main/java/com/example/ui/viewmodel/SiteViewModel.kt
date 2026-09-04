@@ -14,9 +14,14 @@ import com.example.domain.MeasurementSheetStatus
 import com.example.ui.navigation.AppScreen
 import com.example.ui.navigation.DirectorySection
 import com.example.ui.navigation.HomeTab
+import com.example.ui.navigation.ProjectSection
 import com.example.portal.LocalPortalServer
+import com.example.cloud.SupabaseConnectionManager
 import com.example.portal.PortalProject
 import com.example.portal.PortalSnapshot
+import com.example.portal.PortalMutation
+import com.example.portal.PortalMutationResult
+import com.example.portal.PortalPrincipal
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -46,6 +51,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     val repository = SiteRepository(database)
     private val localPortalServer = LocalPortalServer(application)
     val localPortalState = localPortalServer.state
+    private val supabaseConnectionManager = SupabaseConnectionManager(application)
+    val supabaseConnectionState = supabaseConnectionManager.state
 
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
@@ -55,6 +62,9 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedDirectorySection = MutableStateFlow(DirectorySection.CLIENTS)
     val selectedDirectorySection: StateFlow<DirectorySection> = _selectedDirectorySection.asStateFlow()
+
+    private val _selectedProjectSection = MutableStateFlow(ProjectSection.OVERVIEW)
+    val selectedProjectSection: StateFlow<ProjectSection> = _selectedProjectSection.asStateFlow()
 
     // Top Level Streams
     val projects: StateFlow<List<ProjectEntity>> = repository.allProjects
@@ -80,6 +90,12 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val companyProfile: StateFlow<CompanyProfileEntity?> = repository.companyProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+    val localUsers: StateFlow<List<LocalUserEntity>> = repository.localUsers
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val portalAuditEvents: StateFlow<List<PortalAuditEventEntity>> = repository.portalAuditEvents
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    private val _portalUserMessage = MutableStateFlow<String?>(null)
+    val portalUserMessage: StateFlow<String?> = _portalUserMessage.asStateFlow()
 
     // Dedicated Measurement Session State
     private val _dedicatedContractorId = MutableStateFlow<Long?>(null)
@@ -301,7 +317,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
 
         // Local sharing never auto-starts. The user must explicitly start a new
-        // PIN-authenticated, read-only session on the current Wi-Fi network.
+        // named-user, role-controlled HTTPS session on the current Wi-Fi network.
     }
 
     fun navigateTo(screen: AppScreen) {
@@ -418,33 +434,64 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startLocalPortal() {
-        localPortalServer.start {
-            val measurementCounts = measurements.value.groupingBy { it.projectId }.eachCount()
-            val selectedId = selectedProjectId.value
-            PortalSnapshot(
-                companyName = companyProfile.value?.practiceName?.ifBlank { "ArchiMan" } ?: "ArchiMan",
-                projects = projects.value.map { project ->
-                    PortalProject(
-                        name = project.name,
-                        code = project.projectCode,
-                        type = project.projectType,
-                        status = project.status,
-                        client = project.client,
-                        location = project.siteLocation,
-                        architect = project.architectInCharge,
-                        measurementCount = measurementCounts[project.id] ?: 0
-                    )
-                },
-                selectedProject = projects.value.firstOrNull { it.id == selectedId }?.name,
-                tasks = projectTasks.value.map { "${it.title} · ${it.status}" },
-                schedules = projectSchedules.value.map { "${it.title} · ${it.status}" },
-                inspections = siteInspections.value.map { "${it.location} · ${it.observation} · ${it.status}" },
-                drawings = projectDrawings.value.map { "${it.drawingNumber} · ${it.title} · ${it.status}" }
-            )
+        if (localUsers.value.none { it.isActive }) { _portalUserMessage.value = "Create at least one active portal user first."; return }
+        localPortalServer.start(
+            provider = {
+                val measurementCounts = measurements.value.groupingBy { it.projectId }.eachCount()
+                val selectedId = selectedProjectId.value
+                PortalSnapshot(
+                    companyName = companyProfile.value?.practiceName?.ifBlank { "ArchiMan" } ?: "ArchiMan",
+                    projects = projects.value.map { project -> PortalProject(project.id, project.name, project.projectCode, project.projectType, project.status, project.client, project.siteLocation, project.architectInCharge, measurementCounts[project.id] ?: 0) },
+                    selectedProject = projects.value.firstOrNull { it.id == selectedId }?.name,
+                    selectedProjectId = selectedId,
+                    tasks = projectTasks.value.map { "${it.title} · ${it.status}" },
+                    schedules = projectSchedules.value.map { "${it.title} · ${it.status}" },
+                    inspections = siteInspections.value.map { "${it.location} · ${it.observation} · ${it.status}" },
+                    drawings = projectDrawings.value.map { "${it.drawingNumber} · ${it.title} · ${it.status}" }
+                )
+            },
+            authenticate = repository::authenticateLocalUser,
+            mutate = ::applyPortalMutation
+        )
+    }
+
+    private suspend fun applyPortalMutation(principal: PortalPrincipal, mutation: PortalMutation): PortalMutationResult {
+        if (projects.value.none { it.id == mutation.projectId }) return PortalMutationResult(false, "Project was not found.")
+        val entityId = when (mutation.action) {
+            "ADD_TASK" -> repository.insertProjectTask(ProjectTaskEntity(projectId = mutation.projectId, title = mutation.title, description = mutation.description))
+            "ADD_APPROVAL" -> repository.insertProjectApproval(ProjectApprovalEntity(projectId = mutation.projectId, approvalType = "CLIENT", title = mutation.title, description = mutation.description))
+            "ADD_BACKLOG" -> repository.insertProjectBacklogItem(ProjectBacklogEntity(projectId = mutation.projectId, title = mutation.title, description = mutation.description))
+            else -> return PortalMutationResult(false, "Unsupported edit.")
         }
+        repository.recordPortalAudit(PortalAuditEventEntity(userId = principal.userId, username = principal.username, action = mutation.action, entityType = mutation.action.removePrefix("ADD_"), entityId = entityId, projectId = mutation.projectId, summary = mutation.title.take(160), sourceAddress = mutation.sourceAddress))
+        return PortalMutationResult(true, "Saved ${mutation.title}.")
     }
 
     fun stopLocalPortal() = localPortalServer.stop()
+
+    fun createLocalUser(username: String, displayName: String, password: String, role: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { repository.createLocalUser(username, displayName, password.toCharArray(), role) }
+                .onSuccess { _portalUserMessage.value = "Portal user created." }
+                .onFailure { _portalUserMessage.value = it.message ?: "Could not create portal user." }
+        }
+    }
+
+    fun setLocalUserActive(user: LocalUserEntity, active: Boolean) {
+        if (user.role == "ADMIN" && user.isActive && !active && localUsers.value.count { it.role == "ADMIN" && it.isActive } <= 1) {
+            _portalUserMessage.value = "At least one active administrator is required."
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) { repository.setLocalUserActive(user, active) }
+    }
+
+    fun clearPortalUserMessage() { _portalUserMessage.value = null }
+
+    fun configureSupabase(projectUrl: String, publishableKey: String) {
+        viewModelScope.launch(Dispatchers.IO) { supabaseConnectionManager.saveAndTest(projectUrl, publishableKey) }
+    }
+
+    fun clearSupabaseConnection() = supabaseConnectionManager.clear()
 
     override fun onCleared() {
         localPortalServer.close()
@@ -655,6 +702,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     // Context selection methods
     fun selectProject(projectId: Long) {
         _selectedProjectId.value = projectId
+        _selectedHomeTab.value = HomeTab.PROJECTS
+        _selectedProjectSection.value = ProjectSection.OVERVIEW
         _selectedFloorId.value = null
         _selectedRoomId.value = null
         _selectedComponentId.value = null
@@ -1328,6 +1377,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setDirectorySection(section: DirectorySection) {
         _selectedDirectorySection.value = section
+    }
+
+    fun setProjectSection(section: ProjectSection) {
+        _selectedProjectSection.value = section
     }
 
     // Client Management

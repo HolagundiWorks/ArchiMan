@@ -1,6 +1,6 @@
 # ArchiMan Application Structure and Hierarchy
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 19, reviewed 4 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 20, reviewed 4 September 2026.
 
 ## User-facing hierarchy
 
@@ -8,15 +8,18 @@
 Portfolio
 ├── Projects
 │   └── Selected Project
-│       ├── Project
-│       │   ├── Overview
-│       │   │   └── Project Profile
-│       │   ├── Brief / Scope
-│       │   ├── Planning
+│       ├── Project Overview
+│       │   └── Project Profile
+│       ├── Work Catalogue
+│       ├── Record Measurement
+│       ├── Measurement Book
+│       └── More
+│           ├── Brief / Scope
+│           ├── Planning
 │       │   │   ├── Tasks
 │       │   │   ├── Schedule
 │       │   │   └── Specification / Selection List
-│       │   └── More
+│           ├── Onboarding / Approvals / Backlog
 │       │       ├── Drawings
 │       │       │   ├── DWG Viewer / Markup / Measurement
 │       │       │   ├── Drawing Register / Revisions
@@ -33,30 +36,23 @@ Portfolio
 │       │       │   ├── Daily Reports
 │       │       │   └── Snags / NCRs
 │       │       └── Handover / As-built Package
-│       ├── PWD SR Work Catalogue
-│       │   └── Work Type → Work Item → Formula
-│       ├── Measurement Book
-│       │   └── Sheet → Member Row → Dimensions / Quantity → Rate Snapshot
-│       └── Record Measurement
-│           └── Contractor → Work Item → Floor → Member Rows
-├── Directory
+├── Contacts
 │   ├── Clients
 │   └── Contractors
 │       └── Contractor → Type → Qualified Items → Versioned Rate Books
-├── Work List
+├── Library
 │   └── PWD SR → Work Type → Work Item → UOM / Formula
-└── More
-    ├── Company / Practice Profile
-    └── Local Wi-Fi Portal / Support Diagnostics
+└── Practice
+    ├── Company / Practice Profile, Logo, Backup and Supabase Connection
+    └── Local Wi-Fi Workspace / User Access / Support Diagnostics
 ```
 
 The bottom navigation represents stable hierarchy levels, not a second copy of project sections:
 
-- At portfolio level: Projects, Directory, Work List and More.
-- Inside a project: Project, Work, Record and M-Book. Portfolio exit uses the project header back action.
-- The project tab row contains four predictable sections: Overview, Brief, Planning and More.
-- Drawings, site reports, project team and rate books are grouped under project More instead of competing for permanent tab space.
-- Company profile and the LAN portal are grouped under portfolio More; measurement exports remain inside M-Book and project-specific outputs remain inside their owning workspaces.
+- At portfolio level: Projects, Contacts, Library and Practice.
+- Inside a project: Project, Work, Record, M-Book and More. Portfolio exit uses the project header back action.
+- There is no competing project tab row. Brief, planning and specialist registers are grouped in one labelled More hierarchy.
+- Company profile, logo/backup, Supabase configuration and the LAN portal are grouped under Practice; measurement exports remain inside M-Book.
 - M-Book and Record remain persistent project actions and are not repeated inside the Overview menu.
 - Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of ArchiMan.
 
@@ -107,7 +103,7 @@ com.example
 
 ## Incremental refactoring sequence
 
-1. Establish navigation hierarchy and remove duplicate project destinations. Completed in schema-18 baseline.
+1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-20 baseline.
 2. Split the monolithic `SiteViewModel` into project, measurement, catalogue and rate-book coordinators.
 3. Split `ProjectWorkspaceScreen` into overview, planning, team and rates feature files.
 4. Split `Entities.kt`, `SiteDaos.kt` and `SiteRepository.kt` by business area without changing the schema.

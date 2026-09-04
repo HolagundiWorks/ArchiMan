@@ -94,8 +94,13 @@ Exit criteria: a complete traceable field-to-approved-M-Book process.
 Status: Started; offline security and encrypted platform backup controls are implemented. Multi-user platform capabilities remain future scope.
 
 - Authentication, organizations, roles, and permissions.
+- [x] Add optional Supabase project configuration using a client-safe publishable key and explicit connection test; no data sync is enabled by configuration alone.
+- [x] Add portable company-profile/logo export and confirmation-based import.
 - [x] Encrypted Android backup/device-transfer allowlist for the database, attachments, and drafts.
-- [x] User-started, PIN-authenticated, read-only portal bound to the phone's current local Wi-Fi address.
+- [x] User-started, named-user HTTPS workspace bound to the phone's current local Wi-Fi address.
+- [x] Admin, Editor and Viewer roles with slow salted password hashing, login throttling, session expiry and CSRF protection.
+- [x] Controlled task, approval and backlog quick entry with an append-only audit log.
+- [ ] Project-specific account assignments and optimistic conflict handling before exposing measurement or document editing in the browser.
 - Optional secure multi-device synchronization and remote review remain future scope.
 - Conflict resolution and device management.
 - [x] Privacy-safe, user-initiated offline support diagnostics export and operations runbook.

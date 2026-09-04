@@ -2,7 +2,7 @@
 
 - Date updated: 4 September 2026
 - Reference device: Samsung A10s, 720 × 1520 px (approximately 360 dp wide)
-- Implementation baseline: ArchiMan schema 19
+- Implementation baseline: ArchiMan schema 20
 
 ## Scope
 
@@ -13,10 +13,12 @@ The audit covers portfolio navigation, Directory, Work List, project Overview/Br
 | Area | Previous problem | Current resolution |
 |---|---|---|
 | Brand | Product surfaces used the older measurement-only identity | App label, mastheads, portal, exports and build identity now use ArchiMan and the full product descriptor |
-| Portfolio navigation | Projects, clients, contractors and tools competed at the same level | Four stable destinations: Projects, Directory, Work List and More |
+| Portfolio navigation | Projects, clients, contractors and tools competed at the same level | Four stable destinations: Projects, Contacts, Library and Practice |
 | Directory | Existing clients and contractors were difficult to discover | Clients and Contractors are explicit sections within one Directory |
-| Project navigation | Project sections and field actions were duplicated | Four persistent actions: Project, Work, Record and M-Book |
-| Project workspace | Too many permanent tabs and repeated shortcuts | Overview, Brief, Planning and More; secondary tools are grouped in labelled menus |
+| Project navigation | Project sections and field actions were duplicated | Five persistent actions: Project, Work, Record, M-Book and More |
+| Project workspace | A top tab row competed with bottom navigation | The top tabs are removed; brief, planning and specialist pages use one More hierarchy and one back path |
+| Project header | Three metric blocks plus actions crowded 360 dp screens | One compact status line and one project-switch action; printing remains in M-Book |
+| New project | Every contractor was preselected and required fields were not enforced consistently | Client, name and site are validated; contractor assignment is optional, collapsed and empty by default; one initial level avoids invented project structure |
 | Project overview | Duplicate Record/M-Book actions obscured project setup | Overview focuses on identity, brief status, planning counts and next project actions |
 | Record launcher | Primary action floated inside excessive empty space | Compact, top-aligned contractor-first workflow |
 | Measurement entry | Dense controls and a custom keypad reduced usable space | Horizontally scrollable spreadsheet-style rows with the system keyboard |
@@ -30,12 +32,12 @@ The audit covers portfolio navigation, Directory, Work List, project Overview/Br
 ## Current navigation contract
 
 ```text
-Portfolio: Projects | Directory | Work List | More
-Project:   Project  | Work      | Record    | M-Book
-Sections:  Overview | Brief     | Planning  | More
+Portfolio: Projects | Contacts | Library | Practice
+Project:   Project  | Work     | Record  | M-Book | More
+More:      Brief → Planning → Controls → Documents/Site → Team/Rate Books
 ```
 
-The project More screen contains Drawings, Site Reports, Project Team and Rate Books. Portfolio More contains Company Profile and Local Wi-Fi Portal. The obsolete portfolio Export Measurement Sheet screen is removed; M-Book owns measurement exports.
+The project More screen contains Brief, Planning, Onboarding & Controls, Drawings, Site Reports, Project Team and Rate Books. Practice contains Company Profile/Connections and the Local Wi-Fi Portal. The obsolete portfolio Export Measurement Sheet screen is removed; M-Book owns measurement exports.
 
 ## Responsive rules
 

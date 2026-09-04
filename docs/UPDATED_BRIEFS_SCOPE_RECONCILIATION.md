@@ -1,7 +1,7 @@
 # Updated briefs: scope reconciliation
 
 Date reviewed: 4 September 2026
-Implementation baseline: ArchiMan schema 19
+Implementation baseline: ArchiMan schema 21
 
 ## How the source files were treated
 

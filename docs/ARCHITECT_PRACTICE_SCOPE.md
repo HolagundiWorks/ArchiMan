@@ -1,12 +1,12 @@
 # ArchiMan Architectural Practice Scope
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 19, reviewed 4 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 4 September 2026.
 
 ## Product boundary
 
 ArchiMan is an offline-first Architectural Consultancy Management App with project administration and measurement-book capabilities. It is not a statutory approval portal, CAD/BIM authoring package, accounting system, billing system, or launcher.
 
-ArchiMan may expose a read-only web portal on the phone's current local Wi-Fi network only after an explicit user action. Each session uses a newly generated PIN, binds to the Wi-Fi address, discloses no data before authentication, performs no cloud upload, and stops on user request or application teardown.
+ArchiMan may expose a write-enabled web workspace on the phone's current local Wi-Fi network only after an explicit user action. Access uses named local accounts with Admin, Editor or Viewer roles. Passwords are salted and deliberately slow-hashed; data is disclosed only after authentication; state-changing requests require CSRF tokens and create append-only audit events. The workspace uses phone-generated HTTPS, binds to the Wi-Fi address, performs no cloud upload, and stops on user request, after one hour, or on application teardown.
 
 Company/practice identity is maintained once at portfolio level. Each project has a separate profile containing its code, type, status, client, location, architect, programme dates and area summary. Controlled exports consume snapshots of these profiles so later edits do not rewrite historical issued documents.
 
@@ -14,7 +14,7 @@ The approval/compliance matrix and jurisdiction-profile proposal is explicitly e
 
 ## Canonical project workspaces
 
-The schema-19 release implements expanded practice/client profiles, project site data, Brief & Scope, planning, measurement, contractor rate books, drawing-register foundations and site reports. Items below that require full DWG rendering, coordination workflows, enterprise identity or synchronisation are approved roadmap scope, not claims about the current APK.
+The schema-21 release implements expanded practice/client profiles, project site data, Brief & Scope, planning, measurement, contractor rate books, drawing-register foundations, site reports and controlled LAN quick entry for tasks, approvals and backlog actions. Items below that require full DWG rendering, coordination workflows, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
 
 1. Drawings
    - DWG viewing, layers, pan, zoom and extents.

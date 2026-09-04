@@ -126,6 +126,35 @@ data class ProjectBacklogEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "local_users", indices = [Index(value = ["username"], unique = true)])
+data class LocalUserEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val username: String,
+    val displayName: String,
+    val passwordHash: String,
+    val passwordSalt: String,
+    val passwordIterations: Int,
+    val role: String = "VIEWER",
+    val isActive: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val lastLoginAt: Long? = null
+)
+
+@Entity(tableName = "portal_audit_events", indices = [Index("userId"), Index("projectId"), Index("occurredAt")])
+data class PortalAuditEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val userId: Long,
+    val username: String,
+    val action: String,
+    val entityType: String,
+    val entityId: Long? = null,
+    val projectId: Long? = null,
+    val summary: String = "",
+    val sourceAddress: String = "",
+    val occurredAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "company_profile")
 data class CompanyProfileEntity(
     @PrimaryKey val id: Int = 1,

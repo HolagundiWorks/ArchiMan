@@ -7,6 +7,8 @@ import com.example.domain.RateBookCalculator
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
+import com.example.portal.PortalPasswordHasher
+import com.example.portal.PortalPrincipal
 
 class SiteRepository(private val database: AppDatabase) {
     val allProjects: Flow<List<ProjectEntity>> = database.projectDao().getAllProjects()
@@ -17,8 +19,29 @@ class SiteRepository(private val database: AppDatabase) {
     val allMeasurements: Flow<List<MeasurementEntity>> = database.measurementDao().getAllMeasurements()
     val allRateBooks: Flow<List<ContractorRateBookEntity>> = database.rateBookDao().getAllBooks()
     val companyProfile: Flow<CompanyProfileEntity?> = database.companyProfileDao().observe()
+    val localUsers: Flow<List<LocalUserEntity>> = database.portalAccessDao().observeUsers()
+    val portalAuditEvents: Flow<List<PortalAuditEventEntity>> = database.portalAccessDao().observeAuditEvents()
 
     suspend fun upsertCompanyProfile(profile: CompanyProfileEntity) = database.companyProfileDao().upsert(profile)
+
+    suspend fun createLocalUser(username: String, displayName: String, password: CharArray, role: String): Long {
+        val normalized = username.trim().lowercase()
+        require(normalized.matches(Regex("[a-z0-9._-]{3,40}"))) { "Username must be 3–40 characters using letters, numbers, dot, dash or underscore." }
+        require(database.portalAccessDao().findUser(normalized) == null) { "That username already exists." }
+        require(role in setOf("ADMIN", "EDITOR", "VIEWER")) { "Unknown portal role." }
+        val digest = PortalPasswordHasher.hash(password)
+        return database.portalAccessDao().insertUser(LocalUserEntity(username = normalized, displayName = displayName.trim().ifBlank { normalized }, passwordHash = digest.hash, passwordSalt = digest.salt, passwordIterations = digest.iterations, role = role))
+    }
+
+    suspend fun authenticateLocalUser(username: String, password: CharArray): PortalPrincipal? {
+        val user = database.portalAccessDao().findUser(username.trim()) ?: return null
+        if (!user.isActive || !PortalPasswordHasher.verify(password, user.passwordHash, user.passwordSalt, user.passwordIterations)) return null
+        database.portalAccessDao().updateUser(user.copy(lastLoginAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis()))
+        return PortalPrincipal(user.id, user.username, user.displayName, user.role)
+    }
+
+    suspend fun setLocalUserActive(user: LocalUserEntity, active: Boolean) = database.portalAccessDao().updateUser(user.copy(isActive = active, updatedAt = System.currentTimeMillis()))
+    suspend fun recordPortalAudit(event: PortalAuditEventEntity) = database.portalAccessDao().insertAuditEvent(event)
     fun getProjectConsultancyProfile(projectId: Long) = database.projectConsultancyDao().observeProfile(projectId)
     fun getProjectScopeItems(projectId: Long) = database.projectConsultancyDao().observeScopeItems(projectId)
     suspend fun upsertProjectConsultancyProfile(profile: ProjectConsultancyProfileEntity) = database.projectConsultancyDao().upsertProfile(profile)
