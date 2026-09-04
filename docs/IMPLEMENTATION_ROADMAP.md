@@ -93,12 +93,13 @@ Status: Started; offline security and encrypted platform backup controls are imp
 
 - Authentication, organizations, roles, and permissions.
 - [x] Encrypted Android backup/device-transfer allowlist for the database, attachments, and drafts.
-- Optional secure synchronization and web review portal.
+- [x] User-started, PIN-authenticated, read-only portal bound to the phone's current local Wi-Fi address.
+- Optional secure multi-device synchronization and remote review remain future scope.
 - Conflict resolution and device management.
 - [x] Privacy-safe, user-initiated offline support diagnostics export and operations runbook.
 - [x] CI build, unit/migration test, product-boundary, merged-manifest, report, and APK artifact gates.
 - Managed distribution and signed release promotion.
-- [x] Remove unused network SDKs and verify the merged APK requests no Internet/network permission.
+- [x] Remove unused network SDKs; allow only the platform permissions required by the approved local Wi-Fi portal.
 
 Exit criteria: multi-user, recoverable, supportable deployment with operational controls.
 
@@ -147,3 +148,16 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 - [ ] Add roles, offline synchronisation, immutable cross-feature audit events and tested backups.
 - [ ] Add external integrations through explicit adapters.
 - [x] Exclude approval/compliance matrices and jurisdiction profiles from AMB.
+
+## Updated consultancy briefs programme
+
+The seven September 2026 source briefs were reconciled in `UPDATED_BRIEFS_SCOPE_RECONCILIATION.md`; one source file is an exact duplicate. WordPress/Supabase deployment instructions and all consultancy billing, tax, invoice and payment features are not part of the current app.
+
+- [x] Add schema-18 project consultancy profile and structured scope-register foundation.
+- [x] Add a mobile Brief & Scope project workspace for consultancy, phase, design stage, review status and core brief capture.
+- [ ] Add versioned, project-type onboarding templates with conditional and repeatable questions.
+- [ ] Generate a reviewed project brief snapshot from onboarding responses.
+- [ ] Add reusable, versioned non-commercial consultancy templates and explicit project import.
+- [ ] Add client/technical decision records and linked project backlogs.
+- [ ] Add design/execution/handover progress and project-specific execution-level status.
+- [ ] Add roles, project assignments and cross-feature immutable audit events before any multi-user editing portal.

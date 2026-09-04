@@ -284,6 +284,36 @@ interface ItemMasterDao {
 }
 
 @Dao
+interface CompanyProfileDao {
+    @Query("SELECT * FROM company_profile WHERE id=1 LIMIT 1")
+    fun observe(): Flow<CompanyProfileEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(profile: CompanyProfileEntity)
+}
+
+@Dao
+interface ProjectConsultancyDao {
+    @Query("SELECT * FROM project_consultancy_profiles WHERE projectId=:projectId LIMIT 1")
+    fun observeProfile(projectId: Long): Flow<ProjectConsultancyProfileEntity?>
+
+    @Query("SELECT * FROM project_scope_items WHERE projectId=:projectId ORDER BY category, orderIndex, createdAt")
+    fun observeScopeItems(projectId: Long): Flow<List<ProjectScopeItemEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertProfile(profile: ProjectConsultancyProfileEntity): Long
+
+    @Insert
+    suspend fun insertScopeItem(item: ProjectScopeItemEntity): Long
+
+    @Update
+    suspend fun updateScopeItem(item: ProjectScopeItemEntity)
+
+    @Delete
+    suspend fun deleteScopeItem(item: ProjectScopeItemEntity)
+}
+
+@Dao
 interface ProjectTaskDao {
     @Query("SELECT * FROM project_tasks WHERE projectId=:projectId ORDER BY status, createdAt DESC")
     fun getByProject(projectId: Long): Flow<List<ProjectTaskEntity>>

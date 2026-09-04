@@ -67,7 +67,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                 AppScreen.DEDICATED_MEASUREMENT -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.ROOM_WORKSPACE -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.MEASUREMENT_BOOK -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
-                AppScreen.CLIENTS, AppScreen.CONTRACTORS -> viewModel.navigateTo(AppScreen.HOME)
+                AppScreen.CLIENTS, AppScreen.CONTRACTORS, AppScreen.COMPANY_PROFILE, AppScreen.LOCAL_PORTAL -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.EXPORT -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.MASTER_DATA -> viewModel.navigateTo(
                     if (selectedProjectId != null) AppScreen.PROJECT_WORKSPACE else AppScreen.HOME
@@ -79,7 +79,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
         }
     }
 
-    val isHomeLevel = currentScreen == AppScreen.HOME || currentScreen == AppScreen.CLIENTS || currentScreen == AppScreen.CONTRACTORS || currentScreen == AppScreen.PROJECTS
+    val isHomeLevel = currentScreen == AppScreen.HOME || currentScreen == AppScreen.CLIENTS || currentScreen == AppScreen.CONTRACTORS || currentScreen == AppScreen.PROJECTS || currentScreen == AppScreen.COMPANY_PROFILE || currentScreen == AppScreen.LOCAL_PORTAL
     val isInsideProject = !isHomeLevel
 
     Scaffold(
@@ -313,6 +313,12 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     AppScreen.HOME, AppScreen.PROJECTS -> HomeScreen(viewModel = viewModel, onNavigate = { viewModel.navigateTo(it) })
                     AppScreen.CLIENTS -> ClientsScreen(viewModel = viewModel)
                     AppScreen.CONTRACTORS -> ContractorsScreen(viewModel = viewModel)
+                    AppScreen.COMPANY_PROFILE -> CompanyProfileScreen(
+                        viewModel = viewModel,
+                        onBack = { viewModel.navigateTo(AppScreen.HOME) },
+                        onOpenPortal = { viewModel.navigateTo(AppScreen.LOCAL_PORTAL) }
+                    )
+                    AppScreen.LOCAL_PORTAL -> LocalPortalScreen(viewModel = viewModel, onBack = { viewModel.navigateTo(AppScreen.HOME) })
                     AppScreen.DEDICATED_MEASUREMENT -> DedicatedMeasurementScreen(
                         viewModel = viewModel,
                         onNavigateBack = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) },

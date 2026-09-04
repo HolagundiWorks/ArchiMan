@@ -16,6 +16,15 @@ class SiteRepository(private val database: AppDatabase) {
     val allItems: Flow<List<ItemMasterEntity>> = database.itemMasterDao().getAllItems()
     val allMeasurements: Flow<List<MeasurementEntity>> = database.measurementDao().getAllMeasurements()
     val allRateBooks: Flow<List<ContractorRateBookEntity>> = database.rateBookDao().getAllBooks()
+    val companyProfile: Flow<CompanyProfileEntity?> = database.companyProfileDao().observe()
+
+    suspend fun upsertCompanyProfile(profile: CompanyProfileEntity) = database.companyProfileDao().upsert(profile)
+    fun getProjectConsultancyProfile(projectId: Long) = database.projectConsultancyDao().observeProfile(projectId)
+    fun getProjectScopeItems(projectId: Long) = database.projectConsultancyDao().observeScopeItems(projectId)
+    suspend fun upsertProjectConsultancyProfile(profile: ProjectConsultancyProfileEntity) = database.projectConsultancyDao().upsertProfile(profile)
+    suspend fun insertProjectScopeItem(item: ProjectScopeItemEntity) = database.projectConsultancyDao().insertScopeItem(item)
+    suspend fun updateProjectScopeItem(item: ProjectScopeItemEntity) = database.projectConsultancyDao().updateScopeItem(item)
+    suspend fun deleteProjectScopeItem(item: ProjectScopeItemEntity) = database.projectConsultancyDao().deleteScopeItem(item)
 
     fun getRateBookItems(rateBookId: Long) = database.rateBookDao().getItems(rateBookId)
     fun getProjectRateBookAssignments(projectId: Long) = database.rateBookDao().getAssignments(projectId)

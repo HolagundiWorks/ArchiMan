@@ -24,7 +24,65 @@ data class ProjectEntity(
     val client: String = "",
     val clientId: Long = 0L,
     val siteLocation: String = "",
+    val projectCode: String = "",
+    val projectType: String = "Residential",
+    val status: String = "ACTIVE",
+    val description: String = "",
+    val architectInCharge: String = "",
+    val startDate: Long? = null,
+    val targetCompletionDate: Long? = null,
+    val plotArea: Double? = null,
+    val builtUpArea: Double? = null,
+    val areaUnit: String = "m²",
     val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "project_consultancy_profiles", indices = [Index(value = ["projectId"], unique = true)])
+data class ProjectConsultancyProfileEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val projectId: Long,
+    val consultancyTypes: String = "Architectural",
+    val currentPhase: String = "DESIGN",
+    val currentDesignStage: String = "CONCEPT",
+    val briefStatus: String = "NOT_STARTED",
+    val clientObjectives: String = "",
+    val projectRequirements: String = "",
+    val designPreferences: String = "",
+    val siteConstraints: String = "",
+    val clarifications: String = "",
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "project_scope_items", indices = [Index("projectId"), Index(value = ["projectId", "category"])])
+data class ProjectScopeItemEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val projectId: Long,
+    val category: String = "SCOPE",
+    val title: String,
+    val details: String = "",
+    val status: String = "INCLUDED",
+    val orderIndex: Int = 0,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "company_profile")
+data class CompanyProfileEntity(
+    @PrimaryKey val id: Int = 1,
+    val practiceName: String = "",
+    val legalName: String = "",
+    val address: String = "",
+    val city: String = "",
+    val state: String = "",
+    val pinCode: String = "",
+    val phone: String = "",
+    val email: String = "",
+    val website: String = "",
+    val gstin: String = "",
+    val coaRegistrationNumber: String = "",
+    val logoUri: String? = null,
+    val updatedAt: Long = System.currentTimeMillis()
 )
 
 @Entity(tableName = "floors")

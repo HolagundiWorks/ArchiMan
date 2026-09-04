@@ -4,10 +4,12 @@
 
 ```text
 Portfolio
+├── Company / Practice Profile
 ├── Projects
 │   └── Selected Project
 │       ├── Project Hub
 │       │   ├── Overview
+│       │   │   └── Project Profile
 │       │   ├── Drawings
 │       │   │   ├── DWG Viewer / Markup / Measurement
 │       │   │   ├── Drawing Register / Revisions

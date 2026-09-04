@@ -309,7 +309,7 @@ A release is not production-ready unless it has:
 ## 16. Definition of done for measurement and rate-book scope
 
 - No bill, invoice, retention, payment, or accounting UI.
-- No active billing routes or LAN endpoints.
+- No billing routes. The only LAN endpoints are the authenticated read-only portfolio portal and health check, enabled by explicit user action.
 - New measurements snapshot the explicitly assigned contractor rate-book rate and derived amount.
 - Measurement exports reconcile quantities, rates, and snapshot amounts.
 - Contractor setup supports multiple named and versioned rate books sourced from the PWD master list.

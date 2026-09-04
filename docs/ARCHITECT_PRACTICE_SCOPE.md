@@ -4,6 +4,10 @@
 
 AMB is an offline-first architectural project administration and measurement application. It is not a statutory approval portal, CAD/BIM authoring package, accounting system, billing system, or launcher.
 
+AMB may expose a read-only web portal on the phone's current local Wi-Fi network only after an explicit user action. Each session uses a newly generated PIN, binds to the Wi-Fi address, discloses no data before authentication, performs no cloud upload, and stops on user request or application teardown.
+
+Company/practice identity is maintained once at portfolio level. Each project has a separate profile containing its code, type, status, client, location, architect, programme dates and area summary. Controlled exports consume snapshots of these profiles so later edits do not rewrite historical issued documents.
+
 The approval/compliance matrix and jurisdiction-profile proposal is explicitly excluded. Approval portals and local rules vary by authority and change independently of AMB.
 
 ## Canonical project workspaces

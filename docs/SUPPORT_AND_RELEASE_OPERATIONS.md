@@ -2,7 +2,7 @@
 
 ## Scope
 
-AMB is an offline Measurement Book. Support and release processes must preserve that boundary: no rates, billing, commercial totals, background network access, or silent data upload.
+AMB is offline-first. Support and release processes must preserve that boundary: no billing, background cloud access, internet APIs, or silent data upload. A user-started, PIN-authenticated, read-only portal on the current local Wi-Fi network is permitted.
 
 ## Privacy-safe support diagnostics
 
@@ -27,7 +27,7 @@ From the repository root, run:
 ./scripts/verify-product-boundary.ps1
 ```
 
-The first boundary check rejects active commercial terminology, source network permissions, enabled network/cloud dependencies, or cleartext traffic. The second invocation also checks the merged debug manifest produced by the build.
+The first boundary check rejects active billing terminology, unapproved network/cloud dependencies, or outbound cleartext configuration. It verifies the two permissions required by the approved local Wi-Fi portal. The second invocation also checks the merged debug manifest produced by the build.
 
 The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`.
 
@@ -48,4 +48,4 @@ CI establishes source and build quality; it does not replace USB migration accep
 
 ## Deferred platform capabilities
 
-Authentication, organizations, RBAC, managed synchronization, fleet management, and a web review portal require a separately approved threat model and deployment architecture. They must not be introduced as incidental dependencies into the offline field application.
+Organizations, RBAC, managed synchronization, fleet management, remote/cloud access, and writable web workflows require a separately approved threat model and deployment architecture. The approved local portal remains user-started, same-Wi-Fi, PIN-authenticated and read-only.

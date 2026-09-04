@@ -18,8 +18,8 @@ if ($prohibitedMatches) {
 }
 
 $manifest = Get-Content $manifestPath -Raw
-if ($manifest -match 'android\.permission\.(INTERNET|ACCESS_NETWORK_STATE)') {
-    throw "The source manifest requests a network permission."
+if ($manifest -notmatch 'android\.permission\.INTERNET' -or $manifest -notmatch 'android\.permission\.ACCESS_NETWORK_STATE') {
+    throw "The approved local Wi-Fi portal requires INTERNET and ACCESS_NETWORK_STATE permissions."
 }
 if ($manifest -notmatch 'android:usesCleartextTraffic="false"') {
     throw "Cleartext traffic must remain disabled."
@@ -34,9 +34,9 @@ if ($build -match $networkDependencyPattern) {
 $mergedManifest = Join-Path $repositoryRoot "app/build/intermediates/merged_manifest/debug/processDebugMainManifest/AndroidManifest.xml"
 if (Test-Path $mergedManifest) {
     $merged = Get-Content $mergedManifest -Raw
-    if ($merged -match 'android\.permission\.(INTERNET|ACCESS_NETWORK_STATE)') {
-        throw "The merged debug manifest requests a network permission."
+    if ($merged -notmatch 'android\.permission\.INTERNET' -or $merged -notmatch 'android\.permission\.ACCESS_NETWORK_STATE') {
+        throw "The merged manifest is missing an approved local Wi-Fi portal permission."
     }
 }
 
-Write-Output "Measurement and rate-book product boundary verification passed."
+Write-Output "Measurement, rate-book, and authenticated local Wi-Fi portal product boundary verification passed."

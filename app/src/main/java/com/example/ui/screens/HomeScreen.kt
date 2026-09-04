@@ -139,6 +139,20 @@ fun ProjectsTabContent(
                     // Quick Actions
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         IconButton(
+                            onClick = { onNavigate(AppScreen.COMPANY_PROFILE) },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
+                                .testTag("btn_company_profile")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Domain,
+                                contentDescription = "Company profile",
+                                tint = CarbonGray80,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        IconButton(
                             onClick = { viewModel.navigateTo(AppScreen.MASTER_DATA) },
                             modifier = Modifier
                                 .size(36.dp)

@@ -16,12 +16,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-const val DATABASE_SCHEMA_VERSION = 16
+const val DATABASE_SCHEMA_VERSION = 18
 
 @Database(
     entities = [
         ClientEntity::class,
         ProjectEntity::class,
+        ProjectConsultancyProfileEntity::class,
+        ProjectScopeItemEntity::class,
+        CompanyProfileEntity::class,
         ProjectTaskEntity::class,
         ProjectSelectionItemEntity::class,
         ProjectScheduleEntity::class,
@@ -54,6 +57,8 @@ const val DATABASE_SCHEMA_VERSION = 16
 abstract class AppDatabase : RoomDatabase() {
     abstract fun clientDao(): ClientDao
     abstract fun projectDao(): ProjectDao
+    abstract fun companyProfileDao(): CompanyProfileDao
+    abstract fun projectConsultancyDao(): ProjectConsultancyDao
     abstract fun projectTaskDao(): ProjectTaskDao
     abstract fun projectSelectionItemDao(): ProjectSelectionItemDao
     abstract fun projectScheduleDao(): ProjectScheduleDao
@@ -83,7 +88,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -351,6 +356,32 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX index_drawing_markups_drawingRevisionId ON drawing_markups(drawingRevisionId)")
                 db.execSQL("CREATE INDEX index_drawing_markups_createdAt ON drawing_markups(createdAt)")
                 installDocumentControlTriggers(db)
+            }
+        }
+
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE projects ADD COLUMN projectCode TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE projects ADD COLUMN projectType TEXT NOT NULL DEFAULT 'Residential'")
+                db.execSQL("ALTER TABLE projects ADD COLUMN status TEXT NOT NULL DEFAULT 'ACTIVE'")
+                db.execSQL("ALTER TABLE projects ADD COLUMN description TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE projects ADD COLUMN architectInCharge TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE projects ADD COLUMN startDate INTEGER")
+                db.execSQL("ALTER TABLE projects ADD COLUMN targetCompletionDate INTEGER")
+                db.execSQL("ALTER TABLE projects ADD COLUMN plotArea REAL")
+                db.execSQL("ALTER TABLE projects ADD COLUMN builtUpArea REAL")
+                db.execSQL("ALTER TABLE projects ADD COLUMN areaUnit TEXT NOT NULL DEFAULT 'm²'")
+                db.execSQL("CREATE TABLE company_profile (`id` INTEGER NOT NULL, `practiceName` TEXT NOT NULL, `legalName` TEXT NOT NULL, `address` TEXT NOT NULL, `city` TEXT NOT NULL, `state` TEXT NOT NULL, `pinCode` TEXT NOT NULL, `phone` TEXT NOT NULL, `email` TEXT NOT NULL, `website` TEXT NOT NULL, `gstin` TEXT NOT NULL, `coaRegistrationNumber` TEXT NOT NULL, `logoUri` TEXT, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))")
+            }
+        }
+
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE project_consultancy_profiles (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `consultancyTypes` TEXT NOT NULL, `currentPhase` TEXT NOT NULL, `currentDesignStage` TEXT NOT NULL, `briefStatus` TEXT NOT NULL, `clientObjectives` TEXT NOT NULL, `projectRequirements` TEXT NOT NULL, `designPreferences` TEXT NOT NULL, `siteConstraints` TEXT NOT NULL, `clarifications` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE UNIQUE INDEX index_project_consultancy_profiles_projectId ON project_consultancy_profiles(projectId)")
+                db.execSQL("CREATE TABLE project_scope_items (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `category` TEXT NOT NULL, `title` TEXT NOT NULL, `details` TEXT NOT NULL, `status` TEXT NOT NULL, `orderIndex` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_project_scope_items_projectId ON project_scope_items(projectId)")
+                db.execSQL("CREATE INDEX index_project_scope_items_projectId_category ON project_scope_items(projectId,category)")
             }
         }
 

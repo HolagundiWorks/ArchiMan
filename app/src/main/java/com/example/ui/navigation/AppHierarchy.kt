@@ -3,6 +3,8 @@ package com.example.ui.navigation
 /** Stable destinations in the application hierarchy. */
 enum class AppScreen(val title: String) {
     HOME("Portfolio"),
+    COMPANY_PROFILE("Company Profile"),
+    LOCAL_PORTAL("Local Wi-Fi Portal"),
     PROJECT_WORKSPACE("Project Hub"),
     DEDICATED_MEASUREMENT("Record Measurement"),
     ROOM_WORKSPACE("Room Components"),

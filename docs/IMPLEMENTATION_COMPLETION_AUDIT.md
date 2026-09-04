@@ -9,7 +9,7 @@ Current database target: schema 10
 |---|---|---|
 | No rates, amounts, bills, invoices, or payments in active product | Commercial routes/entities/APIs removed; source audit finds commercial fields only in the intentional 4→5 removal migration and its preservation test | Pass |
 | Quantity-only measurement formulas | `QuantityCalculator` is shared by canonical entry and covered by formula tests | Pass |
-| Offline operation | LAN server removed, cleartext disabled, Firebase/Retrofit/OkHttp removed, and merged APK manifest contains no Internet/network permission | Pass |
+| Offline-first operation | Cloud SDKs remain removed; the only network service is an explicit, PIN-authenticated, read-only server bound to local Wi-Fi | Pass |
 
 ## Canonical field workflow
 
@@ -43,7 +43,7 @@ Current database target: schema 10
 | Encrypted platform backup | Android backup allowlist requires client-side encryption and includes DB, attachments, and drafts | Pass for supported Android backup/device-transfer channels |
 | Backup/rollback runbook | `MIGRATION_BACKUP_AND_ROLLBACK.md` | Pass |
 | Automated build/test gate | Current `testDebugUnitTest` and `assembleDebug` pass | Pass |
-| Product-boundary regression gate | Local/CI script rejects commercial active source, network permissions/dependencies, and cleartext traffic | Pass |
+| Product-boundary regression gate | Local/CI script rejects billing features, network SDKs and outbound cleartext configuration while verifying the approved LAN permissions | Pass |
 | Privacy-safe support diagnostics | User-initiated metadata-only JSON report with explicit content exclusions and regression tests | Pass |
 | CI artifacts | Workflow retains unit-test reports and the successfully built debug APK | Pass (workflow defined; remote execution depends on repository CI) |
 | Stable USB deployment | APK installed/upgraded successfully, activity resumed, schema 10 verified, restored data retained, and fatal/Room/SQLite log audit passed | Pass |

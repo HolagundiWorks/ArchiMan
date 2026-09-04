@@ -13,6 +13,9 @@ import com.example.domain.CatalogDocumentParser
 import com.example.domain.MeasurementSheetStatus
 import com.example.ui.navigation.AppScreen
 import com.example.ui.navigation.HomeTab
+import com.example.portal.LocalPortalServer
+import com.example.portal.PortalProject
+import com.example.portal.PortalSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -40,6 +43,8 @@ data class QuickEntryFormState(
 class SiteViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     val repository = SiteRepository(database)
+    private val localPortalServer = LocalPortalServer(application)
+    val localPortalState = localPortalServer.state
 
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
@@ -69,6 +74,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val rateBooks: StateFlow<List<ContractorRateBookEntity>> = repository.allRateBooks
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val companyProfile: StateFlow<CompanyProfileEntity?> = repository.companyProfile
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     // Dedicated Measurement Session State
     private val _dedicatedContractorId = MutableStateFlow<Long?>(null)
@@ -130,6 +137,14 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     val projectRateBookAssignments: StateFlow<List<ProjectRateBookAssignmentEntity>> = selectedProjectId
         .flatMapLatest { it?.let(repository::getProjectRateBookAssignments) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectConsultancyProfile: StateFlow<ProjectConsultancyProfileEntity?> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectConsultancyProfile) ?: flowOf(null) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val projectScopeItems: StateFlow<List<ProjectScopeItemEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectScopeItems) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val projectContractorRefs: StateFlow<List<ProjectContractorCrossRef>> = selectedProjectId
@@ -269,12 +284,98 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // LAN sharing is intentionally not started. The product is an offline,
-        // quantity-only Measurement Book and must not expose unauthenticated data.
+        // Local sharing never auto-starts. The user must explicitly start a new
+        // PIN-authenticated, read-only session on the current Wi-Fi network.
     }
 
     fun navigateTo(screen: AppScreen) {
         _currentScreen.value = screen
+    }
+
+    fun saveCompanyProfile(profile: CompanyProfileEntity) {
+        if (profile.practiceName.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.upsertCompanyProfile(profile.copy(id = 1, updatedAt = System.currentTimeMillis()))
+        }
+    }
+
+    fun updateProjectProfile(project: ProjectEntity) {
+        if (project.name.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) { repository.updateProject(project) }
+    }
+
+    fun saveProjectConsultancyProfile(profile: ProjectConsultancyProfileEntity) {
+        val projectId = selectedProjectId.value ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.upsertProjectConsultancyProfile(
+                profile.copy(projectId = projectId, updatedAt = System.currentTimeMillis())
+            )
+        }
+    }
+
+    fun addProjectScopeItem(category: String, title: String, details: String, status: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertProjectScopeItem(
+                ProjectScopeItemEntity(
+                    projectId = projectId,
+                    category = category,
+                    title = title.trim(),
+                    details = details.trim(),
+                    status = status
+                )
+            )
+        }
+    }
+
+    fun toggleProjectScopeItem(item: ProjectScopeItemEntity) {
+        val nextStatus = if (item.status == "COMPLETE") {
+            if (item.category == "EXCLUSION") "EXCLUDED" else "INCLUDED"
+        } else {
+            "COMPLETE"
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateProjectScopeItem(item.copy(status = nextStatus))
+        }
+    }
+
+    fun deleteProjectScopeItem(item: ProjectScopeItemEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectScopeItem(item) }
+    }
+
+    fun startLocalPortal() {
+        localPortalServer.start {
+            val measurementCounts = measurements.value.groupingBy { it.projectId }.eachCount()
+            val selectedId = selectedProjectId.value
+            PortalSnapshot(
+                companyName = companyProfile.value?.practiceName?.ifBlank { "AMB" } ?: "AMB",
+                projects = projects.value.map { project ->
+                    PortalProject(
+                        name = project.name,
+                        code = project.projectCode,
+                        type = project.projectType,
+                        status = project.status,
+                        client = project.client,
+                        location = project.siteLocation,
+                        architect = project.architectInCharge,
+                        measurementCount = measurementCounts[project.id] ?: 0
+                    )
+                },
+                selectedProject = projects.value.firstOrNull { it.id == selectedId }?.name,
+                tasks = projectTasks.value.map { "${it.title} · ${it.status}" },
+                schedules = projectSchedules.value.map { "${it.title} · ${it.status}" },
+                inspections = siteInspections.value.map { "${it.location} · ${it.observation} · ${it.status}" },
+                drawings = projectDrawings.value.map { "${it.drawingNumber} · ${it.title} · ${it.status}" }
+            )
+        }
+    }
+
+    fun stopLocalPortal() = localPortalServer.stop()
+
+    override fun onCleared() {
+        localPortalServer.close()
+        super.onCleared()
     }
 
     fun addProjectTask(title: String, description: String = "") {

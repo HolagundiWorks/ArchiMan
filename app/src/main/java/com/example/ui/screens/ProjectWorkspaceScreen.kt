@@ -47,6 +47,7 @@ import java.util.*
 
 enum class ProjectHubSection(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     OVERVIEW("Overview", Icons.Default.Dashboard),
+    BRIEF_SCOPE("Brief & Scope", Icons.Default.FactCheck),
     DRAWINGS("Drawings", Icons.Default.Architecture),
     PLANNING("Planning", Icons.Default.EventNote),
     REPORTS("Reports", Icons.Default.Assignment),
@@ -78,6 +79,8 @@ fun ProjectWorkspaceScreen(
     val drawingTransmittals by viewModel.drawingTransmittals.collectAsStateWithLifecycle()
     val rateBooks by viewModel.rateBooks.collectAsStateWithLifecycle()
     val rateBookAssignments by viewModel.projectRateBookAssignments.collectAsStateWithLifecycle()
+    val consultancyProfile by viewModel.projectConsultancyProfile.collectAsStateWithLifecycle()
+    val scopeItems by viewModel.projectScopeItems.collectAsStateWithLifecycle()
 
     val currentProject = projects.firstOrNull { it.id == selectedProjectId } ?: projects.firstOrNull()
     val projectMeasurements = remember(allMeasurements, currentProject) {
@@ -92,6 +95,7 @@ fun ProjectWorkspaceScreen(
 
     var selectedSection by remember { mutableStateOf(ProjectHubSection.OVERVIEW) }
     var showSwitchProjectDialog by remember { mutableStateOf(false) }
+    var showProjectProfileDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         containerColor = CarbonWhite,
@@ -295,12 +299,19 @@ fun ProjectWorkspaceScreen(
                     contractorCount = projectContractors.size,
                     rateBookCount = rateBookAssignments.size,
                     measurementCount = projectMeasurements.size,
+                    onEditProfile = { showProjectProfileDialog = true },
                     onOpenPlanning = { selectedSection = ProjectHubSection.PLANNING },
                     onOpenReports = { selectedSection = ProjectHubSection.REPORTS },
                     onOpenTeam = { selectedSection = ProjectHubSection.CONTRACTORS },
                     onOpenRates = { selectedSection = ProjectHubSection.RATE_BOOKS },
                     onOpenMBook = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) },
                     onRecord = { viewModel.openCanonicalMeasurement() }
+                )
+                ProjectHubSection.BRIEF_SCOPE -> ProjectBriefScopeScreen(
+                    viewModel = viewModel,
+                    project = currentProject,
+                    savedProfile = consultancyProfile,
+                    scopeItems = scopeItems
                 )
                 ProjectHubSection.DRAWINGS -> DrawingRegisterScreen(viewModel, projectDrawings, drawingRevisions, drawingTransmittals)
                 ProjectHubSection.PLANNING -> ProjectPlanningScreen(viewModel, projectTasks, schedules, selectionItems, currentProject)
@@ -396,6 +407,203 @@ fun ProjectWorkspaceScreen(
             }
         }
     }
+
+    if (showProjectProfileDialog && currentProject != null) {
+        ProjectProfileDialog(
+            project = currentProject,
+            onDismiss = { showProjectProfileDialog = false },
+            onSave = {
+                viewModel.updateProjectProfile(it)
+                showProjectProfileDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+private fun ProjectBriefScopeScreen(
+    viewModel: SiteViewModel,
+    project: ProjectEntity?,
+    savedProfile: ProjectConsultancyProfileEntity?,
+    scopeItems: List<ProjectScopeItemEntity>
+) {
+    if (project == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Select a project first") }
+        return
+    }
+
+    val consultancyOptions = listOf("Architectural", "Landscaping", "Part consultancy", "Miscellaneous")
+    val phaseOptions = listOf("DESIGN", "EXECUTION", "HANDOVER")
+    val designStageOptions = listOf("CONCEPT", "PRELIMINARY", "DESIGN_DEVELOPMENT", "APPROVAL_DRAWINGS", "WORKING_DRAWINGS", "DETAILED_DRAWINGS", "ISSUED_FOR_CONSTRUCTION")
+    val briefStatusOptions = listOf("NOT_STARTED", "IN_PROGRESS", "UNDER_REVIEW", "CLARIFICATION_REQUIRED", "APPROVED")
+
+    var selectedConsultancies by remember(project.id, savedProfile) {
+        mutableStateOf(savedProfile?.consultancyTypes?.split(',')?.map(String::trim)?.filter(String::isNotBlank)?.toSet() ?: setOf("Architectural"))
+    }
+    var phase by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.currentPhase ?: "DESIGN") }
+    var designStage by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.currentDesignStage ?: "CONCEPT") }
+    var briefStatus by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.briefStatus ?: "NOT_STARTED") }
+    var objectives by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.clientObjectives.orEmpty()) }
+    var requirements by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.projectRequirements.orEmpty()) }
+    var preferences by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.designPreferences.orEmpty()) }
+    var constraints by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.siteConstraints.orEmpty()) }
+    var clarifications by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.clarifications.orEmpty()) }
+    var showAddScope by remember { mutableStateOf(false) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Project brief", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Capture the agreed design intent before drawings and site work proceed.", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+        }
+        item {
+            Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(4.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Consultancy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        consultancyOptions.forEach { option ->
+                            FilterChip(
+                                selected = option in selectedConsultancies,
+                                onClick = {
+                                    selectedConsultancies = if (option in selectedConsultancies) selectedConsultancies - option else selectedConsultancies + option
+                                },
+                                label = { Text(option) }
+                            )
+                        }
+                    }
+                    BriefDropdown("Current phase", phase, phaseOptions) { phase = it }
+                    if (phase == "DESIGN") BriefDropdown("Design stage", designStage, designStageOptions) { designStage = it }
+                    BriefDropdown("Brief status", briefStatus, briefStatusOptions) { briefStatus = it }
+                }
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(objectives, { objectives = it }, label = { Text("Client objectives") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(requirements, { requirements = it }, label = { Text("Spaces and project requirements") }, modifier = Modifier.fillMaxWidth(), minLines = 3)
+                OutlinedTextField(preferences, { preferences = it }, label = { Text("Design preferences") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(constraints, { constraints = it }, label = { Text("Known site / programme constraints") }, supportingText = { Text("Record known information only; this is not an automatic compliance assessment.") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedTextField(clarifications, { clarifications = it }, label = { Text("Open clarifications") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                Button(
+                    enabled = selectedConsultancies.isNotEmpty(),
+                    onClick = {
+                        viewModel.saveProjectConsultancyProfile(
+                            ProjectConsultancyProfileEntity(
+                                id = savedProfile?.id ?: 0,
+                                projectId = project.id,
+                                consultancyTypes = selectedConsultancies.sorted().joinToString(", "),
+                                currentPhase = phase,
+                                currentDesignStage = designStage,
+                                briefStatus = briefStatus,
+                                clientObjectives = objectives.trim(),
+                                projectRequirements = requirements.trim(),
+                                designPreferences = preferences.trim(),
+                                siteConstraints = constraints.trim(),
+                                clarifications = clarifications.trim()
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Save project brief") }
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Scope register", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("Scope, deliverables, exclusions and responsibilities", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+                }
+                FilledTonalButton(onClick = { showAddScope = true }) {
+                    Icon(Icons.Default.Add, null)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Add")
+                }
+            }
+        }
+        if (scopeItems.isEmpty()) {
+            item {
+                Surface(color = CarbonGray10, modifier = Modifier.fillMaxWidth()) {
+                    Text("No scope items yet. Add the agreed inclusions before work begins.", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        } else {
+            items(scopeItems, key = { it.id }) { item ->
+                Surface(border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(4.dp), color = CarbonWhite) {
+                    Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(checked = item.status == "COMPLETE", onCheckedChange = { viewModel.toggleProjectScopeItem(item) })
+                        Column(Modifier.weight(1f)) {
+                            Text(item.category.replace('_', ' '), style = MaterialTheme.typography.labelSmall, color = CarbonBlue60)
+                            Text(item.title, fontWeight = FontWeight.SemiBold)
+                            if (item.details.isNotBlank()) Text(item.details, style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+                            Text(item.status.replace('_', ' '), style = MaterialTheme.typography.labelSmall, color = CarbonGray60)
+                        }
+                        IconButton(onClick = { viewModel.deleteProjectScopeItem(item) }) { Icon(Icons.Default.DeleteOutline, "Delete scope item") }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showAddScope) {
+        AddScopeItemDialog(
+            onDismiss = { showAddScope = false },
+            onAdd = { category, title, details, status ->
+                viewModel.addProjectScopeItem(category, title, details, status)
+                showAddScope = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BriefDropdown(label: String, value: String, options: List<String>, onValueChange: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+        OutlinedTextField(
+            value = value.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) },
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) }) },
+                    onClick = { onValueChange(option); expanded = false }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddScopeItemDialog(onDismiss: () -> Unit, onAdd: (String, String, String, String) -> Unit) {
+    val categories = listOf("SCOPE", "DELIVERABLE", "EXCLUSION", "RESPONSIBILITY")
+    var category by remember { mutableStateOf("SCOPE") }
+    var title by remember { mutableStateOf("") }
+    var details by remember { mutableStateOf("") }
+    val initialStatus = if (category == "EXCLUSION") "EXCLUDED" else "INCLUDED"
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add scope item") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                BriefDropdown("Category", category, categories) { category = it }
+                OutlinedTextField(title, { title = it }, label = { Text("Title*") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(details, { details = it }, label = { Text("Details") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            }
+        },
+        confirmButton = { Button(enabled = title.isNotBlank(), onClick = { onAdd(category, title, details, initialStatus) }) { Text("Add") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
@@ -408,6 +616,7 @@ private fun ProjectHubOverview(
     contractorCount: Int,
     rateBookCount: Int,
     measurementCount: Int,
+    onEditProfile: () -> Unit,
     onOpenPlanning: () -> Unit,
     onOpenReports: () -> Unit,
     onOpenTeam: () -> Unit,
@@ -425,6 +634,32 @@ private fun ProjectHubOverview(
                 Text("PROJECT HUB", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60, letterSpacing = 0.7.sp)
                 Text(project?.name ?: "Project overview", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
                 Text("Plan the work, organise the team and control the applicable rates.", fontSize = 12.sp, color = CarbonGray70)
+            }
+        }
+        item {
+            Surface(
+                color = CarbonGray10,
+                border = BorderStroke(1.dp, CarbonGray20),
+                shape = RoundedCornerShape(2.dp),
+                modifier = Modifier.fillMaxWidth().clickable(onClick = onEditProfile)
+            ) {
+                Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Info, contentDescription = null, tint = CarbonBlue60)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Project profile", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text(
+                            listOfNotNull(
+                                project?.projectCode?.takeIf(String::isNotBlank),
+                                project?.projectType?.takeIf(String::isNotBlank),
+                                project?.status?.takeIf(String::isNotBlank)
+                            ).joinToString(" • ").ifBlank { "Add project code, type, dates and architect" },
+                            color = CarbonGray70,
+                            fontSize = 11.sp
+                        )
+                    }
+                    Icon(Icons.Default.Edit, contentDescription = "Edit project profile", tint = CarbonGray60)
+                }
             }
         }
         item {
