@@ -336,7 +336,7 @@ fun ContractorCard(
                 }
             }
 
-            Divider(color = CarbonGray20, thickness = 1.dp)
+            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
             // Address & Contact No
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -381,7 +381,7 @@ fun ContractorCard(
                 }
             }
 
-            Divider(color = CarbonGray20, thickness = 1.dp)
+            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
             // Qualified Items Section
             Row(
@@ -536,7 +536,7 @@ fun AddContractorDialog(
                             Icon(Icons.Default.Close, contentDescription = "Close", tint = CarbonGray70)
                         }
                     }
-                    Divider(color = CarbonGray20, thickness = 1.dp, modifier = Modifier.padding(top = 8.dp))
+                    HorizontalDivider(color = CarbonGray20, thickness = 1.dp, modifier = Modifier.padding(top = 8.dp))
                 }
 
                 if (errorMessage != null) {
@@ -827,7 +827,7 @@ fun EditContractorDialog(
                     fontWeight = FontWeight.Bold,
                     color = CarbonGray100
                 )
-                Divider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
                 CarbonInputField(
                     label = "CONTRACTOR NAME",
@@ -928,7 +928,7 @@ fun AddQualifiedItemDialog(
                     color = CarbonBlue60,
                     fontWeight = FontWeight.Medium
                 )
-                Divider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
                 Text("Select from Standard Library:", fontSize = 11.sp, color = CarbonGray70, fontWeight = FontWeight.SemiBold)
                 LazyRow(

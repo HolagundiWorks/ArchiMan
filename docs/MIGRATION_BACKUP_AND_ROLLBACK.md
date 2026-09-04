@@ -1,5 +1,7 @@
 # ArchiMan Database Migration Backup and Rollback Runbook
 
+> Current database target: Room schema 19. Package ID and database filename remain unchanged to preserve upgrades and field data.
+
 ## Purpose
 
 This runbook applies to managed ArchiMan deployments. A database backup is required before installing an APK that raises the Room schema version. Measurement rows and managed photo attachments must be treated as one backup set.
@@ -23,6 +25,8 @@ For a USB-debuggable internal build, stop the package and copy all present SQLit
 - `files/measurement_attachments/`
 - `shared_prefs/measurement_drafts.xml`
 
+The current package remains `com.aistudio.sitemeasure.qvtrpl` and the database remains `site_measurement.db`; the ArchiMan rebrand intentionally does not rename either technical identifier.
+
 Never inspect only the main `.db` file while the app is running; committed changes may still be in the WAL.
 
 ## Post-migration acceptance
@@ -34,6 +38,8 @@ After first launch, verify:
 - every measurement row resolves to its sheet, project, contractor, and work item;
 - `PRAGMA foreign_key_check` returns no rows;
 - formula codes and versions are populated;
+- expanded practice/client profile and project consultancy/site-data fields are available at schema 19;
+- project operations, drawing-control and contractor-rate-book tables retain their records;
 - managed photo paths referenced by measurements exist;
 - the application opens the M-Book and canonical editor without a fatal error.
 

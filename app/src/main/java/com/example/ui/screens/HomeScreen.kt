@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -101,8 +103,6 @@ private fun PortfolioMoreScreen(onNavigate: (AppScreen) -> Unit) {
             item { Text("PRACTICE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
             item { PortfolioToolRow("Company profile", "Practice identity used in reports and documents", Icons.Default.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
             item { PortfolioToolRow("Local Wi-Fi portal", "Share a read-only project view on this Wi-Fi", Icons.Default.Wifi) { onNavigate(AppScreen.LOCAL_PORTAL) } }
-            item { Spacer(Modifier.height(4.dp)); Text("OUTPUT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
-            item { PortfolioToolRow("Exports", "Measurement quantities and project outputs", Icons.Default.IosShare) { onNavigate(AppScreen.EXPORT) } }
         }
     }
 }
@@ -507,7 +507,7 @@ fun ProjectCardItem(
                 }
             }
 
-            Divider(color = CarbonGray20, thickness = 1.dp)
+            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
             // Metrics Strip (Recorded Measurements, Contractors, Open Button)
             Row(
@@ -528,7 +528,7 @@ fun ProjectCardItem(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.MenuBook,
+                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
                                 contentDescription = null,
                                 tint = if (measurementCount > 0) CarbonBlue60 else CarbonGray70,
                                 modifier = Modifier.size(12.dp)
@@ -581,7 +581,7 @@ fun ProjectCardItem(
                         color = CarbonBlue60
                     )
                     Icon(
-                        imageVector = Icons.Default.ArrowForward,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = null,
                         tint = CarbonBlue60,
                         modifier = Modifier.size(14.dp)
@@ -638,7 +638,7 @@ fun CreateProjectWithDetailsDialog(
                             Icon(Icons.Default.Close, contentDescription = "Close", tint = CarbonGray70)
                         }
                     }
-                    Divider(color = CarbonGray20, thickness = 1.dp, modifier = Modifier.padding(top = 6.dp))
+                    HorizontalDivider(color = CarbonGray20, thickness = 1.dp, modifier = Modifier.padding(top = 6.dp))
                 }
 
                 if (errorMessage != null) {

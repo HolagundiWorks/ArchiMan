@@ -16,7 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-const val DATABASE_SCHEMA_VERSION = 18
+const val DATABASE_SCHEMA_VERSION = 20
 
 @Database(
     entities = [
@@ -24,6 +24,9 @@ const val DATABASE_SCHEMA_VERSION = 18
         ProjectEntity::class,
         ProjectConsultancyProfileEntity::class,
         ProjectScopeItemEntity::class,
+        ProjectOnboardingResponseEntity::class,
+        ProjectApprovalEntity::class,
+        ProjectBacklogEntity::class,
         CompanyProfileEntity::class,
         ProjectTaskEntity::class,
         ProjectSelectionItemEntity::class,
@@ -88,7 +91,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -382,6 +385,50 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE TABLE project_scope_items (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `category` TEXT NOT NULL, `title` TEXT NOT NULL, `details` TEXT NOT NULL, `status` TEXT NOT NULL, `orderIndex` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)")
                 db.execSQL("CREATE INDEX index_project_scope_items_projectId ON project_scope_items(projectId)")
                 db.execSQL("CREATE INDEX index_project_scope_items_projectId_category ON project_scope_items(projectId,category)")
+            }
+        }
+
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE clients ADD COLUMN clientType TEXT NOT NULL DEFAULT 'Individual'")
+                db.execSQL("ALTER TABLE clients ADD COLUMN contactPerson TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE clients ADD COLUMN correspondenceAddress TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE clients ADD COLUMN email TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE clients ADD COLUMN preferredCommunication TEXT NOT NULL DEFAULT 'Phone'")
+                db.execSQL("ALTER TABLE clients ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
+
+                db.execSQL("ALTER TABLE company_profile ADD COLUMN companyType TEXT NOT NULL DEFAULT 'Architecture practice'")
+                db.execSQL("ALTER TABLE company_profile ADD COLUMN country TEXT NOT NULL DEFAULT 'India'")
+                db.execSQL("ALTER TABLE company_profile ADD COLUMN pan TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE company_profile ADD COLUMN principalName TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE company_profile ADD COLUMN principalQualification TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE company_profile ADD COLUMN practiceRegistrationDetails TEXT NOT NULL DEFAULT ''")
+
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN siteDimensions TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN siteOrientation TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN siteAccess TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN existingConditions TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN surroundings TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN topography TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN utilities TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN existingStructures TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN vegetation TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE project_consultancy_profiles ADD COLUMN legalPlanningInformation TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE project_onboarding_responses (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `templateVersion` INTEGER NOT NULL, `questionCode` TEXT NOT NULL, `answer` TEXT NOT NULL, `clarification` TEXT NOT NULL, `updatedAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_project_onboarding_responses_projectId ON project_onboarding_responses(projectId)")
+                db.execSQL("CREATE UNIQUE INDEX index_project_onboarding_responses_projectId_questionCode ON project_onboarding_responses(projectId,questionCode)")
+                db.execSQL("CREATE TABLE project_approvals (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `approvalType` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `phase` TEXT NOT NULL, `status` TEXT NOT NULL, `submittedAt` INTEGER, `approvedAt` INTEGER, `remarks` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_project_approvals_projectId ON project_approvals(projectId)")
+                db.execSQL("CREATE INDEX index_project_approvals_status ON project_approvals(status)")
+                db.execSQL("CREATE TABLE project_backlog (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `category` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `priority` TEXT NOT NULL, `status` TEXT NOT NULL, `phase` TEXT NOT NULL, `dueAt` INTEGER, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_project_backlog_projectId ON project_backlog(projectId)")
+                db.execSQL("CREATE INDEX index_project_backlog_status ON project_backlog(status)")
+                db.execSQL("CREATE INDEX index_project_backlog_category ON project_backlog(category)")
             }
         }
 

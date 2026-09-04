@@ -151,6 +151,18 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { it?.let(repository::getProjectScopeItems) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val projectOnboardingResponses: StateFlow<List<ProjectOnboardingResponseEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectOnboardingResponses) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectApprovals: StateFlow<List<ProjectApprovalEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectApprovals) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectBacklog: StateFlow<List<ProjectBacklogEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectBacklog) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val projectContractorRefs: StateFlow<List<ProjectContractorCrossRef>> = selectedProjectId
         .flatMapLatest { projectId ->
             if (projectId == null) flowOf(emptyList())
@@ -346,6 +358,63 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteProjectScopeItem(item: ProjectScopeItemEntity) {
         viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectScopeItem(item) }
+    }
+
+    fun saveOnboardingResponse(questionCode: String, answer: String, clarification: String = "", templateVersion: Int = 1) {
+        val projectId = selectedProjectId.value ?: return
+        val existing = projectOnboardingResponses.value.firstOrNull { it.questionCode == questionCode }
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.upsertProjectOnboardingResponse(
+                ProjectOnboardingResponseEntity(
+                    id = existing?.id ?: 0,
+                    projectId = projectId,
+                    templateVersion = templateVersion,
+                    questionCode = questionCode,
+                    answer = answer.trim(),
+                    clarification = clarification.trim(),
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun addProjectApproval(type: String, title: String, description: String, phase: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertProjectApproval(ProjectApprovalEntity(projectId = projectId, approvalType = type, title = title.trim(), description = description.trim(), phase = phase))
+        }
+    }
+
+    fun advanceProjectApproval(item: ProjectApprovalEntity) {
+        val now = System.currentTimeMillis()
+        val next = when (item.status) {
+            "PENDING" -> item.copy(status = "SUBMITTED", submittedAt = now)
+            "SUBMITTED" -> item.copy(status = "APPROVED", approvedAt = now)
+            else -> item.copy(status = "PENDING", submittedAt = null, approvedAt = null)
+        }
+        viewModelScope.launch(Dispatchers.IO) { repository.updateProjectApproval(next) }
+    }
+
+    fun deleteProjectApproval(item: ProjectApprovalEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectApproval(item) }
+    }
+
+    fun addProjectBacklogItem(category: String, title: String, description: String, priority: String, phase: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertProjectBacklogItem(ProjectBacklogEntity(projectId = projectId, category = category, title = title.trim(), description = description.trim(), priority = priority, phase = phase))
+        }
+    }
+
+    fun toggleProjectBacklogItem(item: ProjectBacklogEntity) {
+        val next = if (item.status == "CLOSED") "OPEN" else "CLOSED"
+        viewModelScope.launch(Dispatchers.IO) { repository.updateProjectBacklogItem(item.copy(status = next)) }
+    }
+
+    fun deleteProjectBacklogItem(item: ProjectBacklogEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteProjectBacklogItem(item) }
     }
 
     fun startLocalPortal() {
@@ -1263,14 +1332,12 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     // Client Management
     fun addClient(name: String, address: String, contactNo: String, onComplete: (Long) -> Unit = {}) {
+        addClient(ClientEntity(name = name.trim(), address = address.trim(), contactNo = contactNo.trim()), onComplete)
+    }
+
+    fun addClient(client: ClientEntity, onComplete: (Long) -> Unit = {}) {
         viewModelScope.launch(Dispatchers.IO) {
-            val id = repository.insertClient(
-                ClientEntity(
-                    name = name.trim(),
-                    address = address.trim(),
-                    contactNo = contactNo.trim()
-                )
-            )
+            val id = repository.insertClient(client)
             onComplete(id)
         }
     }

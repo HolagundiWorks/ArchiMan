@@ -1,10 +1,11 @@
 package com.example.ui.screens
 
+import android.os.Build
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Wifi
@@ -13,14 +14,20 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.BuildConfig
+import com.example.data.local.DATABASE_SCHEMA_VERSION
 import com.example.data.local.entity.CompanyProfileEntity
 import com.example.data.local.entity.ProjectEntity
+import com.example.domain.SupportDiagnosticReport
+import com.example.domain.SupportDiagnosticSnapshot
 import com.example.ui.viewmodel.SiteViewModel
+import com.example.util.ExportHelper
 import java.text.SimpleDateFormat
 import java.util.Locale
 
@@ -30,29 +37,41 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
     val saved by viewModel.companyProfile.collectAsStateWithLifecycle()
     var practiceName by remember { mutableStateOf("") }
     var legalName by remember { mutableStateOf("") }
+    var companyType by remember { mutableStateOf("Architecture practice") }
     var address by remember { mutableStateOf("") }
     var city by remember { mutableStateOf("") }
     var state by remember { mutableStateOf("") }
+    var country by remember { mutableStateOf("India") }
     var pinCode by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var website by remember { mutableStateOf("") }
+    var pan by remember { mutableStateOf("") }
     var gstin by remember { mutableStateOf("") }
     var coaNumber by remember { mutableStateOf("") }
+    var principalName by remember { mutableStateOf("") }
+    var principalQualification by remember { mutableStateOf("") }
+    var practiceRegistrationDetails by remember { mutableStateOf("") }
 
     LaunchedEffect(saved) {
         saved?.let {
             practiceName = it.practiceName
             legalName = it.legalName
+            companyType = it.companyType
             address = it.address
             city = it.city
             state = it.state
+            country = it.country
             pinCode = it.pinCode
             phone = it.phone
             email = it.email
             website = it.website
+            pan = it.pan
             gstin = it.gstin
             coaNumber = it.coaRegistrationNumber
+            principalName = it.principalName
+            principalQualification = it.principalQualification
+            practiceRegistrationDetails = it.practiceRegistrationDetails
         }
     }
 
@@ -60,7 +79,7 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
         topBar = {
             TopAppBar(
                 title = { Text("Company profile") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") } }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
             )
         }
     ) { padding ->
@@ -78,16 +97,24 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             }
             OutlinedTextField(practiceName, { practiceName = it }, label = { Text("Practice / company name*") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(legalName, { legalName = it }, label = { Text("Legal name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(companyType, { companyType = it }, label = { Text("Company type") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(address, { address = it }, label = { Text("Registered address") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(city, { city = it }, label = { Text("City") }, modifier = Modifier.weight(1f), singleLine = true)
                 OutlinedTextField(state, { state = it }, label = { Text("State") }, modifier = Modifier.weight(1f), singleLine = true)
             }
+            OutlinedTextField(country, { country = it }, label = { Text("Country") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(pinCode, { pinCode = it.filter(Char::isDigit).take(6) }, label = { Text("PIN code") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
             OutlinedTextField(phone, { phone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone), singleLine = true)
             OutlinedTextField(email, { email = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email), singleLine = true)
             OutlinedTextField(website, { website = it }, label = { Text("Website") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri), singleLine = true)
+            Text("Professional identity", style = MaterialTheme.typography.titleSmall)
+            OutlinedTextField(principalName, { principalName = it }, label = { Text("Principal architect / proprietor") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(principalQualification, { principalQualification = it }, label = { Text("Principal qualification") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(coaNumber, { coaNumber = it }, label = { Text("COA registration number") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            OutlinedTextField(practiceRegistrationDetails, { practiceRegistrationDetails = it }, label = { Text("Practice registration details") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+            Text("Tax identifiers", style = MaterialTheme.typography.titleSmall)
+            OutlinedTextField(pan, { pan = it.uppercase(Locale.ROOT).take(10) }, label = { Text("PAN (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(gstin, { gstin = it.uppercase(Locale.ROOT).take(15) }, label = { Text("GSTIN (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             Button(
                 enabled = practiceName.isNotBlank(),
@@ -95,10 +122,12 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
                 onClick = {
                     viewModel.saveCompanyProfile(
                         CompanyProfileEntity(
-                            practiceName = practiceName.trim(), legalName = legalName.trim(), address = address.trim(),
-                            city = city.trim(), state = state.trim(), pinCode = pinCode.trim(), phone = phone.trim(),
-                            email = email.trim(), website = website.trim(), gstin = gstin.trim(),
-                            coaRegistrationNumber = coaNumber.trim(), logoUri = saved?.logoUri
+                            practiceName = practiceName.trim(), legalName = legalName.trim(), companyType = companyType.trim(), address = address.trim(),
+                            city = city.trim(), state = state.trim(), country = country.trim(), pinCode = pinCode.trim(), phone = phone.trim(),
+                            email = email.trim(), website = website.trim(), pan = pan.trim(), gstin = gstin.trim(),
+                            coaRegistrationNumber = coaNumber.trim(), principalName = principalName.trim(),
+                            principalQualification = principalQualification.trim(), practiceRegistrationDetails = practiceRegistrationDetails.trim(),
+                            logoUri = saved?.logoUri
                         )
                     )
                     onBack()
@@ -112,12 +141,18 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
 @Composable
 fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
     val state by viewModel.localPortalState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+    val projects by viewModel.projects.collectAsStateWithLifecycle()
+    val contractors by viewModel.contractors.collectAsStateWithLifecycle()
+    val items by viewModel.items.collectAsStateWithLifecycle()
+    val measurements by viewModel.measurements.collectAsStateWithLifecycle()
+    val measurementSheets by viewModel.measurementSheets.collectAsStateWithLifecycle()
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Local Wi-Fi portal") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") } }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
             )
         }
     ) { padding ->
@@ -159,6 +194,33 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
                 }
                 Text("Nothing is uploaded to the internet. The address works only from devices that can reach this phone on the same Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
             }
+            HorizontalDivider()
+            OutlinedButton(
+                onClick = {
+                    val knownSheetIds = measurementSheets.mapTo(hashSetOf()) { it.id }
+                    val knownItemIds = items.mapTo(hashSetOf()) { it.id }
+                    val report = SupportDiagnosticReport.render(
+                        SupportDiagnosticSnapshot(
+                            appVersion = BuildConfig.VERSION_NAME,
+                            versionCode = BuildConfig.VERSION_CODE.toLong(),
+                            schemaVersion = DATABASE_SCHEMA_VERSION,
+                            androidSdk = Build.VERSION.SDK_INT,
+                            generatedAtEpochMs = System.currentTimeMillis(),
+                            projectCount = projects.size,
+                            contractorCount = contractors.size,
+                            workItemCount = items.size,
+                            measurementCount = measurements.size,
+                            sheetCount = measurementSheets.size,
+                            archivedSheetCount = measurementSheets.count { it.archivedAt != null },
+                            rowsWithoutKnownSheet = measurements.count { it.sheetId !in knownSheetIds },
+                            rowsWithoutKnownWorkItem = measurements.count { it.itemId !in knownItemIds },
+                            sheetStatusCounts = measurementSheets.groupingBy { it.status }.eachCount()
+                        )
+                    )
+                    ExportHelper.shareSupportDiagnostics(context, report)
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Share support diagnostics") }
         }
     }
 }

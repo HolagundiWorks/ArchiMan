@@ -2,6 +2,8 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -189,17 +191,13 @@ fun ClientsScreen(
                 showAddDialog = false
                 clientToEdit = null
             },
-            onSave = { name, address, contactNo ->
+            onSave = { client ->
                 if (clientToEdit != null) {
                     viewModel.updateClient(
-                        clientToEdit!!.copy(
-                            name = name,
-                            address = address,
-                            contactNo = contactNo
-                        )
+                        client.copy(id = clientToEdit!!.id, createdAt = clientToEdit!!.createdAt)
                     )
                 } else {
-                    viewModel.addClient(name, address, contactNo)
+                    viewModel.addClient(client)
                 }
                 showAddDialog = false
                 clientToEdit = null
@@ -292,7 +290,7 @@ fun ClientCard(
                             color = CarbonGray100
                         )
                         Text(
-                            text = if (projectCount > 0) "$projectCount Active Project(s)" else "No Projects Assigned",
+                            text = "${client.clientType} • ${if (projectCount > 0) "$projectCount project(s)" else "No projects"}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = if (projectCount > 0) CarbonBlue60 else CarbonGray60
@@ -310,7 +308,7 @@ fun ClientCard(
                 }
             }
 
-            Divider(color = CarbonGray20, thickness = 1.dp)
+            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
             // Address
             Row(
@@ -342,7 +340,7 @@ fun ClientCard(
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
-                    text = "Contact / Phone: ${client.contactNo.ifBlank { "Not provided" }}",
+                    text = listOf(client.contactPerson, client.contactNo, client.email).filter(String::isNotBlank).joinToString(" • ").ifBlank { "No contact details provided" },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = CarbonGray90
@@ -356,11 +354,17 @@ fun ClientCard(
 fun ClientFormDialog(
     initialClient: ClientEntity?,
     onDismiss: () -> Unit,
-    onSave: (name: String, address: String, contactNo: String) -> Unit
+    onSave: (ClientEntity) -> Unit
 ) {
     var name by remember { mutableStateOf(initialClient?.name ?: "") }
+    var clientType by remember { mutableStateOf(initialClient?.clientType ?: "Individual") }
+    var contactPerson by remember { mutableStateOf(initialClient?.contactPerson ?: "") }
     var address by remember { mutableStateOf(initialClient?.address ?: "") }
+    var correspondenceAddress by remember { mutableStateOf(initialClient?.correspondenceAddress ?: "") }
     var contactNo by remember { mutableStateOf(initialClient?.contactNo ?: "") }
+    var email by remember { mutableStateOf(initialClient?.email ?: "") }
+    var preferredCommunication by remember { mutableStateOf(initialClient?.preferredCommunication ?: "Phone") }
+    var notes by remember { mutableStateOf(initialClient?.notes ?: "") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -373,6 +377,8 @@ fun ClientFormDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(max = 680.dp)
+                    .verticalScroll(rememberScrollState())
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -392,7 +398,7 @@ fun ClientFormDialog(
                     }
                 }
 
-                Divider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
                 if (errorMessage != null) {
                     Surface(
@@ -423,6 +429,24 @@ fun ClientFormDialog(
                 )
 
                 CarbonInputField(
+                    label = "CLIENT TYPE",
+                    value = clientType,
+                    onValueChange = { clientType = it },
+                    placeholder = "Individual, Company, Trust, Government...",
+                    keyboardType = KeyboardType.Text,
+                    testTag = "input_client_type"
+                )
+
+                CarbonInputField(
+                    label = "CONTACT PERSON",
+                    value = contactPerson,
+                    onValueChange = { contactPerson = it },
+                    placeholder = "Primary contact name",
+                    keyboardType = KeyboardType.Text,
+                    testTag = "input_client_contact_person"
+                )
+
+                CarbonInputField(
                     label = "CLIENT ADDRESS",
                     value = address,
                     onValueChange = { address = it },
@@ -432,12 +456,48 @@ fun ClientFormDialog(
                 )
 
                 CarbonInputField(
+                    label = "CORRESPONDENCE ADDRESS",
+                    value = correspondenceAddress,
+                    onValueChange = { correspondenceAddress = it },
+                    placeholder = "Leave blank when same as client address",
+                    keyboardType = KeyboardType.Text,
+                    testTag = "input_client_billing_address"
+                )
+
+                CarbonInputField(
                     label = "CONTACT NO / PHONE *",
                     value = contactNo,
                     onValueChange = { contactNo = it },
                     placeholder = "e.g. +91 98450 12345",
                     keyboardType = KeyboardType.Phone,
                     testTag = "input_client_contact"
+                )
+
+                CarbonInputField(
+                    label = "EMAIL",
+                    value = email,
+                    onValueChange = { email = it },
+                    placeholder = "client@example.com",
+                    keyboardType = KeyboardType.Email,
+                    testTag = "input_client_email"
+                )
+
+                CarbonInputField(
+                    label = "PREFERRED COMMUNICATION",
+                    value = preferredCommunication,
+                    onValueChange = { preferredCommunication = it },
+                    placeholder = "Phone, email, WhatsApp, letter...",
+                    keyboardType = KeyboardType.Text,
+                    testTag = "input_client_preferred_communication"
+                )
+
+                CarbonInputField(
+                    label = "NOTES",
+                    value = notes,
+                    onValueChange = { notes = it },
+                    placeholder = "Relationship or communication notes",
+                    keyboardType = KeyboardType.Text,
+                    testTag = "input_client_notes"
                 )
 
                 Spacer(Modifier.height(4.dp))
@@ -460,7 +520,19 @@ fun ClientFormDialog(
                             if (name.isBlank()) {
                                 errorMessage = "Client name is required."
                             } else {
-                                onSave(name.trim(), address.trim(), contactNo.trim())
+                                onSave(
+                                    ClientEntity(
+                                        name = name.trim(),
+                                        clientType = clientType.trim().ifBlank { "Individual" },
+                                        contactPerson = contactPerson.trim(),
+                                        address = address.trim(),
+                                        correspondenceAddress = correspondenceAddress.trim(),
+                                        contactNo = contactNo.trim(),
+                                        email = email.trim(),
+                                        preferredCommunication = preferredCommunication.trim().ifBlank { "Phone" },
+                                        notes = notes.trim()
+                                    )
+                                )
                             }
                         },
                         modifier = Modifier

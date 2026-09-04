@@ -17,6 +17,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Assignment
+import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.automirrored.filled.FactCheck
+import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,11 +57,12 @@ enum class ProjectHubSection(
     val primary: Boolean = true
 ) {
     OVERVIEW("Overview", Icons.Default.Dashboard),
-    BRIEF_SCOPE("Brief", Icons.Default.FactCheck),
-    PLANNING("Planning", Icons.Default.EventNote),
+    BRIEF_SCOPE("Brief", Icons.AutoMirrored.Filled.FactCheck),
+    PLANNING("Planning", Icons.AutoMirrored.Filled.EventNote),
     MORE("More", Icons.Default.MoreHoriz),
     DRAWINGS("Drawings", Icons.Default.Architecture, primary = false),
-    REPORTS("Site reports", Icons.Default.Assignment, primary = false),
+    REPORTS("Site reports", Icons.AutoMirrored.Filled.Assignment, primary = false),
+    CONTROLS("Controls", Icons.AutoMirrored.Filled.Rule, primary = false),
     CONTRACTORS("Team", Icons.Default.Engineering, primary = false),
     RATE_BOOKS("Rate books", Icons.Default.PriceChange, primary = false)
 }
@@ -86,6 +93,9 @@ fun ProjectWorkspaceScreen(
     val rateBookAssignments by viewModel.projectRateBookAssignments.collectAsStateWithLifecycle()
     val consultancyProfile by viewModel.projectConsultancyProfile.collectAsStateWithLifecycle()
     val scopeItems by viewModel.projectScopeItems.collectAsStateWithLifecycle()
+    val onboardingResponses by viewModel.projectOnboardingResponses.collectAsStateWithLifecycle()
+    val approvals by viewModel.projectApprovals.collectAsStateWithLifecycle()
+    val backlog by viewModel.projectBacklog.collectAsStateWithLifecycle()
 
     val currentProject = projects.firstOrNull { it.id == selectedProjectId } ?: projects.firstOrNull()
     val projectMeasurements = remember(allMeasurements, currentProject) {
@@ -141,7 +151,7 @@ fun ProjectWorkspaceScreen(
                                 .testTag("btn_back_home")
                         ) {
                             Icon(
-                                imageVector = Icons.Default.ArrowBack,
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back to Projects",
                                 tint = CarbonGray100,
                                 modifier = Modifier.size(18.dp)
@@ -255,7 +265,7 @@ fun ProjectWorkspaceScreen(
                     containerColor = CarbonWhite,
                     contentColor = CarbonBlue60,
                     divider = {
-                        Divider(color = CarbonGray20, thickness = 1.dp)
+                        HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
                     }
                 ) {
                     primarySections.forEach { section ->
@@ -321,6 +331,7 @@ fun ProjectWorkspaceScreen(
                     reportCount = meetingMinutes.size + siteInspections.size,
                     contractorCount = projectContractors.size,
                     rateBookCount = rateBookAssignments.size,
+                    controlCount = approvals.count { it.status != "APPROVED" } + backlog.count { it.status == "OPEN" },
                     onSelect = { selectedSection = it }
                 )
                 ProjectHubSection.DRAWINGS -> ProjectSecondarySection("Drawings", { selectedSection = ProjectHubSection.MORE }) {
@@ -328,6 +339,9 @@ fun ProjectWorkspaceScreen(
                 }
                 ProjectHubSection.REPORTS -> ProjectSecondarySection("Site reports", { selectedSection = ProjectHubSection.MORE }) {
                     ProjectReportsScreen(viewModel, meetingMinutes, siteInspections)
+                }
+                ProjectHubSection.CONTROLS -> ProjectSecondarySection("Onboarding & controls", { selectedSection = ProjectHubSection.MORE }) {
+                    ProjectControlsScreen(viewModel, currentProject, onboardingResponses, approvals, backlog)
                 }
                 ProjectHubSection.CONTRACTORS -> ProjectSecondarySection("Project team", { selectedSection = ProjectHubSection.MORE }) {
                     ProjectContractorsTab(
@@ -374,7 +388,7 @@ fun ProjectWorkspaceScreen(
                         fontWeight = FontWeight.Bold,
                         color = CarbonGray100
                     )
-                    Divider(color = CarbonGray20)
+                    HorizontalDivider(color = CarbonGray20)
                     LazyColumn(
                         modifier = Modifier.heightIn(max = 300.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -441,6 +455,7 @@ private fun ProjectMoreMenu(
     reportCount: Int,
     contractorCount: Int,
     rateBookCount: Int,
+    controlCount: Int,
     onSelect: (ProjectHubSection) -> Unit
 ) {
     LazyColumn(
@@ -453,7 +468,8 @@ private fun ProjectMoreMenu(
             Text("Documents, field records and project setup", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
         }
         item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", Icons.Default.Architecture) { onSelect(ProjectHubSection.DRAWINGS) } }
-        item { ProjectMoreRow("Site reports", "$reportCount meeting minutes and inspection reports", Icons.Default.Assignment) { onSelect(ProjectHubSection.REPORTS) } }
+        item { ProjectMoreRow("Site reports", "$reportCount meeting minutes and inspection reports", Icons.AutoMirrored.Filled.Assignment) { onSelect(ProjectHubSection.REPORTS) } }
+        item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", Icons.AutoMirrored.Filled.Rule) { onSelect(ProjectHubSection.CONTROLS) } }
         item { ProjectMoreRow("Project team", "$contractorCount assigned contractors", Icons.Default.Engineering) { onSelect(ProjectHubSection.CONTRACTORS) } }
         item { ProjectMoreRow("Rate books", "$rateBookCount rate books applied to this project", Icons.Default.PriceChange) { onSelect(ProjectHubSection.RATE_BOOKS) } }
     }
@@ -494,7 +510,7 @@ private fun ProjectSecondarySection(title: String, onBack: () -> Unit, content: 
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onBack).padding(horizontal = 12.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.ArrowBack, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
                 Text("Project tools", color = CarbonBlue60, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CarbonGray50, modifier = Modifier.size(16.dp))
@@ -534,6 +550,17 @@ private fun ProjectBriefScopeScreen(
     var preferences by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.designPreferences.orEmpty()) }
     var constraints by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.siteConstraints.orEmpty()) }
     var clarifications by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.clarifications.orEmpty()) }
+    var siteDimensions by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.siteDimensions.orEmpty()) }
+    var siteOrientation by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.siteOrientation.orEmpty()) }
+    var siteAccess by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.siteAccess.orEmpty()) }
+    var existingConditions by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.existingConditions.orEmpty()) }
+    var surroundings by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.surroundings.orEmpty()) }
+    var topography by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.topography.orEmpty()) }
+    var utilities by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.utilities.orEmpty()) }
+    var existingStructures by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.existingStructures.orEmpty()) }
+    var vegetation by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.vegetation.orEmpty()) }
+    var legalPlanningInformation by remember(project.id, savedProfile) { mutableStateOf(savedProfile?.legalPlanningInformation.orEmpty()) }
+    var siteDataExpanded by remember(project.id) { mutableStateOf(false) }
     var showAddScope by remember { mutableStateOf(false) }
 
     LazyColumn(
@@ -573,6 +600,29 @@ private fun ProjectBriefScopeScreen(
                 OutlinedTextField(preferences, { preferences = it }, label = { Text("Design preferences") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 OutlinedTextField(constraints, { constraints = it }, label = { Text("Known site / programme constraints") }, supportingText = { Text("Record known information only; this is not an automatic compliance assessment.") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 OutlinedTextField(clarifications, { clarifications = it }, label = { Text("Open clarifications") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                OutlinedButton(onClick = { siteDataExpanded = !siteDataExpanded }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(if (siteDataExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (siteDataExpanded) "Hide site data" else "Add / review site data")
+                }
+                if (siteDataExpanded) {
+                    Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(4.dp)) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Site data", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                            Text("Record supplied or observed information. ArchiMan does not certify legal or planning compliance.", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+                            OutlinedTextField(siteDimensions, { siteDimensions = it }, label = { Text("Site dimensions") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(siteOrientation, { siteOrientation = it }, label = { Text("Orientation") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(siteAccess, { siteAccess = it }, label = { Text("Access and approach") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(existingConditions, { existingConditions = it }, label = { Text("Existing conditions") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(surroundings, { surroundings = it }, label = { Text("Surroundings") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(topography, { topography = it }, label = { Text("Topography") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(utilities, { utilities = it }, label = { Text("Utilities / services") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(existingStructures, { existingStructures = it }, label = { Text("Existing structures") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(vegetation, { vegetation = it }, label = { Text("Vegetation") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                            OutlinedTextField(legalPlanningInformation, { legalPlanningInformation = it }, label = { Text("Legal / planning information supplied") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
+                        }
+                    }
+                }
                 Button(
                     enabled = selectedConsultancies.isNotEmpty(),
                     onClick = {
@@ -588,7 +638,17 @@ private fun ProjectBriefScopeScreen(
                                 projectRequirements = requirements.trim(),
                                 designPreferences = preferences.trim(),
                                 siteConstraints = constraints.trim(),
-                                clarifications = clarifications.trim()
+                                clarifications = clarifications.trim(),
+                                siteDimensions = siteDimensions.trim(),
+                                siteOrientation = siteOrientation.trim(),
+                                siteAccess = siteAccess.trim(),
+                                existingConditions = existingConditions.trim(),
+                                surroundings = surroundings.trim(),
+                                topography = topography.trim(),
+                                utilities = utilities.trim(),
+                                existingStructures = existingStructures.trim(),
+                                vegetation = vegetation.trim(),
+                                legalPlanningInformation = legalPlanningInformation.trim()
                             )
                         )
                     },
@@ -655,7 +715,7 @@ private fun BriefDropdown(label: String, value: String, options: List<String>, o
             readOnly = true,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor()
+            modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             options.forEach { option ->
@@ -749,8 +809,8 @@ private fun ProjectHubOverview(
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProjectHubActionCard("Brief", briefStatus.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) }, Icons.Default.FactCheck, onOpenBrief, Modifier.weight(1f))
-                ProjectHubActionCard("Planning", "$taskCount tasks • $scheduleCount events • $selectionCount selections", Icons.Default.EventNote, onOpenPlanning, Modifier.weight(1f))
+                ProjectHubActionCard("Brief", briefStatus.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) }, Icons.AutoMirrored.Filled.FactCheck, onOpenBrief, Modifier.weight(1f))
+                ProjectHubActionCard("Planning", "$taskCount tasks • $scheduleCount events • $selectionCount selections", Icons.AutoMirrored.Filled.EventNote, onOpenPlanning, Modifier.weight(1f))
             }
         }
         item {
@@ -1137,7 +1197,7 @@ fun ProjectContractorsTab(
                                 }
                             }
 
-                            Divider(color = CarbonGray20, thickness = 1.dp)
+                            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1216,7 +1276,7 @@ fun ProjectContractorsTab(
                         fontWeight = FontWeight.Bold,
                         color = CarbonGray100
                     )
-                    Divider(color = CarbonGray20)
+                    HorizontalDivider(color = CarbonGray20)
 
                     Text("ASSIGN EXISTING CONTRACTORS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray70)
                     if (availableExisting.isEmpty()) {
@@ -1634,7 +1694,7 @@ fun ProjectMeasurementBookTab(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.Default.MenuBook, contentDescription = null, tint = CarbonGray60, modifier = Modifier.size(32.dp))
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = CarbonGray60, modifier = Modifier.size(32.dp))
                         Text("No recorded measurements found", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = CarbonGray100)
                         Text("Switch to 'Record Measurement' tab to enter dimensions and calculate quantities.", fontSize = 12.sp, color = CarbonGray70, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         Button(

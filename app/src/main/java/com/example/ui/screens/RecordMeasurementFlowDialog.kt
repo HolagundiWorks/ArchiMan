@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -133,7 +134,7 @@ fun RecordMeasurementFlowDialog(
                     )
                 }
 
-                Divider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
 
                 // Selected chips summary if past step 1
                 if (selectedContractor != null || selectedQualifiedItem != null) {
@@ -499,7 +500,7 @@ fun RecordMeasurementFlowDialog(
                                             ) {
                                                 Text("Open Screen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60)
                                                 Icon(
-                                                    imageVector = Icons.Default.ArrowForward,
+                                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                                     contentDescription = null,
                                                     tint = CarbonBlue60,
                                                     modifier = Modifier.size(16.dp)

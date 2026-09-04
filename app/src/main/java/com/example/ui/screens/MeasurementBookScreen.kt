@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -100,7 +102,7 @@ fun MeasurementBookScreen(
                         modifier = Modifier.weight(1f)
                     ) {
                         IconButton(onClick = onNavigateBack, modifier = Modifier.size(36.dp)) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = CarbonGray100)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = CarbonGray100)
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
@@ -276,7 +278,7 @@ fun MeasurementBookScreen(
                                 modifier = Modifier.padding(28.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.Default.MenuBook, contentDescription = null, tint = CarbonGray70, modifier = Modifier.size(40.dp))
+                                Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = CarbonGray70, modifier = Modifier.size(40.dp))
                                 Spacer(Modifier.height(10.dp))
                                 Text("No measurements in M-Book", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = CarbonGray100)
                                 Spacer(Modifier.height(4.dp))

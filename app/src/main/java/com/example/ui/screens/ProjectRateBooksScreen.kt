@@ -8,10 +8,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -58,7 +58,7 @@ fun ProjectRateBooksTab(
                 OutlinedTextField(
                     value = contractor?.name.orEmpty(), onValueChange = {}, readOnly = true,
                     label = { Text("Contractor") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(contractorMenu) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor()
+                    modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
                 )
                 ExposedDropdownMenu(expanded = contractorMenu, onDismissRequest = { contractorMenu = false }) {
                     contractors.forEach { option -> DropdownMenuItem(text = { Text(option.name) }, onClick = { contractorId = option.id; contractorMenu = false }) }
@@ -91,7 +91,7 @@ fun ProjectRateBooksTab(
         HorizontalDivider(color = CarbonGray20)
         if (selectedBook == null) {
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                Icon(Icons.Default.LibraryBooks, null, Modifier.size(42.dp), tint = CarbonGray50)
+                Icon(Icons.AutoMirrored.Filled.LibraryBooks, null, Modifier.size(42.dp), tint = CarbonGray50)
                 Text("Select or create a rate book", fontWeight = FontWeight.Bold)
             }
         } else LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp), contentPadding = PaddingValues(bottom = 24.dp)) {

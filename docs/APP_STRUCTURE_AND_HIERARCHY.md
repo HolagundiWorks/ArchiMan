@@ -1,12 +1,14 @@
 # ArchiMan Application Structure and Hierarchy
 
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 19, reviewed 4 September 2026.
+
 ## User-facing hierarchy
 
 ```text
 Portfolio
 ├── Projects
 │   └── Selected Project
-│       ├── Project Hub
+│       ├── Project
 │       │   ├── Overview
 │       │   │   └── Project Profile
 │       │   ├── Brief / Scope
@@ -45,17 +47,16 @@ Portfolio
 │   └── PWD SR → Work Type → Work Item → UOM / Formula
 └── More
     ├── Company / Practice Profile
-    ├── Local Wi-Fi Portal
-    └── Exports
+    └── Local Wi-Fi Portal / Support Diagnostics
 ```
 
-The bottom navigation represents stable hierarchy levels, not a second copy of Project Hub sections:
+The bottom navigation represents stable hierarchy levels, not a second copy of project sections:
 
 - At portfolio level: Projects, Directory, Work List and More.
 - Inside a project: Project, Work, Record and M-Book. Portfolio exit uses the project header back action.
 - The project tab row contains four predictable sections: Overview, Brief, Planning and More.
-- Drawings, site reports, team and rate books are grouped under project More instead of competing for permanent tab space.
-- Company profile, the LAN portal, shared work library and exports are grouped under portfolio More instead of unlabeled header icons.
+- Drawings, site reports, project team and rate books are grouped under project More instead of competing for permanent tab space.
+- Company profile and the LAN portal are grouped under portfolio More; measurement exports remain inside M-Book and project-specific outputs remain inside their owning workspaces.
 - M-Book and Record remain persistent project actions and are not repeated inside the Overview menu.
 - Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of ArchiMan.
 
@@ -106,7 +107,7 @@ com.example
 
 ## Incremental refactoring sequence
 
-1. Establish navigation hierarchy and remove duplicate Project Hub destinations. Completed.
+1. Establish navigation hierarchy and remove duplicate project destinations. Completed in schema-18 baseline.
 2. Split the monolithic `SiteViewModel` into project, measurement, catalogue and rate-book coordinators.
 3. Split `ProjectWorkspaceScreen` into overview, planning, team and rates feature files.
 4. Split `Entities.kt`, `SiteDaos.kt` and `SiteRepository.kt` by business area without changing the schema.

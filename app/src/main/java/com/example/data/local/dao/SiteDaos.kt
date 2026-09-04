@@ -311,6 +311,26 @@ interface ProjectConsultancyDao {
 
     @Delete
     suspend fun deleteScopeItem(item: ProjectScopeItemEntity)
+
+    @Query("SELECT * FROM project_onboarding_responses WHERE projectId=:projectId ORDER BY questionCode")
+    fun observeOnboardingResponses(projectId: Long): Flow<List<ProjectOnboardingResponseEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertOnboardingResponse(item: ProjectOnboardingResponseEntity): Long
+
+    @Query("SELECT * FROM project_approvals WHERE projectId=:projectId ORDER BY status, createdAt DESC")
+    fun observeApprovals(projectId: Long): Flow<List<ProjectApprovalEntity>>
+
+    @Insert suspend fun insertApproval(item: ProjectApprovalEntity): Long
+    @Update suspend fun updateApproval(item: ProjectApprovalEntity)
+    @Delete suspend fun deleteApproval(item: ProjectApprovalEntity)
+
+    @Query("SELECT * FROM project_backlog WHERE projectId=:projectId ORDER BY status, priority, createdAt DESC")
+    fun observeBacklog(projectId: Long): Flow<List<ProjectBacklogEntity>>
+
+    @Insert suspend fun insertBacklogItem(item: ProjectBacklogEntity): Long
+    @Update suspend fun updateBacklogItem(item: ProjectBacklogEntity)
+    @Delete suspend fun deleteBacklogItem(item: ProjectBacklogEntity)
 }
 
 @Dao

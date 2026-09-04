@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            ArchiManTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = CarbonWhite
@@ -68,7 +69,6 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                 AppScreen.ROOM_WORKSPACE -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.MEASUREMENT_BOOK -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.CLIENTS, AppScreen.CONTRACTORS, AppScreen.COMPANY_PROFILE, AppScreen.LOCAL_PORTAL -> viewModel.navigateTo(AppScreen.HOME)
-                AppScreen.EXPORT -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.MASTER_DATA -> viewModel.navigateTo(
                     if (homeTab == HomeTab.MORE || selectedProjectId == null) AppScreen.HOME else AppScreen.PROJECT_WORKSPACE
                 )
@@ -295,7 +295,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     NavigationBarItem(
                         selected = isMBookActive,
                         onClick = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) },
-                        icon = { Icon(Icons.Default.MenuBook, contentDescription = "M-Book") },
+                        icon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "M-Book") },
                         label = {
                             Text(
                                 "M-Book",
@@ -351,10 +351,6 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     )
                     AppScreen.REGISTER -> MeasurementRegisterScreen(viewModel = viewModel)
                     AppScreen.MASTER_DATA -> MasterDataScreen(viewModel = viewModel)
-                    AppScreen.EXPORT -> ExportScreen(
-                        viewModel = viewModel,
-                        onNavigateBack = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) }
-                    )
                 }
             }
         }

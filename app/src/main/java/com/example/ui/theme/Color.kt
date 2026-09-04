@@ -2,26 +2,27 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// IBM Carbon Design System Color Tokens (Pure Light / High-Contrast Accent Blue)
-val CarbonWhite = Color(0xFFFFFFFF)
-val CarbonGray10 = Color(0xFFF4F4F4)
-val CarbonGray20 = Color(0xFFE0E0E0)
-val CarbonGray30 = Color(0xFFC6C6C6)
-val CarbonGray40 = Color(0xFFA8A8A8)
-val CarbonGray50 = Color(0xFF8D8D8D)
-val CarbonGray60 = Color(0xFF6F6F6F)
-val CarbonGray70 = Color(0xFF525252)
-val CarbonGray80 = Color(0xFF393939)
-val CarbonGray90 = Color(0xFF262626)
-val CarbonGray100 = Color(0xFF161616)
+// ArchiMan Material 3 light tokens. Legacy Carbon names remain as compatibility
+// aliases while screens are migrated incrementally to MaterialTheme.colorScheme.
+val CarbonWhite = Color(0xFFF9F9FF)
+val CarbonGray10 = Color(0xFFF1F1F9)
+val CarbonGray20 = Color(0xFFE1E2EC)
+val CarbonGray30 = Color(0xFFC5C6D0)
+val CarbonGray40 = Color(0xFFAAABB4)
+val CarbonGray50 = Color(0xFF8F909A)
+val CarbonGray60 = Color(0xFF747681)
+val CarbonGray70 = Color(0xFF5B5D66)
+val CarbonGray80 = Color(0xFF43474E)
+val CarbonGray90 = Color(0xFF2D3036)
+val CarbonGray100 = Color(0xFF1A1C1E)
 val CarbonBlack = Color(0xFF000000)
 
-// Carbon Interactive Accent Blue
-val CarbonBlue60 = Color(0xFF0F62FE)
-val CarbonBlue70 = Color(0xFF0043CE)
-val CarbonBlue80 = Color(0xFF002D9C)
-val CarbonBlue10 = Color(0xFFEDF5FF)
-val CarbonBlue20 = Color(0xFFD0E2FF)
+// Material 3 architectural blue.
+val CarbonBlue60 = Color(0xFF315DA8)
+val CarbonBlue70 = Color(0xFF16458F)
+val CarbonBlue80 = Color(0xFF002F6B)
+val CarbonBlue10 = Color(0xFFD9E2FF)
+val CarbonBlue20 = Color(0xFFB1C5FF)
 
 // Standard Carbon Alert Colors
 val CarbonRed60 = Color(0xFFDA1E28)

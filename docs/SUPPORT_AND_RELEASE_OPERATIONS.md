@@ -1,12 +1,14 @@
 # Support and Release Operations
 
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 19, reviewed 4 September 2026.
+
 ## Scope
 
-ArchiMan is offline-first. Support and release processes must preserve that boundary: no billing, background cloud access, internet APIs, or silent data upload. A user-started, PIN-authenticated, read-only portal on the current local Wi-Fi network is permitted.
+ArchiMan is offline-first. Support and release processes must preserve that boundary: contractor rate books and immutable measurement valuation snapshots are supported, but bills, invoices, receipts, payments, accounting, background cloud access, internet APIs and silent data upload are not. A user-started, PIN-authenticated, read-only portal on the current local Wi-Fi network is permitted.
 
 ## Privacy-safe support diagnostics
 
-Open **Export & Quantities** and select **Share support diagnostics (.json)**. The generated report contains:
+Open **More → Local Wi-Fi Portal** and select **Share support diagnostics**. The generated report contains:
 
 - application version, database schema, and Android SDK;
 - counts of projects, contractors, work items, measurements, sheets, and archived sheets;
@@ -29,7 +31,7 @@ From the repository root, run:
 
 The first boundary check rejects active billing terminology, unapproved network/cloud dependencies, or outbound cleartext configuration. It verifies the two permissions required by the approved local Wi-Fi portal. The second invocation also checks the merged debug manifest produced by the build.
 
-The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`.
+The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, profile, consultancy-scope and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`. The current schema-19 baseline includes a preserving 18→19 migration test.
 
 ## Continuous integration
 

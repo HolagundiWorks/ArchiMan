@@ -1,42 +1,60 @@
-# Mobile UI/UX Audit — 360 dp Baseline
+# ArchiMan Mobile UI/UX Audit — 360 dp Baseline
 
-Date: 2026-08-23  
-Reference device: Samsung A10s, 720 × 1520 px (approximately 360 dp wide)
+- Date updated: 4 September 2026
+- Reference device: Samsung A10s, 720 × 1520 px (approximately 360 dp wide)
+- Implementation baseline: ArchiMan schema 19
 
 ## Scope
 
-The audit covered the complete primary workflow: Home, Clients, Contractors, Project Hub, Work List and Formulas, Measurement Book, and the measurement row editor. The product remains a pure measurement book: rates, billing, BOQ valuation, and other commercial concepts are outside scope.
+The audit covers portfolio navigation, Directory, Work List, project Overview/Brief/Planning/More, Measurement Book and the measurement row editor. ArchiMan is now an Architectural Consultancy Management App with a field-first Measurement Book and contractor rate books; bills, invoices, payments and accounting remain outside scope.
 
 ## Resolved findings
 
-| Area | Finding | Resolution |
+| Area | Previous problem | Current resolution |
 |---|---|---|
-| Global navigation | `Project Hub` wrapped in the bottom bar and increased its height | Shortened the destination label to `Hub`; the full context remains visible inside the screen |
-| Home | Long application title clipped on a 360 dp viewport | Changed the masthead to `Measurement Book` and constrained title/subtitle with ellipsis |
-| Work List | Oversized masthead and a clipped duplicate Add Item control | Constrained header text and removed the redundant top action; the FAB is the single creation action |
-| Project Hub | Long tab names wrapped and consumed vertical space | Replaced them with concise `Overview`, `Contractors`, `M-Book`, and `Record` labels |
-| Record launcher | Primary action floated inside excessive empty space | Top-aligned and compacted the launcher, icon, copy, and button |
-| Contractors | FAB displayed two plus signs | Retained the icon and changed the text to `Add Contractor` |
-| Clients/Contractors | Duplicate top creation buttons competed with FABs | Removed redundant top actions and shortened search prompts |
-| Measurement Book | Review workflow was always expanded ahead of measurement content | Made the workflow a compact, collapsible panel, collapsed by default |
-| Unit display | Imperial records could render dimensions with a hard-coded `m` suffix | Dimension labels now derive from the record UOM and show `ft` for Imperial records |
-| Measurement editor | Dense columns could collide at phone width | Retained horizontal table scrolling and introduced a responsive two-line editor header |
+| Brand | Product surfaces used the older measurement-only identity | App label, mastheads, portal, exports and build identity now use ArchiMan and the full product descriptor |
+| Portfolio navigation | Projects, clients, contractors and tools competed at the same level | Four stable destinations: Projects, Directory, Work List and More |
+| Directory | Existing clients and contractors were difficult to discover | Clients and Contractors are explicit sections within one Directory |
+| Project navigation | Project sections and field actions were duplicated | Four persistent actions: Project, Work, Record and M-Book |
+| Project workspace | Too many permanent tabs and repeated shortcuts | Overview, Brief, Planning and More; secondary tools are grouped in labelled menus |
+| Project overview | Duplicate Record/M-Book actions obscured project setup | Overview focuses on identity, brief status, planning counts and next project actions |
+| Record launcher | Primary action floated inside excessive empty space | Compact, top-aligned contractor-first workflow |
+| Measurement entry | Dense controls and a custom keypad reduced usable space | Horizontally scrollable spreadsheet-style rows with the system keyboard |
+| Formula columns | Length, breadth and height appeared when not required | Columns are derived from the selected work-item formula/UOM |
+| Row evidence | Description or evidence applied too broadly | Member description and optional photo belong to each row |
+| Repeated work | Row recreation was slow | Duplicate-one-row and duplicate-selected-rows actions with Undo |
+| Units | Metric/Imperial display and conversion were inconsistent | Atomic entry-system conversion with compatible UOM labels and recalculation |
+| Review | Workflow controls displaced the measurement table | Compact, collapsible review panel; approved records remain protected |
+| Design system | Carbon-style sharp shapes, custom basic fields and deprecated Compose APIs were inconsistent with Material UI | Central Material 3 theme, typography, shape scale, outlined fields, search, current dividers/dropdowns and auto-mirrored icons |
 
-## Responsive UI rules
+## Current navigation contract
 
-- 360 dp is the minimum supported design viewport; no primary title or bottom-navigation label may require wrapping.
-- Header text takes the remaining row width and uses one-line ellipsis when paired with actions.
-- Creation uses one dominant control per screen. A FAB is not duplicated by a masthead button.
-- Secondary workflows are collapsed by default when they would push the user's main content below the fold.
-- The measurement grid deliberately scrolls horizontally. Compressing Item, No., Length, Breadth, Height, description, photo, and row actions into 360 dp would make data entry and touch targets unsafe.
-- System numeric/text keyboards are used. No custom keypad obscures the table.
-- Length, breadth, and height remain conditional on the selected work item's UOM/formula rather than appearing active for every item.
-- Metric/Imperial conversion updates dimensions and compatible UOMs while preserving calculated measurement meaning.
+```text
+Portfolio: Projects | Directory | Work List | More
+Project:   Project  | Work      | Record    | M-Book
+Sections:  Overview | Brief     | Planning  | More
+```
+
+The project More screen contains Drawings, Site Reports, Project Team and Rate Books. Portfolio More contains Company Profile and Local Wi-Fi Portal. The obsolete portfolio Export Measurement Sheet screen is removed; M-Book owns measurement exports.
+
+## Responsive rules
+
+- 360 dp remains the minimum supported design viewport; primary labels must not wrap.
+- Each screen has one dominant creation action and one clear back path.
+- Long titles use one line with ellipsis when paired with actions.
+- Secondary workflows stay collapsed or under More until selected.
+- The measurement grid scrolls horizontally; unsafe compression is not used.
+- System numeric/text keyboards are used; keyboard Next/Done follows required cells.
+- Length, breadth and height remain conditional on the formula/UOM.
+- Metric/Imperial conversion updates compatible fields and preserves measurement meaning.
+- Row photo controls are optional and do not block saving a valid row.
+- Touch targets must remain at least 48 dp and retain accessible labels.
+- New UI must use semantic Material 3 theme roles instead of adding feature-specific colors or shapes.
 
 ## Remaining acceptance checks
 
-- Conduct field testing with a gloved user and representative high-row-count sheets.
-- Verify TalkBack traversal order and labels on every row action.
-- Verify landscape/tablet behavior and font scaling at 1.3× and 1.5×.
-- Validate photo capture, permission denial, offline restart, and draft recovery on production-class devices.
-
+- Complete hands-on field testing for high-row-count entry, duplication, photo capture, draft recovery and review transitions.
+- Verify TalkBack traversal and row-action labels.
+- Verify landscape/tablet layouts and font scaling at 1.3× and 1.5×.
+- Validate permission denial, offline restart and attachment recovery on production-class devices.
+- Add automated navigation and screenshot tests for the schema-18 hierarchy.

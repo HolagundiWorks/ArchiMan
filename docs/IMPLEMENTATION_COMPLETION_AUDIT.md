@@ -1,67 +1,67 @@
 # ArchiMan Implementation Completion Audit
 
-Audit date: 23 August 2026
-Current database target: schema 10
+- Audit updated: 4 September 2026
+- Product: ArchiMan — Architectural Consultancy Management App
+- Current database target: Room schema 19
+- Source baseline: `321fa7d` plus the current schema-19 ERP-v3 reconciliation update
+
+## Release identity
+
+| Control | Current state | Result |
+|---|---|---|
+| User-facing brand | ArchiMan and full Architectural Consultancy Management App descriptor across app, portal, exports and diagnostics | Pass |
+| Android upgrade identity | Package `com.aistudio.sitemeasure.qvtrpl` retained | Pass; intentional data-preservation decision |
+| Database identity | `site_measurement.db` retained | Pass; intentional migration compatibility |
+| Database version | Explicit migrations through schema 19, with no destructive fallback | Pass locally |
+
+## Implemented product areas
+
+| Area | Evidence in current implementation | Status |
+|---|---|---|
+| Portfolio and navigation | Projects, Directory, Work List and More; selected project uses Project, Work, Record and M-Book | Implemented |
+| Profiles | Expanded company/practice and client profiles plus project profile | Implemented through schema 19 |
+| Project brief, scope and site data | Consultancy profile, phase/stage/status, brief narratives, structured scope rows and collapsible site-data capture | Implemented foundation |
+| Project planning | Tasks, schedule and specification/selection list with quantity-only purchase-order export | Implemented foundation |
+| Site reporting | Structured meeting minutes and site inspections with optional photo | Implemented foundation |
+| Drawing control | Drawing register, immutable revision records, transmittals and markup metadata | Implemented foundation; native DWG rendering is future work |
+| Contractor and catalogue | Existing-contractor selection, standard contractor types, work hierarchy, PWD SR starter catalogue, qualification import and duplicate controls | Implemented foundation |
+| Contractor rate books | Multiple contractor-owned books, PWD item import, project assignment and immutable measurement rate/amount snapshots | Implemented foundation |
+| Measurement Book | Contractor-first selection, formula-dependent row columns, per-row descriptions/photos, duplication, drafts and metric/imperial conversion | Implemented |
+| Review and audit | Draft/Submitted/Checked/Approved/Returned workflow, review events and approved-row database locks | Implemented |
+| Local web access | Explicit, PIN-authenticated, read-only portal on the current Wi-Fi network with one-hour session timeout; support diagnostics available from the portal screen | Implemented |
+| Legacy export cleanup | Obsolete portfolio Export Measurement Sheet destination removed; M-Book remains the measurement export owner | Implemented |
+| Material 3 migration | Central theme, type/shape roles, outlined shared fields, current dividers/dropdowns and auto-mirrored icons | Implemented foundation |
 
 ## Product boundary
 
-| Requirement | Evidence | Result |
-|---|---|---|
-| No rates, amounts, bills, invoices, or payments in active product | Commercial routes/entities/APIs removed; source audit finds commercial fields only in the intentional 4→5 removal migration and its preservation test | Pass |
-| Quantity-only measurement formulas | `QuantityCalculator` is shared by canonical entry and covered by formula tests | Pass |
-| Offline-first operation | Cloud SDKs remain removed; the only network service is an explicit, PIN-authenticated, read-only server bound to local Wi-Fi | Pass |
+| Requirement | Result |
+|---|---|
+| No bills, invoices, receipts, payment collection, retention or accounting | Pass |
+| Contractor rates exist only in versioned rate books and historical measurement snapshots | Pass |
+| Offline-first local Room database; no silent cloud upload | Pass |
+| Local portal is user-started, PIN-authenticated and read-only | Pass |
+| Approval/compliance rules and jurisdiction profiles excluded | Pass |
+| Launcher, Pomodoro and calculator excluded from ArchiMan | Pass |
 
-## Canonical field workflow
+## Verification evidence
 
-| Requirement | Evidence | Result |
-|---|---|---|
-| Contractor-first selection | Canonical wizard/session requires contractor before work item | Pass |
-| Contractor-specific items and standard trades | Contractor qualifications plus versioned JSON catalog for twelve standard trade types | Pass |
-| Work type → item → formula hierarchy | Expandable Work List and persisted work types/formulas | Pass |
-| Formula-dependent columns | Canonical row editor conditionally shows No, Length, Breadth, and Height | Pass |
-| Per-row member description and optional photo | Row model, validation, managed attachment storage, and persistence tests | Pass |
-| Duplicate one or selected rows | Canonical editor row and bulk duplication with Undo | Pass |
-| System keyboard | Decimal keyboard with formula-aware Next/Done traversal | Pass |
-| Draft recovery | Session-scoped auto-save and restoration tests | Pass |
+- `testDebugUnitTest` and `assembleDebug` passed for the schema-19 branded baseline.
+- 54 automated tests completed with zero failures, including migration 18→19.
+- The product-boundary verification script passed.
+- The Material 3 APK installed and launched successfully on Samsung SM-M115F with no app-process startup error.
+- Debug APK output: `app/build/outputs/apk/debug/app-debug.apk`.
+- USB upgrade installation succeeded on the Samsung SM-M115F; app-scoped logs confirmed `DB version upgrading from 18 to 19`, the activity launched and no app-process Room/SQLite/fatal error was reported. Full field-data reconciliation and hands-on interaction remain open.
 
-## Data integrity and history
+## Remaining release acceptance
 
-| Requirement | Evidence | Result |
-|---|---|---|
-| Preserve existing measurements | Android restore plus schema-10 initialization retained six of six measurements in six linked sheets | Pass on device |
-| Sheet header/row split | Six device sheets link one-to-one to the six restored rows; all formula/UOM snapshots are populated | Pass on device |
-| Foreign-key integrity | WAL-consistent device snapshot reports zero `foreign_key_check` violations and zero orphan sheet/work-item links | Pass on device |
-| Duplicate work-item merge | Preview, canonical selection, transactional repointing, aliases, archive, and database test | Pass |
-| Review and approval | Draft/Submitted/Checked/Approved/Returned transitions, correction revisions, comments, and UI | Pass locally |
-| Immutable approved records | SQLite update/delete triggers and lock tests | Pass locally |
-| Non-destructive removal | Measurement deletion paths archive sheets and retain rows; audit event test | Pass locally |
+- [x] Install the current schema-19 APK as an in-place upgrade without clearing application data and launch it successfully.
+- [ ] Confirm `PRAGMA user_version = 19` and zero foreign-key violations on a consistent DB/WAL/SHM snapshot.
+- [ ] Verify expanded company/client profiles, project site data, Brief & Scope and current navigation on the target phone.
+- [ ] Smoke-test contractor-first entry, conditional cells, per-row description/photo, row duplication, draft recovery and unit conversion.
+- [ ] Smoke-test submit, return comment, resubmit, check, approve and approved-sheet locking.
+- [ ] Verify TalkBack, large fonts, landscape and high-row-count performance.
+- [ ] Produce a signed release build and managed backup/restore evidence before production rollout.
 
-## Operational controls
+## Decision
 
-| Requirement | Evidence | Result |
-|---|---|---|
-| Encrypted platform backup | Android backup allowlist requires client-side encryption and includes DB, attachments, and drafts | Pass for supported Android backup/device-transfer channels |
-| Backup/rollback runbook | `MIGRATION_BACKUP_AND_ROLLBACK.md` | Pass |
-| Automated build/test gate | Current `testDebugUnitTest` and `assembleDebug` pass | Pass |
-| Product-boundary regression gate | Local/CI script rejects billing features, network SDKs and outbound cleartext configuration while verifying the approved LAN permissions | Pass |
-| Privacy-safe support diagnostics | User-initiated metadata-only JSON report with explicit content exclusions and regression tests | Pass |
-| CI artifacts | Workflow retains unit-test reports and the successfully built debug APK | Pass (workflow defined; remote execution depends on repository CI) |
-| Stable USB deployment | APK installed/upgraded successfully, activity resumed, schema 10 verified, restored data retained, and fatal/Room/SQLite log audit passed | Pass |
-| Multi-user authentication, organizations, RBAC, managed sync, device management, CI/CD release service | Phase 6 platform work | Future enterprise deployment scope |
-
-## Release decision
-
-The repository and installed device are technically accepted through schema 10: installation, launch, restored-row preservation, sheet linkage, snapshots, triggers, and foreign keys are verified. Final field acceptance still requires the hands-on workflow interaction smoke test below; it is intentionally not inferred from build or database evidence.
-
-## Schema-10 device acceptance checklist
-
-- [x] `adb devices -l` shows one authorized device.
-- [x] Install the debug APK with `adb install -r` without clearing application data.
-- [x] Launch `com.aistudio.sitemeasure.qvtrpl/com.example.MainActivity` and inspect startup logs for Room migration or fatal exceptions.
-- [x] Copy the database, WAL, and SHM files together before offline inspection.
-- [x] Confirm `PRAGMA user_version` is `10` and `PRAGMA foreign_key_check` returns no rows.
-- [x] Confirm the existing measurement count is unchanged from the pre-upgrade device count of six.
-- [x] Confirm every measurement has a valid sheet link and a non-empty formula/UOM snapshot.
-- [x] Confirm the review-event table and approved-record protection triggers exist.
-- [x] Visually verify the Metric/Imperial toggle and responsive measurement-editor layout on the target phone.
-- [ ] Smoke-test contractor-first entry, formula-dependent cells, per-row description, optional photo, row duplication, draft recovery, submission, return comment, approval, and approved-sheet locking.
+The repository is technically accepted as a schema-19 development baseline: branding, navigation, schema migrations, build and automated tests pass. It is not yet marked production-released because schema-19 device migration, full interaction smoke testing and signed distribution evidence remain outstanding.

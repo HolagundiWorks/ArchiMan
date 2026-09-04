@@ -11,8 +11,14 @@ data class ClientEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val name: String,
+    val clientType: String = "Individual",
+    val contactPerson: String = "",
     val address: String = "",
+    val correspondenceAddress: String = "",
     val contactNo: String = "",
+    val email: String = "",
+    val preferredCommunication: String = "Phone",
+    val notes: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )
 
@@ -51,6 +57,16 @@ data class ProjectConsultancyProfileEntity(
     val designPreferences: String = "",
     val siteConstraints: String = "",
     val clarifications: String = "",
+    val siteDimensions: String = "",
+    val siteOrientation: String = "",
+    val siteAccess: String = "",
+    val existingConditions: String = "",
+    val surroundings: String = "",
+    val topography: String = "",
+    val utilities: String = "",
+    val existingStructures: String = "",
+    val vegetation: String = "",
+    val legalPlanningInformation: String = "",
     val updatedAt: Long = System.currentTimeMillis()
 )
 
@@ -67,20 +83,69 @@ data class ProjectScopeItemEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(
+    tableName = "project_onboarding_responses",
+    indices = [Index("projectId"), Index(value = ["projectId", "questionCode"], unique = true)]
+)
+data class ProjectOnboardingResponseEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val templateVersion: Int = 1,
+    val questionCode: String,
+    val answer: String = "",
+    val clarification: String = "",
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "project_approvals", indices = [Index("projectId"), Index("status")])
+data class ProjectApprovalEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val approvalType: String = "CLIENT",
+    val title: String,
+    val description: String = "",
+    val phase: String = "DESIGN",
+    val status: String = "PENDING",
+    val submittedAt: Long? = null,
+    val approvedAt: Long? = null,
+    val remarks: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "project_backlog", indices = [Index("projectId"), Index("status"), Index("category")])
+data class ProjectBacklogEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val category: String = "GENERAL",
+    val title: String,
+    val description: String = "",
+    val priority: String = "MEDIUM",
+    val status: String = "OPEN",
+    val phase: String = "DESIGN",
+    val dueAt: Long? = null,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "company_profile")
 data class CompanyProfileEntity(
     @PrimaryKey val id: Int = 1,
     val practiceName: String = "",
     val legalName: String = "",
+    val companyType: String = "Architecture practice",
     val address: String = "",
     val city: String = "",
     val state: String = "",
+    val country: String = "India",
     val pinCode: String = "",
     val phone: String = "",
     val email: String = "",
     val website: String = "",
+    val pan: String = "",
     val gstin: String = "",
     val coaRegistrationNumber: String = "",
+    val principalName: String = "",
+    val principalQualification: String = "",
+    val practiceRegistrationDetails: String = "",
     val logoUri: String? = null,
     val updatedAt: Long = System.currentTimeMillis()
 )

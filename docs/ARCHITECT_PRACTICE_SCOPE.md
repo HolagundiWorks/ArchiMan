@@ -1,5 +1,7 @@
 # ArchiMan Architectural Practice Scope
 
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 19, reviewed 4 September 2026.
+
 ## Product boundary
 
 ArchiMan is an offline-first Architectural Consultancy Management App with project administration and measurement-book capabilities. It is not a statutory approval portal, CAD/BIM authoring package, accounting system, billing system, or launcher.
@@ -11,6 +13,8 @@ Company/practice identity is maintained once at portfolio level. Each project ha
 The approval/compliance matrix and jurisdiction-profile proposal is explicitly excluded. Approval portals and local rules vary by authority and change independently of ArchiMan.
 
 ## Canonical project workspaces
+
+The schema-19 release implements expanded practice/client profiles, project site data, Brief & Scope, planning, measurement, contractor rate books, drawing-register foundations and site reports. Items below that require full DWG rendering, coordination workflows, enterprise identity or synchronisation are approved roadmap scope, not claims about the current APK.
 
 1. Drawings
    - DWG viewing, layers, pan, zoom and extents.

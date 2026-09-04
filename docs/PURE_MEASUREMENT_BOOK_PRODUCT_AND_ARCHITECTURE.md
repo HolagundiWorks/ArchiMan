@@ -2,14 +2,16 @@
 
 ## Product, UX, Architecture, and Delivery Specification
 
-Status: Superseded in part by the approved contractor rate-book extension
-Product boundary: Construction measurement book with contractor rate books and project-specific rate application
+Status: Current product and architecture baseline at Room schema 19, reviewed 4 September 2026
+Product boundary: Offline-first architectural consultancy management with a field Measurement Book, project administration and contractor rate books
 Explicitly out of scope: invoices, bills, retention, payments, and accounting
+
+> The legacy filename is retained so existing repository links do not break. The product is branded **ArchiMan — Architectural Consultancy Management App**, not “Pure Measurement Book.”
 ## 1. Product purpose
 
 ArchiMan is an offline-first architectural consultancy and field application for managing projects and recording, reviewing, approving, and exporting construction measurements. Its Measurement Book replaces handwritten sheets while retaining the familiar project, contractor, work type, work item, floor, member description, dimensions, quantity, and unit structure.
 
-The application is the authoritative record of measured quantities. It is not a billing or cost-management product.
+The application is the authoritative local record for project administration and measured quantities. It supports contractor rate books and immutable valuation snapshots, but it is not a billing, payment or accounting product.
 
 ## 2. Product principles
 
@@ -81,19 +83,26 @@ There will be one canonical measurement editor. Quick Entry, component entry, an
 
 ## 5. Navigation model
 
-Recommended project bottom navigation:
+Implemented portfolio navigation:
 
 ```text
-Overview | Measure | M-Book | Work List | More
+Projects | Directory | Work List | More
 ```
 
-- Overview: project status, recent sheets, floors, and shortcuts.
-- Measure: resumes the active draft or starts the canonical selection flow.
-- M-Book: searchable measurement sheets and rows.
-- Work List: contractor type -> work type -> work item -> formula hierarchy.
-- More: project setup, contractors, exports, backup, and settings.
+Implemented selected-project navigation:
 
-Project switching belongs in the top bar, not in the bottom navigation.
+```text
+Project | Work | Record | M-Book
+```
+
+- Project opens Overview, Brief, Planning and More.
+- Work opens the project work structure.
+- Record resumes the canonical contractor-first measurement workflow.
+- M-Book opens searchable, reviewable measurement sheets and rows.
+- Project More contains Drawings, Site Reports, Project Team and Rate Books.
+- Portfolio More contains Company Profile and Local Wi-Fi Portal. Measurement exports belong inside M-Book; project-specific outputs belong inside their owning workspace.
+
+Returning to the portfolio uses the selected-project header back action.
 
 ## 6. Measurement sheet UX
 
@@ -161,7 +170,7 @@ Each work item requires:
 - Aliases for duplicate detection/import
 - Active/archive status
 
-No rate or price is stored against a contractor or work item.
+A work item has no global default price. Rates are stored only in named, versioned contractor rate books and applied to projects through an explicit assignment.
 
 ## 8. Formula engine
 
@@ -208,6 +217,10 @@ The saved row records formula code, formula version, inputs, rounded quantity, a
 - `attachments`
 - `review_events`
 - `audit_events`
+- contractor rate books, rate-book rows and project assignments
+- project tasks, schedules, selections, meeting minutes and inspections
+- drawings, immutable revisions, transmittals and markup metadata
+- company profile, project profile, consultancy profile and scope items
 
 ### Required integrity rules
 

@@ -1,6 +1,7 @@
 # Updated briefs: scope reconciliation
 
 Date reviewed: 4 September 2026
+Implementation baseline: ArchiMan schema 19
 
 ## How the source files were treated
 
@@ -48,7 +49,7 @@ The files in `Updated Briefs` are product proposals and reference material. Thei
 
 ## Consolidated delivery order
 
-### A. Brief and scope foundation — started
+### A. Brief and scope foundation — implemented
 
 - Project-level consultancy profile.
 - Phase, design stage and brief review status.
@@ -84,4 +85,6 @@ The files in `Updated Briefs` are product proposals and reference material. Thei
 
 ## Current implementation note
 
-Schema 18 introduces the Brief & Scope foundation without changing measurement, drawing, contractor-rate-book or local-portal behavior. Existing project data is preserved by an explicit migration.
+Schema 18 introduced the Brief & Scope foundation. Schema 19 expands practice/client profiles and adds structured project site data without changing measurement, drawing, contractor-rate-book or local-portal behavior. Existing data is preserved by explicit migrations.
+
+The live project workspace exposes Overview, Brief, Planning and More. The accepted source-brief additions implemented in this baseline are consultancy types, project phase, design stage, brief status, narrative brief fields and structured scope/deliverable/exclusion/responsibility rows. Dynamic onboarding templates, generated brief snapshots, decision registers and role-aware collaboration remain roadmap items.

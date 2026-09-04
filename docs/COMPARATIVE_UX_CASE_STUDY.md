@@ -1,6 +1,7 @@
 # Comparative UX case study: field and construction applications
 
 Reviewed: 4 September 2026
+Applied baseline: ArchiMan schema 19
 
 ## Objective
 
@@ -53,7 +54,7 @@ Projects | Directory | Work List | More
 
 - Directory contains Clients and Contractors as two views of one shared contact directory.
 - Work List is promoted because PWD SR items, UOMs and formulae are shared master data used throughout measurement entry.
-- More contains company profile, the local Wi-Fi portal and exports.
+- More contains company profile and the local Wi-Fi portal; exports remain within the owning project workflow.
 
 ### Selected-project navigation
 
@@ -83,6 +84,14 @@ Overview | Brief | Planning | More
 - A configurable tool launcher before roles and permissions exist; premature customization makes support and training harder.
 - Automatic statutory compliance conclusions.
 - Separate location systems per feature. ArchiMan should reuse the project execution-level hierarchy.
+
+## Implemented structural result
+
+- Portfolio navigation is now Projects, Directory, Work List and More.
+- Project navigation is now Project, Work, Record and M-Book.
+- The project workspace is now Overview, Brief, Planning and More.
+- Clients and Contractors are consolidated under Directory.
+- Drawings, site reports, project team and rate books are grouped under project More.
 
 ## Next structural steps
 

@@ -1,5 +1,7 @@
 # Vishwakarma Architect OS Consolidation
 
+> Current baseline: ArchiMan schema 19. Archi Launcher remains a separate application boundary.
+
 ## Product decision
 
 ArchiMan is the authoritative construction-data application. Archi Launcher is a separate application and repository boundary. The older Vishwakarma standalone app suite remains a reference and migration source, not a second production database.
@@ -33,20 +35,23 @@ Archi Launcher application (separate project)
 └── Explicit links into ArchiMan
 ```
 
-Opening a project enters the construction workspace:
+Opening a project enters the ArchiMan project workspace:
 
 ```text
-Project Hub
+Project
 ├── Overview
+├── Brief & Scope
 ├── Planning
 │   ├── Tasks
 │   ├── Schedule
 │   └── Material Selections / Purchase Order
-├── Reports
-│   ├── Meeting Minutes
-│   └── Site Inspections
-├── Team
-└── Rate Books
+└── More
+    ├── Drawings
+    ├── Site Reports
+    │   ├── Meeting Minutes
+    │   └── Site Inspections
+    ├── Project Team
+    └── Rate Books
 ```
 
 ## Data migration policy
@@ -60,7 +65,10 @@ Project Hub
 ## Delivered foundation
 
 - Schema 15 project schedules, meeting minutes and site inspections.
-- Planning and Reports hierarchy.
+- Schema 16 drawing register, revision, transmittal and markup metadata foundation.
+- Schema 17 company and project profiles plus the PIN-authenticated local portal.
+- Schema 18 project consultancy profile and Brief & Scope register.
+- Planning and Site Reports hierarchy under the current project navigation.
 - Optional inspection photographs.
 - Existing ArchiMan selection-list purchase-order export retained.
 - Launcher, Pomodoro and calculator code removed from ArchiMan.
