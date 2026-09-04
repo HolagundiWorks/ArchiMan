@@ -40,13 +40,14 @@ class LocalPortalServerTest {
             val loginBody = "pin=${state.pin}"
             val login = request(uri.host, uri.port, "POST /login HTTP/1.1\r\nHost: ${uri.host}\r\nContent-Length: ${loginBody.length}\r\nConnection: close\r\n\r\n$loginBody")
             assertTrue(login.startsWith("HTTP/1.1 303"))
-            val cookie = Regex("Set-Cookie: (AMBSESSION=[^;]+)").find(login)?.groupValues?.get(1).orEmpty()
+            val cookie = Regex("Set-Cookie: (ARCHIMANSESSION=[^;]+)").find(login)?.groupValues?.get(1).orEmpty()
             assertTrue(cookie.isNotBlank())
 
             val open = request(uri.host, uri.port, "GET / HTTP/1.1\r\nHost: ${uri.host}\r\nCookie: $cookie\r\nConnection: close\r\n\r\n")
             assertTrue(open.startsWith("HTTP/1.1 200"))
             assertTrue(open.contains("Secret Project"))
-            assertTrue(open.contains("Local read-only portal"))
+            assertTrue(open.contains("ArchiMan"))
+            assertTrue(open.contains("Architectural Consultancy Management App"))
         } finally {
             server.close()
         }

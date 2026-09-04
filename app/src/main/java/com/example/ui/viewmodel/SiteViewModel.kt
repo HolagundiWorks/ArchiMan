@@ -12,6 +12,7 @@ import com.example.domain.WorkCatalog
 import com.example.domain.CatalogDocumentParser
 import com.example.domain.MeasurementSheetStatus
 import com.example.ui.navigation.AppScreen
+import com.example.ui.navigation.DirectorySection
 import com.example.ui.navigation.HomeTab
 import com.example.portal.LocalPortalServer
 import com.example.portal.PortalProject
@@ -51,6 +52,9 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _selectedHomeTab = MutableStateFlow(HomeTab.PROJECTS)
     val selectedHomeTab: StateFlow<HomeTab> = _selectedHomeTab.asStateFlow()
+
+    private val _selectedDirectorySection = MutableStateFlow(DirectorySection.CLIENTS)
+    val selectedDirectorySection: StateFlow<DirectorySection> = _selectedDirectorySection.asStateFlow()
 
     // Top Level Streams
     val projects: StateFlow<List<ProjectEntity>> = repository.allProjects
@@ -349,7 +353,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             val measurementCounts = measurements.value.groupingBy { it.projectId }.eachCount()
             val selectedId = selectedProjectId.value
             PortalSnapshot(
-                companyName = companyProfile.value?.practiceName?.ifBlank { "AMB" } ?: "AMB",
+                companyName = companyProfile.value?.practiceName?.ifBlank { "ArchiMan" } ?: "ArchiMan",
                 projects = projects.value.map { project ->
                     PortalProject(
                         name = project.name,
@@ -1251,6 +1255,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     // Home Tab Switching
     fun setHomeTab(tab: HomeTab) {
         _selectedHomeTab.value = tab
+    }
+
+    fun setDirectorySection(section: DirectorySection) {
+        _selectedDirectorySection.value = section
     }
 
     // Client Management

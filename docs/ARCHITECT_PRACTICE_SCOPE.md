@@ -1,14 +1,14 @@
-# AMB Architectural Practice Scope
+# ArchiMan Architectural Practice Scope
 
 ## Product boundary
 
-AMB is an offline-first architectural project administration and measurement application. It is not a statutory approval portal, CAD/BIM authoring package, accounting system, billing system, or launcher.
+ArchiMan is an offline-first Architectural Consultancy Management App with project administration and measurement-book capabilities. It is not a statutory approval portal, CAD/BIM authoring package, accounting system, billing system, or launcher.
 
-AMB may expose a read-only web portal on the phone's current local Wi-Fi network only after an explicit user action. Each session uses a newly generated PIN, binds to the Wi-Fi address, discloses no data before authentication, performs no cloud upload, and stops on user request or application teardown.
+ArchiMan may expose a read-only web portal on the phone's current local Wi-Fi network only after an explicit user action. Each session uses a newly generated PIN, binds to the Wi-Fi address, discloses no data before authentication, performs no cloud upload, and stops on user request or application teardown.
 
 Company/practice identity is maintained once at portfolio level. Each project has a separate profile containing its code, type, status, client, location, architect, programme dates and area summary. Controlled exports consume snapshots of these profiles so later edits do not rewrite historical issued documents.
 
-The approval/compliance matrix and jurisdiction-profile proposal is explicitly excluded. Approval portals and local rules vary by authority and change independently of AMB.
+The approval/compliance matrix and jurisdiction-profile proposal is explicitly excluded. Approval portals and local rules vary by authority and change independently of ArchiMan.
 
 ## Canonical project workspaces
 
@@ -41,11 +41,11 @@ The approval/compliance matrix and jurisdiction-profile proposal is explicitly e
 
 ## DWG architecture decision
 
-DWG files remain the source artefacts. AMB stores a controlled local copy, checksum, metadata and revision identity. Rendering is supplied through a `DrawingViewerEngine` boundary so the application can use a licensed native Android DWG engine without coupling project records to its API.
+DWG files remain the source artefacts. ArchiMan stores a controlled local copy, checksum, metadata and revision identity. Rendering is supplied through a `DrawingViewerEngine` boundary so the application can use a licensed native Android DWG engine without coupling project records to its API.
 
 Annotations and measurements are stored separately from the DWG using drawing-space coordinates. They never rewrite the source drawing. Each markup is tied to one drawing revision and records its author, creation time, calibration and unit.
 
-If a renderer is unavailable, AMB must clearly report that the drawing is registered but cannot be rendered. It must never display a raster/PDF derivative as though it were the authoritative DWG.
+If a renderer is unavailable, ArchiMan must clearly report that the drawing is registered but cannot be rendered. It must never display a raster/PDF derivative as though it were the authoritative DWG.
 
 ## Delivery sequence
 

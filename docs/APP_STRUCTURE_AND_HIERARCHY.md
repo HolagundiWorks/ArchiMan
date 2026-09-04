@@ -1,53 +1,63 @@
-# AMB Application Structure and Hierarchy
+# ArchiMan Application Structure and Hierarchy
 
 ## User-facing hierarchy
 
 ```text
 Portfolio
-├── Company / Practice Profile
 ├── Projects
 │   └── Selected Project
 │       ├── Project Hub
 │       │   ├── Overview
 │       │   │   └── Project Profile
-│       │   ├── Drawings
-│       │   │   ├── DWG Viewer / Markup / Measurement
-│       │   │   ├── Drawing Register / Revisions
-│       │   │   └── Transmittals
+│       │   ├── Brief / Scope
 │       │   ├── Planning
 │       │   │   ├── Tasks
 │       │   │   ├── Schedule
 │       │   │   └── Specification / Selection List
-│       │   ├── Reports
-│       │   │   ├── Meeting Minutes
-│       │   │   └── Site Inspections
-│       │   ├── Coordination
-│       │   │   ├── RFIs / Submittals / Site Instructions
-│       │   │   └── Consultants / Responsibility Matrix
-│       │   ├── Field Control
-│       │   │   ├── Daily Reports
-│       │   │   └── Snags / NCRs
-│       │   ├── Handover / As-built Package
-│       │   └── Setup
+│       │   └── More
+│       │       ├── Drawings
+│       │       │   ├── DWG Viewer / Markup / Measurement
+│       │       │   ├── Drawing Register / Revisions
+│       │       │   └── Transmittals
+│       │       ├── Site Reports
+│       │       │   ├── Meeting Minutes
+│       │       │   └── Site Inspections
 │       │       ├── Team / Contractors
-│       │       └── Contractor Rate Books
+│       │       ├── Contractor Rate Books
+│       │       ├── Coordination
+│       │       │   ├── RFIs / Submittals / Site Instructions
+│       │       │   └── Consultants / Responsibility Matrix
+│       │       ├── Field Control
+│       │       │   ├── Daily Reports
+│       │       │   └── Snags / NCRs
+│       │       └── Handover / As-built Package
 │       ├── PWD SR Work Catalogue
 │       │   └── Work Type → Work Item → Formula
 │       ├── Measurement Book
 │       │   └── Sheet → Member Row → Dimensions / Quantity → Rate Snapshot
 │       └── Record Measurement
 │           └── Contractor → Work Item → Floor → Member Rows
-├── Clients
-└── Contractors
-    └── Contractor → Type → Qualified Items → Versioned Rate Books
+├── Directory
+│   ├── Clients
+│   └── Contractors
+│       └── Contractor → Type → Qualified Items → Versioned Rate Books
+├── Work List
+│   └── PWD SR → Work Type → Work Item → UOM / Formula
+└── More
+    ├── Company / Practice Profile
+    ├── Local Wi-Fi Portal
+    └── Exports
 ```
 
 The bottom navigation represents stable hierarchy levels, not a second copy of Project Hub sections:
 
-- At portfolio level: Projects, Clients, Contractors.
-- Inside a project: Portfolio, Project Hub, PWD SR Catalogue, M-Book, Record.
-- Project Hub contains planning and setup only. M-Book and Record are not repeated inside it.
-- Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of AMB.
+- At portfolio level: Projects, Directory, Work List and More.
+- Inside a project: Project, Work, Record and M-Book. Portfolio exit uses the project header back action.
+- The project tab row contains four predictable sections: Overview, Brief, Planning and More.
+- Drawings, site reports, team and rate books are grouped under project More instead of competing for permanent tab space.
+- Company profile, the LAN portal, shared work library and exports are grouped under portfolio More instead of unlabeled header icons.
+- M-Book and Record remain persistent project actions and are not repeated inside the Overview menu.
+- Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of ArchiMan.
 
 ## Data ownership
 

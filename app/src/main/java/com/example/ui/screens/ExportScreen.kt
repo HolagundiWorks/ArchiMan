@@ -105,7 +105,7 @@ fun ExportScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "AMB",
+                            text = "AM",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.sp,

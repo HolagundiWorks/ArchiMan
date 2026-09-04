@@ -2,7 +2,7 @@
 
 ## Scope
 
-AMB is offline-first. Support and release processes must preserve that boundary: no billing, background cloud access, internet APIs, or silent data upload. A user-started, PIN-authenticated, read-only portal on the current local Wi-Fi network is permitted.
+ArchiMan is offline-first. Support and release processes must preserve that boundary: no billing, background cloud access, internet APIs, or silent data upload. A user-started, PIN-authenticated, read-only portal on the current local Wi-Fi network is permitted.
 
 ## Privacy-safe support diagnostics
 

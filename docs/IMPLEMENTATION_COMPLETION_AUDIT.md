@@ -1,4 +1,4 @@
-# AMB Pure Measurement Book Completion Audit
+# ArchiMan Implementation Completion Audit
 
 Audit date: 23 August 2026
 Current database target: schema 10

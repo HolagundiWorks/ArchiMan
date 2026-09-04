@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Accelerated Measurement Book"
+rootProject.name = "ArchiMan"
 
 include(":app")

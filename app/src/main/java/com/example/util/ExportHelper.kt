@@ -54,7 +54,7 @@ object ExportHelper {
 
     fun shareSupportDiagnostics(context: Context, report: String) {
         try {
-            val file = File(context.cacheDir, "AMB_Support_Diagnostics.json")
+            val file = File(context.cacheDir, "ArchiMan_Support_Diagnostics.json")
             FileOutputStream(file).use {
                 it.write(report.toByteArray(StandardCharsets.UTF_8))
             }
@@ -66,7 +66,7 @@ object ExportHelper {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/json"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "AMB support diagnostics")
+                putExtra(Intent.EXTRA_SUBJECT, "ArchiMan support diagnostics")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(shareIntent, "Share support diagnostics"))
@@ -102,7 +102,7 @@ object ExportHelper {
         }
 
         try {
-            val file = File(context.cacheDir, "AMB_${projectName.replace(" ", "_")}_Measurements.csv")
+            val file = File(context.cacheDir, "ArchiMan_${projectName.replace(" ", "_")}_Measurements.csv")
             FileOutputStream(file).use {
                 it.write(sb.toString().toByteArray(StandardCharsets.UTF_8))
             }
@@ -115,7 +115,7 @@ object ExportHelper {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "text/csv"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "AMB Measurement Sheet (CSV) - $projectName")
+                putExtra(Intent.EXTRA_SUBJECT, "ArchiMan Measurement Sheet (CSV) - $projectName")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(shareIntent, "Export Measurement Sheet (CSV)"))
@@ -220,7 +220,7 @@ object ExportHelper {
 
    <!-- Title Section -->
    <Row ss:Height="25">
-    <Cell ss:StyleID="sHeaderTitle"><Data ss:Type="String">ACCELERATED MEASUREMENT BOOK (AMB)</Data></Cell>
+    <Cell ss:StyleID="sHeaderTitle"><Data ss:Type="String">ARCHIMAN — ARCHITECTURAL CONSULTANCY MANAGEMENT APP</Data></Cell>
    </Row>
    <Row ss:Height="18">
     <Cell ss:StyleID="sMeta"><Data ss:Type="String">Project: $projectName | Generated: $generatedDate</Data></Cell>
@@ -311,7 +311,7 @@ object ExportHelper {
 """)
 
         try {
-            val file = File(context.cacheDir, "AMB_${projectName.replace(" ", "_")}_Measurements.xls")
+            val file = File(context.cacheDir, "ArchiMan_${projectName.replace(" ", "_")}_Measurements.xls")
             FileOutputStream(file).use {
                 it.write(sb.toString().toByteArray(StandardCharsets.UTF_8))
             }
@@ -324,7 +324,7 @@ object ExportHelper {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/vnd.ms-excel"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "AMB Measurement Sheet (Excel XLS) - $projectName")
+                putExtra(Intent.EXTRA_SUBJECT, "ArchiMan Measurement Sheet (Excel XLS) - $projectName")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(shareIntent, "Export Measurement Sheet (Excel XLS)"))
@@ -390,7 +390,7 @@ object ExportHelper {
                 paint.color = Color.rgb(15, 98, 254)
                 c.drawRect(30f, 25f, 565f, 28f, paint)
 
-                c.drawText("ACCELERATED MEASUREMENT BOOK (AMB)", 30f, 45f, titlePaint)
+                c.drawText("ARCHIMAN — ARCHITECTURAL CONSULTANCY MANAGEMENT APP", 30f, 45f, titlePaint)
                 val sdf = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
                 c.drawText("Project: $projectName | Generated: $sdf | Total Records: ${measurements.size}", 30f, 58f, subPaint)
 
@@ -505,7 +505,7 @@ object ExportHelper {
             cDrawPageFooter(canvas, pageNumber, paint, subPaint)
             pdfDocument.finishPage(page)
 
-            val file = File(context.cacheDir, "AMB_${projectName.replace(" ", "_")}_Measurement_Sheet.pdf")
+            val file = File(context.cacheDir, "ArchiMan_${projectName.replace(" ", "_")}_Measurement_Sheet.pdf")
             FileOutputStream(file).use {
                 pdfDocument.writeTo(it)
             }
@@ -520,7 +520,7 @@ object ExportHelper {
             val shareIntent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/pdf"
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "AMB Measurement Sheet (PDF) - $projectName")
+                putExtra(Intent.EXTRA_SUBJECT, "ArchiMan Measurement Sheet (PDF) - $projectName")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(shareIntent, "Export Measurement Sheet (PDF)"))
@@ -534,7 +534,7 @@ object ExportHelper {
     private fun cDrawPageFooter(canvas: Canvas, pageNumber: Int, paint: Paint, textPaint: Paint) {
         paint.color = Color.rgb(224, 224, 224)
         canvas.drawLine(30f, 810f, 565f, 810f, paint)
-        canvas.drawText("Accelerated Measurement Book (AMB) • Page $pageNumber", 30f, 825f, textPaint)
+        canvas.drawText("ArchiMan • Architectural Consultancy Management App • Page $pageNumber", 30f, 825f, textPaint)
         canvas.drawText("Confidential & Engineering Verified", 410f, 825f, textPaint)
     }
 
@@ -547,7 +547,7 @@ object ExportHelper {
         measurements: List<MeasurementEntity>
     ) {
         val html = generateMeasurementBookHtml(projectName, measurements)
-        val jobName = "AMB_${projectName.replace(" ", "_")}_${System.currentTimeMillis()}"
+        val jobName = "ArchiMan_${projectName.replace(" ", "_")}_${System.currentTimeMillis()}"
 
         val webView = WebView(context)
         webView.webViewClient = object : WebViewClient() {
@@ -623,7 +623,7 @@ object ExportHelper {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>AMB Measurement Sheet - $projectName</title>
+    <title>ArchiMan Measurement Sheet - $projectName</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #161616; padding: 25px; line-height: 1.4; font-size: 12px; }
         .header { border-bottom: 2px solid #0f62fe; padding-bottom: 10px; margin-bottom: 15px; }
@@ -641,7 +641,7 @@ object ExportHelper {
 </head>
 <body>
     <div class="header">
-        <div class="title">ACCELERATED MEASUREMENT BOOK (AMB)</div>
+        <div class="title">ARCHIMAN — ARCHITECTURAL CONSULTANCY MANAGEMENT APP</div>
         <div class="sub">Project: <strong>$projectName</strong> | Generated: <strong>$generatedDate</strong> | Total Entries: <strong>${measurements.size}</strong></div>
     </div>
 

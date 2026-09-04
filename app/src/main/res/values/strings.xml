@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">Accelerated Measurement Book</string>
+    <string name="app_name">ArchiMan</string>
+    <string name="app_full_name">ArchiMan — Architectural Consultancy Management App</string>
 </resources>

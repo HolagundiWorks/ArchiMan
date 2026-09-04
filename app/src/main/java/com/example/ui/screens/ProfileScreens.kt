@@ -126,7 +126,7 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Icon(if (state.isRunning) Icons.Default.Wifi else Icons.Default.WifiOff, null, modifier = Modifier.size(42.dp))
-            Text(if (state.isRunning) "Portal is available" else "Share AMB on this Wi-Fi", style = MaterialTheme.typography.titleLarge)
+            Text(if (state.isRunning) "Portal is available" else "Share ArchiMan on this Wi-Fi", style = MaterialTheme.typography.titleLarge)
             Text(
                 "A browser on the same local Wi-Fi can view projects and the selected project's tasks, schedule, inspections and drawings. Access is read-only and requires the PIN shown here.",
                 style = MaterialTheme.typography.bodyMedium
@@ -147,7 +147,7 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
                         }
                     }
                 }
-                Text("Keep this screen or AMB open. Stop sharing when finished. Use only on a trusted Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
+                Text("Keep this screen or ArchiMan open. Stop sharing when finished. Use only on a trusted Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
                 Button(onClick = viewModel::stopLocalPortal, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                     Text("Stop portal")
                 }

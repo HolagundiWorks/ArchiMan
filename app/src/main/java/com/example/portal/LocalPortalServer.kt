@@ -146,10 +146,10 @@ class LocalPortalServer(
             if (line.startsWith("Cookie:", true)) cookie = line.substringAfter(':').trim()
         }
         val authenticated = cookie.split(';').map(String::trim).any { entry ->
-            entry.startsWith("AMBSESSION=") && sessions.contains(entry.substringAfter('='))
+            entry.startsWith("ARCHIMANSESSION=") && sessions.contains(entry.substringAfter('='))
         }
         when {
-            method == "GET" && path == "/health" -> respond(client, 200, "text/plain; charset=utf-8", "AMB local portal")
+            method == "GET" && path == "/health" -> respond(client, 200, "text/plain; charset=utf-8", "ArchiMan local portal")
             method == "POST" && path == "/login" -> {
                 val bodyChars = CharArray(contentLength)
                 var read = 0
@@ -165,7 +165,7 @@ class LocalPortalServer(
                 if (suppliedPin == pin) {
                     val token = ByteArray(18).also(random::nextBytes).joinToString("") { "%02x".format(it) }
                     sessions += token
-                    respond(client, 303, "text/plain", "Open AMB", listOf("Location: /", "Set-Cookie: AMBSESSION=$token; HttpOnly; SameSite=Strict; Path=/"))
+                    respond(client, 303, "text/plain", "Open ArchiMan", listOf("Location: /", "Set-Cookie: ARCHIMANSESSION=$token; HttpOnly; SameSite=Strict; Path=/"))
                 } else respond(client, 401, "text/html; charset=utf-8", loginPage("Incorrect PIN"))
             }
             method != "GET" -> respond(client, 405, "text/plain", "Method not allowed")
@@ -189,21 +189,21 @@ class LocalPortalServer(
         socket.getOutputStream().apply { write(headers); write(bytes); flush() }
     }
 
-    private fun loginPage(error: String = "") = page("AMB Local Portal", """
-        <main class="login"><h1>AMB Local Portal</h1><p>Enter the six-digit PIN shown on the phone.</p>
+    private fun loginPage(error: String = "") = page("ArchiMan Local Portal", """
+        <main class="login"><h1>ArchiMan Local Portal</h1><p>Enter the six-digit PIN shown on the phone.</p>
         ${if (error.isBlank()) "" else "<p class=error>${escape(error)}</p>"}
         <form method="post" action="/login"><label>Access PIN<input name="pin" inputmode="numeric" maxlength="6" required autofocus></label><button>Open portal</button></form></main>
     """.trimIndent())
 
     private fun portalPage(snapshot: PortalSnapshot?): String {
-        if (snapshot == null) return page("AMB Local Portal", "<main><h1>AMB</h1><p>Project data is not ready.</p></main>")
+        if (snapshot == null) return page("ArchiMan Local Portal", "<main><h1>ArchiMan</h1><p>Project data is not ready.</p></main>")
         val projectRows = snapshot.projects.joinToString("") { project ->
             "<tr><td><strong>${escape(project.name)}</strong><small>${escape(project.code)}</small></td><td>${escape(project.type)}</td><td>${escape(project.client)}</td><td>${escape(project.location)}</td><td>${project.measurementCount}</td><td><span class=tag>${escape(project.status)}</span></td></tr>"
         }
         fun list(title: String, values: List<String>) = "<section><h2>${escape(title)} <span>${values.size}</span></h2>" +
             if (values.isEmpty()) "<p class=muted>No records</p></section>" else "<ul>${values.joinToString("") { "<li>${escape(it)}</li>" }}</ul></section>"
-        return page("AMB · ${snapshot.companyName}", """
-            <header><div><b>AMB</b><span>Local read-only portal</span></div><div>${escape(snapshot.companyName)}</div></header>
+        return page("ArchiMan · ${snapshot.companyName}", """
+            <header><div><b>ArchiMan</b><span>Architectural Consultancy Management App</span></div><div>${escape(snapshot.companyName)}</div></header>
             <main><h1>Projects</h1><p class=muted>Live view from the connected phone · ${formatTime(System.currentTimeMillis())}</p>
             <div class=table><table><thead><tr><th>Project</th><th>Type</th><th>Client</th><th>Location</th><th>Measurements</th><th>Status</th></tr></thead><tbody>$projectRows</tbody></table></div>
             <h1>${escape(snapshot.selectedProject ?: "Selected project")}</h1><div class=grid>

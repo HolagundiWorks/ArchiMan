@@ -70,7 +70,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                 AppScreen.CLIENTS, AppScreen.CONTRACTORS, AppScreen.COMPANY_PROFILE, AppScreen.LOCAL_PORTAL -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.EXPORT -> viewModel.navigateTo(AppScreen.HOME)
                 AppScreen.MASTER_DATA -> viewModel.navigateTo(
-                    if (selectedProjectId != null) AppScreen.PROJECT_WORKSPACE else AppScreen.HOME
+                    if (homeTab == HomeTab.MORE || selectedProjectId == null) AppScreen.HOME else AppScreen.PROJECT_WORKSPACE
                 )
                 AppScreen.REGISTER -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 AppScreen.PROJECTS -> viewModel.navigateTo(AppScreen.HOME)
@@ -79,14 +79,18 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
         }
     }
 
-    val isHomeLevel = currentScreen == AppScreen.HOME || currentScreen == AppScreen.CLIENTS || currentScreen == AppScreen.CONTRACTORS || currentScreen == AppScreen.PROJECTS || currentScreen == AppScreen.COMPANY_PROFILE || currentScreen == AppScreen.LOCAL_PORTAL
-    val isInsideProject = !isHomeLevel
+    val showPortfolioNavigation = currentScreen == AppScreen.HOME || currentScreen == AppScreen.CLIENTS || currentScreen == AppScreen.CONTRACTORS || currentScreen == AppScreen.PROJECTS
+    val showProjectNavigation = currentScreen == AppScreen.PROJECT_WORKSPACE ||
+        currentScreen == AppScreen.ROOM_WORKSPACE ||
+        currentScreen == AppScreen.MEASUREMENT_BOOK ||
+        currentScreen == AppScreen.REGISTER ||
+        (currentScreen == AppScreen.MASTER_DATA && homeTab != HomeTab.MORE)
 
     Scaffold(
         containerColor = CarbonWhite,
         bottomBar = {
-            if (isHomeLevel) {
-                // HOME PAGE BOTTOM BAR: Projects, Clients, Contractors
+            if (showPortfolioNavigation) {
+                // Portfolio navigation: primary directories plus infrequent practice tools.
                 NavigationBar(
                     containerColor = CarbonWhite,
                     tonalElevation = 0.dp,
@@ -126,19 +130,19 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         modifier = Modifier.testTag("home_nav_projects")
                     )
 
-                    // 2. Clients
+                    // 2. Shared client and contractor directory
                     NavigationBarItem(
-                        selected = homeTab == HomeTab.CLIENTS,
+                        selected = homeTab == HomeTab.DIRECTORY,
                         onClick = {
-                            viewModel.setHomeTab(HomeTab.CLIENTS)
+                            viewModel.setHomeTab(HomeTab.DIRECTORY)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.Business, contentDescription = "Clients") },
+                        icon = { Icon(Icons.Default.ContactPage, contentDescription = "Directory") },
                         label = {
                             Text(
-                                "Clients",
+                                "Directory",
                                 fontSize = 11.sp,
-                                fontWeight = if (homeTab == HomeTab.CLIENTS) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (homeTab == HomeTab.DIRECTORY) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -148,22 +152,22 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             unselectedIconColor = CarbonGray70,
                             unselectedTextColor = CarbonGray70
                         ),
-                        modifier = Modifier.testTag("home_nav_clients")
+                        modifier = Modifier.testTag("home_nav_directory")
                     )
 
-                    // 3. Contractors
+                    // 3. Shared PWD SR work, UOM and formula library
                     NavigationBarItem(
-                        selected = homeTab == HomeTab.CONTRACTORS,
+                        selected = homeTab == HomeTab.WORK_LIBRARY,
                         onClick = {
-                            viewModel.setHomeTab(HomeTab.CONTRACTORS)
+                            viewModel.setHomeTab(HomeTab.WORK_LIBRARY)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.Engineering, contentDescription = "Contractors") },
+                        icon = { Icon(Icons.Default.AccountTree, contentDescription = "Work library") },
                         label = {
                             Text(
-                                "Contractors",
+                                "Work List",
                                 fontSize = 11.sp,
-                                fontWeight = if (homeTab == HomeTab.CONTRACTORS) FontWeight.Bold else FontWeight.Normal
+                                fontWeight = if (homeTab == HomeTab.WORK_LIBRARY) FontWeight.Bold else FontWeight.Normal
                             )
                         },
                         colors = NavigationBarItemDefaults.colors(
@@ -173,11 +177,36 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             unselectedIconColor = CarbonGray70,
                             unselectedTextColor = CarbonGray70
                         ),
-                        modifier = Modifier.testTag("home_nav_contractors")
+                        modifier = Modifier.testTag("home_nav_work_library")
+                    )
+
+                    // 4. Infrequent practice tools and shared data
+                    NavigationBarItem(
+                        selected = homeTab == HomeTab.MORE,
+                        onClick = {
+                            viewModel.setHomeTab(HomeTab.MORE)
+                            viewModel.navigateTo(AppScreen.HOME)
+                        },
+                        icon = { Icon(Icons.Default.MoreHoriz, contentDescription = "More") },
+                        label = {
+                            Text(
+                                "More",
+                                fontSize = 11.sp,
+                                fontWeight = if (homeTab == HomeTab.MORE) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = CarbonBlue60,
+                            selectedTextColor = CarbonBlue60,
+                            indicatorColor = CarbonBlue10,
+                            unselectedIconColor = CarbonGray70,
+                            unselectedTextColor = CarbonGray70
+                        ),
+                        modifier = Modifier.testTag("home_nav_more")
                     )
                 }
-            } else if (currentScreen != AppScreen.DEDICATED_MEASUREMENT) {
-                // INSIDE PROJECT BOTTOM BAR: Project Hub, Contractors, M-Book, Record Measurement
+            } else if (showProjectNavigation) {
+                // Project navigation: persistent work actions. Portfolio exit remains in the header.
                 NavigationBar(
                     containerColor = CarbonWhite,
                     tonalElevation = 0.dp,
@@ -195,29 +224,15 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     val isWorkspaceActive = currentScreen == AppScreen.PROJECT_WORKSPACE || currentScreen == AppScreen.ROOM_WORKSPACE
                     val isMBookActive = currentScreen == AppScreen.MEASUREMENT_BOOK || currentScreen == AppScreen.REGISTER
                     val isWorkListActive = currentScreen == AppScreen.MASTER_DATA
-                    val isDedicatedActive = currentScreen == AppScreen.DEDICATED_MEASUREMENT
 
-                    // 1. Projects (Back to Home Projects)
-                    NavigationBarItem(
-                        selected = false,
-                        onClick = { viewModel.navigateTo(AppScreen.HOME) },
-                        icon = { Icon(Icons.Default.Home, contentDescription = "Home / Projects") },
-                        label = { Text("Home", fontSize = 11.sp) },
-                        colors = NavigationBarItemDefaults.colors(
-                            unselectedIconColor = CarbonGray70,
-                            unselectedTextColor = CarbonGray70
-                        ),
-                        modifier = Modifier.testTag("project_nav_home")
-                    )
-
-                    // 2. Project Hub / Overview
+                    // 1. Project overview
                     NavigationBarItem(
                         selected = isWorkspaceActive,
                         onClick = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) },
-                        icon = { Icon(Icons.Default.Dashboard, contentDescription = "Project Hub") },
+                        icon = { Icon(Icons.Default.Dashboard, contentDescription = "Project") },
                         label = {
                             Text(
-                                "Hub",
+                                "Project",
                                 fontSize = 11.sp,
                                 fontWeight = if (isWorkspaceActive) FontWeight.Bold else FontWeight.Normal
                             )
@@ -232,14 +247,14 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         modifier = Modifier.testTag("project_nav_hub")
                     )
 
-                    // 3. Work-item and formula library
+                    // 2. Work-item and formula library
                     NavigationBarItem(
                         selected = isWorkListActive,
                         onClick = { viewModel.navigateTo(AppScreen.MASTER_DATA) },
                         icon = { Icon(Icons.Default.AccountTree, contentDescription = "Work List") },
                         label = {
                             Text(
-                                "Work List",
+                                "Work",
                                 fontSize = 11.sp,
                                 fontWeight = if (isWorkListActive) FontWeight.Bold else FontWeight.Normal
                             )
@@ -254,7 +269,29 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         modifier = Modifier.testTag("project_nav_work_list")
                     )
 
-                    // 4. Measurement Book (M-Book)
+                    // 3. Record measurement — the primary field action.
+                    NavigationBarItem(
+                        selected = false,
+                        onClick = { showRecordMeasurementWizard = true },
+                        icon = { Icon(Icons.Default.AddCircle, contentDescription = "Record measurement") },
+                        label = {
+                            Text(
+                                "Record",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = CarbonBlue60,
+                            selectedTextColor = CarbonBlue60,
+                            indicatorColor = CarbonBlue10,
+                            unselectedIconColor = CarbonBlue60,
+                            unselectedTextColor = CarbonBlue60
+                        ),
+                        modifier = Modifier.testTag("project_nav_record_measure")
+                    )
+
+                    // 4. Measurement Book
                     NavigationBarItem(
                         selected = isMBookActive,
                         onClick = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) },
@@ -274,30 +311,6 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             unselectedTextColor = CarbonGray70
                         ),
                         modifier = Modifier.testTag("project_nav_mbook")
-                    )
-
-                    // 5. Record Measurement (Dedicated Entry Flow)
-                    NavigationBarItem(
-                        selected = isDedicatedActive,
-                        onClick = {
-                            showRecordMeasurementWizard = true
-                        },
-                        icon = { Icon(Icons.Default.Straighten, contentDescription = "Record") },
-                        label = {
-                            Text(
-                                "Record",
-                                fontSize = 11.sp,
-                                fontWeight = if (isDedicatedActive) FontWeight.Bold else FontWeight.Bold
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = CarbonBlue60,
-                            selectedTextColor = CarbonBlue60,
-                            indicatorColor = CarbonBlue10,
-                            unselectedIconColor = CarbonBlue60,
-                            unselectedTextColor = CarbonBlue60
-                        ),
-                        modifier = Modifier.testTag("project_nav_record_measure")
                     )
                 }
             }

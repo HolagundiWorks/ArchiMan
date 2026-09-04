@@ -1,4 +1,4 @@
-# Accelerated Measurement Book (AMB)
+# ArchiMan — Architectural Consultancy Management App
 
 ## Product, UX, Architecture, and Delivery Specification
 
@@ -7,7 +7,7 @@ Product boundary: Construction measurement book with contractor rate books and p
 Explicitly out of scope: invoices, bills, retention, payments, and accounting
 ## 1. Product purpose
 
-AMB is an offline-first field application for recording, reviewing, approving, and exporting construction measurements. It replaces handwritten measurement sheets while retaining the familiar project, contractor, work type, work item, floor, member description, dimensions, quantity, and unit structure.
+ArchiMan is an offline-first architectural consultancy and field application for managing projects and recording, reviewing, approving, and exporting construction measurements. Its Measurement Book replaces handwritten sheets while retaining the familiar project, contractor, work type, work item, floor, member description, dimensions, quantity, and unit structure.
 
 The application is the authoritative record of measured quantities. It is not a billing or cost-management product.
 

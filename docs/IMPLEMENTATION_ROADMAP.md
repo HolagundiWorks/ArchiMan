@@ -1,6 +1,6 @@
-# AMB Pure Measurement Book Implementation Roadmap
+# ArchiMan Implementation Roadmap
 
-> Scope extension: AMB now also covers architectural project administration. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`. A statutory approval/compliance matrix and jurisdiction profiles are not part of the product.
+> ArchiMan is an Architectural Consultancy Management App with a field-first Measurement Book. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`. A statutory approval/compliance matrix and jurisdiction profiles are not part of the product.
 
 ## Phase 0 - Scope lock and safety
 
@@ -116,7 +116,7 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 - [x] Show rate and calculated amount snapshots in the M-Book and CSV export without introducing bills or payment workflows.
 - [x] Define the canonical portfolio → project → planning/setup → measurement hierarchy and remove duplicate Record/M-Book destinations from Project Hub.
 - [x] Move application destinations out of the all-purpose ViewModel into a dedicated navigation package.
-- [x] Keep Archi Launcher, Pomodoro and calculator outside AMB as a separate application boundary.
+- [x] Keep Archi Launcher, Pomodoro and calculator outside ArchiMan as a separate application boundary.
 - [x] Add project schedules, structured meeting minutes and site inspection reports with optional photos in schema 15.
 - [x] Retain material selection and quantity-only purchase-order export under Project Planning.
 - [ ] Build a previewed, user-confirmed import from `/sdcard/Vishwakarma/os-bundle.json`; do not maintain two live project databases.
@@ -147,7 +147,7 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 - [ ] Add a versioned handover and as-built document package.
 - [ ] Add roles, offline synchronisation, immutable cross-feature audit events and tested backups.
 - [ ] Add external integrations through explicit adapters.
-- [x] Exclude approval/compliance matrices and jurisdiction profiles from AMB.
+- [x] Exclude approval/compliance matrices and jurisdiction profiles from ArchiMan.
 
 ## Updated consultancy briefs programme
 
@@ -155,6 +155,8 @@ The seven September 2026 source briefs were reconciled in `UPDATED_BRIEFS_SCOPE_
 
 - [x] Add schema-18 project consultancy profile and structured scope-register foundation.
 - [x] Add a mobile Brief & Scope project workspace for consultancy, phase, design stage, review status and core brief capture.
+- [x] Consolidate navigation into four portfolio destinations, four project actions and four primary project sections; group secondary tools under labelled More menus.
+- [x] Benchmark Autodesk, Procore, PlanRadar and Fieldwire; combine Clients/Contractors into Directory and promote the shared Work List to portfolio navigation.
 - [ ] Add versioned, project-type onboarding templates with conditional and repeatable questions.
 - [ ] Generate a reviewed project brief snapshot from onboarding responses.
 - [ ] Add reusable, versioned non-commercial consultancy templates and explicit project import.

@@ -28,6 +28,7 @@ import com.example.data.local.entity.ContractorEntity
 import com.example.data.local.entity.ProjectEntity
 import com.example.ui.theme.*
 import com.example.ui.navigation.AppScreen
+import com.example.ui.navigation.DirectorySection
 import com.example.ui.navigation.HomeTab
 import com.example.ui.viewmodel.SiteViewModel
 
@@ -41,8 +42,95 @@ fun HomeScreen(
 
     when (homeTab) {
         HomeTab.PROJECTS -> ProjectsTabContent(viewModel = viewModel, onNavigate = onNavigate)
-        HomeTab.CLIENTS -> ClientsScreen(viewModel = viewModel)
-        HomeTab.CONTRACTORS -> ContractorsScreen(viewModel = viewModel)
+        HomeTab.DIRECTORY -> PortfolioDirectoryScreen(viewModel = viewModel)
+        HomeTab.WORK_LIBRARY -> MasterDataScreen(viewModel = viewModel)
+        HomeTab.MORE -> PortfolioMoreScreen(onNavigate = onNavigate)
+    }
+}
+
+@Composable
+private fun PortfolioDirectoryScreen(viewModel: SiteViewModel) {
+    val selectedSection by viewModel.selectedDirectorySection.collectAsStateWithLifecycle()
+    Column(Modifier.fillMaxSize()) {
+        TabRow(selectedTabIndex = selectedSection.ordinal, containerColor = CarbonWhite) {
+            DirectorySection.values().forEach { section ->
+                Tab(
+                    selected = section == selectedSection,
+                    onClick = { viewModel.setDirectorySection(section) },
+                    text = { Text(section.label, fontWeight = if (section == selectedSection) FontWeight.Bold else FontWeight.Medium) },
+                    icon = {
+                        Icon(
+                            if (section == DirectorySection.CLIENTS) Icons.Default.Business else Icons.Default.Engineering,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                )
+            }
+        }
+        Box(Modifier.weight(1f)) {
+            when (selectedSection) {
+                DirectorySection.CLIENTS -> ClientsScreen(viewModel = viewModel)
+                DirectorySection.CONTRACTORS -> ContractorsScreen(viewModel = viewModel)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PortfolioMoreScreen(onNavigate: (AppScreen) -> Unit) {
+    Scaffold(
+        containerColor = CarbonWhite,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text("More", fontWeight = FontWeight.Bold)
+                        Text("Practice tools and shared data", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            item { Text("PRACTICE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
+            item { PortfolioToolRow("Company profile", "Practice identity used in reports and documents", Icons.Default.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
+            item { PortfolioToolRow("Local Wi-Fi portal", "Share a read-only project view on this Wi-Fi", Icons.Default.Wifi) { onNavigate(AppScreen.LOCAL_PORTAL) } }
+            item { Spacer(Modifier.height(4.dp)); Text("OUTPUT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
+            item { PortfolioToolRow("Exports", "Measurement quantities and project outputs", Icons.Default.IosShare) { onNavigate(AppScreen.EXPORT) } }
+        }
+    }
+}
+
+@Composable
+private fun PortfolioToolRow(
+    title: String,
+    supportingText: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = CarbonWhite,
+        border = BorderStroke(1.dp, CarbonGray20),
+        shape = RoundedCornerShape(4.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+    ) {
+        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp).background(CarbonBlue10, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(21.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, fontWeight = FontWeight.SemiBold, color = CarbonGray100)
+                Text(supportingText, style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+            }
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CarbonGray60)
+        }
     }
 }
 
@@ -108,7 +196,7 @@ fun ProjectsTabContent(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "AMB",
+                                text = "AM",
                                 color = CarbonWhite,
                                 fontWeight = FontWeight.Black,
                                 fontSize = 13.sp,
@@ -118,10 +206,17 @@ fun ProjectsTabContent(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Measurement Book",
+                                text = "ArchiMan",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = CarbonGray100,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = "Architectural Consultancy Management App",
+                                fontSize = 9.sp,
+                                color = CarbonGray70,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -136,52 +231,6 @@ fun ProjectsTabContent(
                         }
                     }
 
-                    // Quick Actions
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        IconButton(
-                            onClick = { onNavigate(AppScreen.COMPANY_PROFILE) },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
-                                .testTag("btn_company_profile")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Domain,
-                                contentDescription = "Company profile",
-                                tint = CarbonGray80,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        IconButton(
-                            onClick = { viewModel.navigateTo(AppScreen.MASTER_DATA) },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
-                                .testTag("btn_top_items")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Category,
-                                contentDescription = "Items Library",
-                                tint = CarbonGray80,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        IconButton(
-                            onClick = { viewModel.navigateTo(AppScreen.EXPORT) },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
-                                .testTag("btn_top_export")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.IosShare,
-                                contentDescription = "Export & Quantities",
-                                tint = CarbonGray80,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -291,11 +340,13 @@ fun ProjectsTabContent(
             onDismiss = { showCreateProjectDialog = false },
             onNavigateToClients = {
                 showCreateProjectDialog = false
-                viewModel.setHomeTab(HomeTab.CLIENTS)
+                viewModel.setDirectorySection(DirectorySection.CLIENTS)
+                viewModel.setHomeTab(HomeTab.DIRECTORY)
             },
             onNavigateToContractors = {
                 showCreateProjectDialog = false
-                viewModel.setHomeTab(HomeTab.CONTRACTORS)
+                viewModel.setDirectorySection(DirectorySection.CONTRACTORS)
+                viewModel.setHomeTab(HomeTab.DIRECTORY)
             },
             onCreate = { name, clientName, clientId, location, floorsList, selectedContractorIds ->
                 viewModel.addProjectWithClientAndContractors(

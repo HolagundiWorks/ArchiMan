@@ -4,7 +4,7 @@ Date reviewed: 4 September 2026
 
 ## How the source files were treated
 
-The files in `Updated Briefs` are product proposals and reference material. Their implementation directives do not override the current AMB architecture, the existing product boundary, or prior user decisions.
+The files in `Updated Briefs` are product proposals and reference material. Their implementation directives do not override the current ArchiMan architecture, the existing product boundary, or prior user decisions.
 
 `Architecture Consultancy App (3).md` and `Architecture Consultancy App (4).md` are byte-for-byte duplicates. They are one proposal, not two requirements.
 
@@ -21,7 +21,7 @@ The files in `Updated Briefs` are product proposals and reference material. Thei
    - A project brief with objectives, space/functional requirements, design preferences, known constraints and clarifications.
    - Review states: Not started, In progress, Under review, Clarification required and Approved.
    - Later expansion to project-type onboarding templates, repeatable spaces and conditional questions.
-   - Regulatory/site information is recorded as supplied or known information; AMB does not certify compliance automatically.
+   - Regulatory/site information is recorded as supplied or known information; ArchiMan does not certify compliance automatically.
 
 3. Consultancy scope control
    - Structured scope, deliverables, exclusions and responsibility items.
@@ -39,9 +39,9 @@ The files in `Updated Briefs` are product proposals and reference material. Thei
 
 ## Excluded or deferred proposals
 
-- Consultancy fees, GST/tax engines, invoices, receipts, payments, outstanding amounts and accounts are excluded. AMB has contractor rate books for measurement valuation, but it is not a billing or accounting product.
+- Consultancy fees, GST/tax engines, invoices, receipts, payments, outstanding amounts and accounts are excluded. ArchiMan has contractor rate books for measurement valuation, but it is not a billing or accounting product.
 - Automated statutory approval/compliance rules, jurisdiction profiles and claims of legal confirmation remain excluded.
-- WordPress as the application shell and Supabase as the mandatory database are rejected for the current product. AMB remains an Android, Room/SQLite, offline-first application.
+- WordPress as the application shell and Supabase as the mandatory database are rejected for the current product. ArchiMan remains an Android, Room/SQLite, offline-first application.
 - A PostgreSQL office-server migration, cloud synchronization, client cloud portal and Supabase storage are separate architecture decisions requiring an explicit future approval and migration plan.
 - Agreement generation and commercial variations are deferred. Non-commercial scope snapshots can later support document generation without adding finance.
 - A hard maximum of five users is not a domain rule and will not be embedded in the data model.

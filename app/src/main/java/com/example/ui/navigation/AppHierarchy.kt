@@ -20,6 +20,12 @@ enum class AppScreen(val title: String) {
 /** Top-level portfolio directories. Project-specific features live below a selected project. */
 enum class HomeTab(val label: String) {
     PROJECTS("Projects"),
+    DIRECTORY("Directory"),
+    WORK_LIBRARY("Work Library"),
+    MORE("More")
+}
+
+enum class DirectorySection(val label: String) {
     CLIENTS("Clients"),
     CONTRACTORS("Contractors")
 }
