@@ -116,6 +116,18 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { it?.let(repository::getSiteInspections) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val projectDrawings: StateFlow<List<ProjectDrawingEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectDrawings) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val drawingRevisions: StateFlow<List<DrawingRevisionEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getDrawingRevisions) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val drawingTransmittals: StateFlow<List<DrawingTransmittalEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getDrawingTransmittals) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val projectRateBookAssignments: StateFlow<List<ProjectRateBookAssignmentEntity>> = selectedProjectId
         .flatMapLatest { it?.let(repository::getProjectRateBookAssignments) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -348,6 +360,75 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteSiteInspection(item: SiteInspectionEntity) {
         viewModelScope.launch(Dispatchers.IO) { repository.deleteSiteInspection(item) }
+    }
+
+    fun registerDrawing(
+        drawingNumber: String,
+        title: String,
+        discipline: String,
+        revisionCode: String,
+        fileName: String,
+        mimeType: String,
+        fileUri: String,
+        issueStatus: String,
+        revisionNotes: String,
+        isAsBuilt: Boolean
+    ) {
+        val projectId = selectedProjectId.value ?: return
+        if (drawingNumber.isBlank() || title.isBlank() || revisionCode.isBlank() || fileUri.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.createDrawingWithRevision(
+                ProjectDrawingEntity(
+                    projectId = projectId,
+                    drawingNumber = drawingNumber.trim(),
+                    title = title.trim(),
+                    discipline = discipline.trim().ifBlank { "Architectural" },
+                    status = issueStatus
+                ),
+                DrawingRevisionEntity(
+                    projectId = projectId,
+                    drawingId = 0,
+                    revisionCode = revisionCode.trim(),
+                    fileName = fileName,
+                    mimeType = mimeType,
+                    fileUri = fileUri,
+                    issueStatus = issueStatus,
+                    revisionNotes = revisionNotes.trim(),
+                    isAsBuilt = isAsBuilt,
+                    issuedAt = if (issueStatus == "WIP") null else System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun addDrawingRevision(
+        drawing: ProjectDrawingEntity,
+        revisionCode: String,
+        fileName: String,
+        mimeType: String,
+        fileUri: String,
+        issueStatus: String,
+        revisionNotes: String,
+        isAsBuilt: Boolean
+    ) {
+        if (revisionCode.isBlank() || fileUri.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertDrawingRevision(
+                DrawingRevisionEntity(
+                    projectId = drawing.projectId,
+                    drawingId = drawing.id,
+                    revisionCode = revisionCode.trim(),
+                    fileName = fileName,
+                    mimeType = mimeType,
+                    fileUri = fileUri,
+                    issueStatus = issueStatus,
+                    revisionNotes = revisionNotes.trim(),
+                    isAsBuilt = isAsBuilt,
+                    issuedAt = if (issueStatus == "WIP") null else System.currentTimeMillis()
+                )
+            )
+            repository.updateProjectDrawing(drawing.copy(status = issueStatus, updatedAt = System.currentTimeMillis()))
+        }
     }
 
     fun createRateBook(contractorId: Long, name: String, version: Int = 1, onComplete: (Long) -> Unit = {}) {

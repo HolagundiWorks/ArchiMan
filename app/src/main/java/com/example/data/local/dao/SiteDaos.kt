@@ -328,6 +328,31 @@ interface SiteInspectionDao {
 }
 
 @Dao
+interface DrawingDao {
+    @Query("SELECT * FROM project_drawings WHERE projectId=:projectId AND archivedAt IS NULL ORDER BY discipline, drawingNumber")
+    fun getDrawings(projectId: Long): Flow<List<ProjectDrawingEntity>>
+
+    @Query("SELECT * FROM drawing_revisions WHERE projectId=:projectId ORDER BY createdAt DESC, id DESC")
+    fun getRevisions(projectId: Long): Flow<List<DrawingRevisionEntity>>
+
+    @Query("SELECT * FROM drawing_transmittals WHERE projectId=:projectId ORDER BY issuedAt DESC, id DESC")
+    fun getTransmittals(projectId: Long): Flow<List<DrawingTransmittalEntity>>
+
+    @Query("SELECT * FROM drawing_transmittal_items WHERE transmittalId=:transmittalId ORDER BY id")
+    fun getTransmittalItems(transmittalId: Long): Flow<List<DrawingTransmittalItemEntity>>
+
+    @Query("SELECT * FROM drawing_markups WHERE drawingRevisionId=:revisionId AND deletedAt IS NULL ORDER BY createdAt, id")
+    fun getMarkups(revisionId: Long): Flow<List<DrawingMarkupEntity>>
+
+    @Insert suspend fun insertDrawing(item: ProjectDrawingEntity): Long
+    @Update suspend fun updateDrawing(item: ProjectDrawingEntity)
+    @Insert suspend fun insertRevision(item: DrawingRevisionEntity): Long
+    @Insert suspend fun insertTransmittal(item: DrawingTransmittalEntity): Long
+    @Insert suspend fun insertTransmittalItems(items: List<DrawingTransmittalItemEntity>)
+    @Insert suspend fun insertMarkup(item: DrawingMarkupEntity): Long
+}
+
+@Dao
 interface MeasurementDao {
     @Query("SELECT * FROM measurements ORDER BY date DESC, id DESC")
     fun getAllMeasurements(): Flow<List<MeasurementEntity>>

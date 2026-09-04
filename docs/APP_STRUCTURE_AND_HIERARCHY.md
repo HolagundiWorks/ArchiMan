@@ -8,6 +8,10 @@ Portfolio
 │   └── Selected Project
 │       ├── Project Hub
 │       │   ├── Overview
+│       │   ├── Drawings
+│       │   │   ├── DWG Viewer / Markup / Measurement
+│       │   │   ├── Drawing Register / Revisions
+│       │   │   └── Transmittals
 │       │   ├── Planning
 │       │   │   ├── Tasks
 │       │   │   ├── Schedule
@@ -15,6 +19,13 @@ Portfolio
 │       │   ├── Reports
 │       │   │   ├── Meeting Minutes
 │       │   │   └── Site Inspections
+│       │   ├── Coordination
+│       │   │   ├── RFIs / Submittals / Site Instructions
+│       │   │   └── Consultants / Responsibility Matrix
+│       │   ├── Field Control
+│       │   │   ├── Daily Reports
+│       │   │   └── Snags / NCRs
+│       │   ├── Handover / As-built Package
 │       │   └── Setup
 │       │       ├── Team / Contractors
 │       │       └── Contractor Rate Books

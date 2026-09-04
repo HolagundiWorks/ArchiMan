@@ -16,7 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-const val DATABASE_SCHEMA_VERSION = 15
+const val DATABASE_SCHEMA_VERSION = 16
 
 @Database(
     entities = [
@@ -27,6 +27,11 @@ const val DATABASE_SCHEMA_VERSION = 15
         ProjectScheduleEntity::class,
         MeetingMinutesEntity::class,
         SiteInspectionEntity::class,
+        ProjectDrawingEntity::class,
+        DrawingRevisionEntity::class,
+        DrawingTransmittalEntity::class,
+        DrawingTransmittalItemEntity::class,
+        DrawingMarkupEntity::class,
         FloorEntity::class,
         RoomEntity::class,
         ComponentEntity::class,
@@ -54,6 +59,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun projectScheduleDao(): ProjectScheduleDao
     abstract fun meetingMinutesDao(): MeetingMinutesDao
     abstract fun siteInspectionDao(): SiteInspectionDao
+    abstract fun drawingDao(): DrawingDao
     abstract fun floorDao(): FloorDao
     abstract fun roomDao(): RoomDao
     abstract fun componentDao(): ComponentDao
@@ -77,11 +83,12 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         installSheetLockTriggers(db)
+                        installDocumentControlTriggers(db)
                         // Seed predefined items & structure
                         CoroutineScope(Dispatchers.IO).launch {
                             getDatabase(context).seedPredefinedData()
@@ -324,6 +331,29 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE project_drawings (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `drawingNumber` TEXT NOT NULL, `title` TEXT NOT NULL, `discipline` TEXT NOT NULL, `status` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `archivedAt` INTEGER)")
+                db.execSQL("CREATE INDEX index_project_drawings_projectId ON project_drawings(projectId)")
+                db.execSQL("CREATE UNIQUE INDEX index_project_drawings_projectId_drawingNumber ON project_drawings(projectId,drawingNumber)")
+                db.execSQL("CREATE TABLE drawing_revisions (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `drawingId` INTEGER NOT NULL, `revisionCode` TEXT NOT NULL, `fileName` TEXT NOT NULL, `mimeType` TEXT NOT NULL, `fileUri` TEXT NOT NULL, `fileChecksum` TEXT NOT NULL, `issueStatus` TEXT NOT NULL, `revisionNotes` TEXT NOT NULL, `isAsBuilt` INTEGER NOT NULL, `issuedAt` INTEGER, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_drawing_revisions_projectId ON drawing_revisions(projectId)")
+                db.execSQL("CREATE INDEX index_drawing_revisions_drawingId ON drawing_revisions(drawingId)")
+                db.execSQL("CREATE UNIQUE INDEX index_drawing_revisions_drawingId_revisionCode ON drawing_revisions(drawingId,revisionCode)")
+                db.execSQL("CREATE TABLE drawing_transmittals (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `transmittalNumber` TEXT NOT NULL, `subject` TEXT NOT NULL, `recipients` TEXT NOT NULL, `purpose` TEXT NOT NULL, `notes` TEXT NOT NULL, `issuedAt` INTEGER NOT NULL, `acknowledgedAt` INTEGER)")
+                db.execSQL("CREATE INDEX index_drawing_transmittals_projectId ON drawing_transmittals(projectId)")
+                db.execSQL("CREATE UNIQUE INDEX index_drawing_transmittals_projectId_transmittalNumber ON drawing_transmittals(projectId,transmittalNumber)")
+                db.execSQL("CREATE TABLE drawing_transmittal_items (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `transmittalId` INTEGER NOT NULL, `drawingRevisionId` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX index_drawing_transmittal_items_transmittalId ON drawing_transmittal_items(transmittalId)")
+                db.execSQL("CREATE INDEX index_drawing_transmittal_items_drawingRevisionId ON drawing_transmittal_items(drawingRevisionId)")
+                db.execSQL("CREATE UNIQUE INDEX index_drawing_transmittal_items_transmittalId_drawingRevisionId ON drawing_transmittal_items(transmittalId,drawingRevisionId)")
+                db.execSQL("CREATE TABLE drawing_markups (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `drawingRevisionId` INTEGER NOT NULL, `markupType` TEXT NOT NULL, `geometryJson` TEXT NOT NULL, `styleJson` TEXT NOT NULL, `measurementValue` REAL, `measurementUnit` TEXT, `calibrationJson` TEXT, `authorId` INTEGER, `createdAt` INTEGER NOT NULL, `deletedAt` INTEGER)")
+                db.execSQL("CREATE INDEX index_drawing_markups_drawingRevisionId ON drawing_markups(drawingRevisionId)")
+                db.execSQL("CREATE INDEX index_drawing_markups_createdAt ON drawing_markups(createdAt)")
+                installDocumentControlTriggers(db)
+            }
+        }
+
         private fun installPwdCatalog(db: SupportSQLiteDatabase) {
             PREDEFINED_ITEMS.filter { it.sourceName.isNotBlank() }.forEach { item ->
                 val workType = item.workType.ifBlank { WorkCatalog.classify("Civil", item.name) }
@@ -348,6 +378,13 @@ abstract class AppDatabase : RoomDatabase() {
             db.execSQL("CREATE TRIGGER IF NOT EXISTS lock_approved_measurement_delete BEFORE DELETE ON measurements WHEN (SELECT status FROM measurement_sheets WHERE id=OLD.sheetId)='APPROVED' BEGIN SELECT RAISE(ABORT, 'Approved measurement sheets are immutable'); END")
             db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_review_event_update BEFORE UPDATE ON measurement_review_events BEGIN SELECT RAISE(ABORT, 'Review events are immutable'); END")
             db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_review_event_delete BEFORE DELETE ON measurement_review_events BEGIN SELECT RAISE(ABORT, 'Review events are immutable'); END")
+        }
+
+        private fun installDocumentControlTriggers(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_drawing_revision_update BEFORE UPDATE ON drawing_revisions BEGIN SELECT RAISE(ABORT, 'Drawing revisions are immutable'); END")
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_drawing_revision_delete BEFORE DELETE ON drawing_revisions BEGIN SELECT RAISE(ABORT, 'Drawing revisions are immutable'); END")
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_transmittal_item_update BEFORE UPDATE ON drawing_transmittal_items BEGIN SELECT RAISE(ABORT, 'Issued transmittal contents are immutable'); END")
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_transmittal_item_delete BEFORE DELETE ON drawing_transmittal_items BEGIN SELECT RAISE(ABORT, 'Issued transmittal contents are immutable'); END")
         }
     }
 

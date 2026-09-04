@@ -1,0 +1,89 @@
+# AMB Architectural Practice Scope
+
+## Product boundary
+
+AMB is an offline-first architectural project administration and measurement application. It is not a statutory approval portal, CAD/BIM authoring package, accounting system, billing system, or launcher.
+
+The approval/compliance matrix and jurisdiction-profile proposal is explicitly excluded. Approval portals and local rules vary by authority and change independently of AMB.
+
+## Canonical project workspaces
+
+1. Drawings
+   - DWG viewing, layers, pan, zoom and extents.
+   - Non-destructive annotations and calibrated distance, area and angle measurements.
+   - Drawing register, immutable revisions, issue status and as-built classification.
+   - Transmittals with recipients, purpose, included revisions and acknowledgement.
+2. Coordination
+   - RFI register and responses.
+   - Submittals and shop-drawing review.
+   - Numbered site instructions and compliance evidence.
+   - Consultant directory, disciplines and responsibility matrix.
+3. Field
+   - Daily progress reports.
+   - Snags, defects and NCRs with assignment, before/after evidence and verified closure.
+   - Existing inspections, meeting minutes and Measurement Book.
+4. Programme
+   - Activities, milestones, dependencies, baseline and current dates.
+   - Progress updates, look-ahead view and delay reasons.
+5. Handover
+   - As-built drawing set.
+   - O&M manuals, warranties, test certificates, asset/key schedules and completion checklist.
+   - Versioned exportable handover package with a manifest.
+6. Platform
+   - Organisation/project roles and least-privilege permissions.
+   - Offline-first change queue, explicit conflict resolution and device registration.
+   - Append-only audit events, encrypted backups and tested restore.
+   - External storage, email/calendar, signature and CAD-engine adapters.
+
+## DWG architecture decision
+
+DWG files remain the source artefacts. AMB stores a controlled local copy, checksum, metadata and revision identity. Rendering is supplied through a `DrawingViewerEngine` boundary so the application can use a licensed native Android DWG engine without coupling project records to its API.
+
+Annotations and measurements are stored separately from the DWG using drawing-space coordinates. They never rewrite the source drawing. Each markup is tied to one drawing revision and records its author, creation time, calibration and unit.
+
+If a renderer is unavailable, AMB must clearly report that the drawing is registered but cannot be rendered. It must never display a raster/PDF derivative as though it were the authoritative DWG.
+
+## Delivery sequence
+
+### Phase A - Controlled documents
+
+- Drawing register and revision intake.
+- File checksum, managed storage and duplicate detection.
+- Transmittals and revision-aware issue history.
+- Viewer-engine contract and capability reporting.
+
+### Phase B - DWG review
+
+- Native DWG rendering integration.
+- Layer visibility, pan, zoom, fit/extents and sheet/model-space selection.
+- Calibrated distance, polyline length, area and angle measurements.
+- Pins, clouds, arrows, freehand, text and colour-coded annotation layers.
+- Export a flattened review PDF while retaining editable markups.
+
+### Phase C - Construction administration
+
+- RFI, submittal and site-instruction workflows linked to drawing revisions and locations.
+- Daily reports, snagging and NCR verified closure.
+- Consultant directory and responsibility matrix.
+
+### Phase D - Delivery control
+
+- Dependency-aware programme and progress reporting.
+- Handover register and as-built package.
+
+### Phase E - Enterprise platform
+
+- Roles and permissions.
+- Offline synchronisation and explicit conflict handling.
+- Immutable organisation-wide audit trail, encrypted backup and restore drills.
+- External integrations through replaceable adapters.
+
+## Non-negotiable record rules
+
+- A drawing revision is immutable after it is issued.
+- A transmittal references exact revisions, never only a drawing number.
+- An RFI or instruction retains the drawing revision that was current when it was raised.
+- Closing a snag or NCR requires rectification evidence and independent verification.
+- Historical programme baselines and progress updates are append-only.
+- An as-built package is a versioned manifest, not an untracked folder export.
+- Synchronisation never silently resolves competing edits to controlled records.

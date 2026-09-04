@@ -1,5 +1,7 @@
 # AMB Pure Measurement Book Implementation Roadmap
 
+> Scope extension: AMB now also covers architectural project administration. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`. A statutory approval/compliance matrix and jurisdiction profiles are not part of the product.
+
 ## Phase 0 - Scope lock and safety
 
 Status: Completed.
@@ -135,3 +137,13 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 - [ ] Expand the curated PWD SR starter catalogue into a complete, edition-controlled official dataset after source-by-source validation.
 - [ ] Add rate-book clone/revision, publish/retire lifecycle, effective-date controls, and an assignment history screen.
 - [ ] Add an impact preview before changing a project's applicable rate book; historical measurement snapshots must remain unchanged.
+- [ ] Add controlled DWG intake, drawing register, immutable revisions and transmittals.
+- [ ] Integrate a native DWG viewer behind a replaceable engine boundary; add non-destructive annotation and calibrated measurement overlays.
+- [ ] Add revision-linked RFIs, submittals and numbered site instructions.
+- [ ] Add daily reports, snagging and NCR evidence/verification closure.
+- [ ] Add consultant coordination and a responsibility matrix.
+- [ ] Replace the simple schedule with programme dependencies, baselines and progress updates.
+- [ ] Add a versioned handover and as-built document package.
+- [ ] Add roles, offline synchronisation, immutable cross-feature audit events and tested backups.
+- [ ] Add external integrations through explicit adapters.
+- [x] Exclude approval/compliance matrices and jurisdiction profiles from AMB.

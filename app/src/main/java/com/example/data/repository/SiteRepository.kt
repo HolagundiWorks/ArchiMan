@@ -48,6 +48,22 @@ class SiteRepository(private val database: AppDatabase) {
     suspend fun updateSiteInspection(item: SiteInspectionEntity) = database.siteInspectionDao().update(item)
     suspend fun deleteSiteInspection(item: SiteInspectionEntity) = database.siteInspectionDao().delete(item)
 
+    fun getProjectDrawings(projectId: Long) = database.drawingDao().getDrawings(projectId)
+    fun getDrawingRevisions(projectId: Long) = database.drawingDao().getRevisions(projectId)
+    fun getDrawingTransmittals(projectId: Long) = database.drawingDao().getTransmittals(projectId)
+    suspend fun insertProjectDrawing(item: ProjectDrawingEntity) = database.drawingDao().insertDrawing(item)
+    suspend fun updateProjectDrawing(item: ProjectDrawingEntity) = database.drawingDao().updateDrawing(item)
+    suspend fun insertDrawingRevision(item: DrawingRevisionEntity) = database.drawingDao().insertRevision(item)
+    suspend fun insertDrawingTransmittal(item: DrawingTransmittalEntity) = database.drawingDao().insertTransmittal(item)
+    suspend fun insertDrawingTransmittalItems(items: List<DrawingTransmittalItemEntity>) = database.drawingDao().insertTransmittalItems(items)
+
+    suspend fun createDrawingWithRevision(drawing: ProjectDrawingEntity, revision: DrawingRevisionEntity): Long =
+        database.withTransaction {
+            val drawingId = database.drawingDao().insertDrawing(drawing)
+            database.drawingDao().insertRevision(revision.copy(drawingId = drawingId))
+            drawingId
+        }
+
     // Client operations
     suspend fun insertClient(client: ClientEntity): Long =
         database.clientDao().insertClient(client)

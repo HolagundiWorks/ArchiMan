@@ -164,6 +164,77 @@ data class SiteInspectionEntity(
     val photoUri: String? = null,
     val createdAt: Long = System.currentTimeMillis()
 )
+
+@Entity(
+    tableName = "project_drawings",
+    indices = [Index("projectId"), Index(value = ["projectId", "drawingNumber"], unique = true)]
+)
+data class ProjectDrawingEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val drawingNumber: String,
+    val title: String,
+    val discipline: String = "Architectural",
+    val status: String = "WORKING",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val archivedAt: Long? = null
+)
+
+@Entity(
+    tableName = "drawing_revisions",
+    indices = [Index("projectId"), Index("drawingId"), Index(value = ["drawingId", "revisionCode"], unique = true)]
+)
+data class DrawingRevisionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val drawingId: Long,
+    val revisionCode: String,
+    val fileName: String,
+    val mimeType: String = "application/acad",
+    val fileUri: String,
+    val fileChecksum: String = "",
+    val issueStatus: String = "WIP",
+    val revisionNotes: String = "",
+    val isAsBuilt: Boolean = false,
+    val issuedAt: Long? = null,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "drawing_transmittals", indices = [Index("projectId"), Index(value = ["projectId", "transmittalNumber"], unique = true)])
+data class DrawingTransmittalEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val transmittalNumber: String,
+    val subject: String,
+    val recipients: String,
+    val purpose: String = "FOR_INFORMATION",
+    val notes: String = "",
+    val issuedAt: Long = System.currentTimeMillis(),
+    val acknowledgedAt: Long? = null
+)
+
+@Entity(tableName = "drawing_transmittal_items", indices = [Index("transmittalId"), Index("drawingRevisionId"), Index(value = ["transmittalId", "drawingRevisionId"], unique = true)])
+data class DrawingTransmittalItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val transmittalId: Long,
+    val drawingRevisionId: Long
+)
+
+@Entity(tableName = "drawing_markups", indices = [Index("drawingRevisionId"), Index("createdAt")])
+data class DrawingMarkupEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val drawingRevisionId: Long,
+    val markupType: String,
+    val geometryJson: String,
+    val styleJson: String = "{}",
+    val measurementValue: Double? = null,
+    val measurementUnit: String? = null,
+    val calibrationJson: String? = null,
+    val authorId: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val deletedAt: Long? = null
+)
 @Entity(
     tableName = "contractor_qualified_items",
     indices = [Index(value = ["contractorId", "itemName"], unique = true)]

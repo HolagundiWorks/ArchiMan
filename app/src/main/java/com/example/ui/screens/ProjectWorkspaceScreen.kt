@@ -47,6 +47,7 @@ import java.util.*
 
 enum class ProjectHubSection(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector) {
     OVERVIEW("Overview", Icons.Default.Dashboard),
+    DRAWINGS("Drawings", Icons.Default.Architecture),
     PLANNING("Planning", Icons.Default.EventNote),
     REPORTS("Reports", Icons.Default.Assignment),
     CONTRACTORS("Team", Icons.Default.Engineering),
@@ -72,6 +73,9 @@ fun ProjectWorkspaceScreen(
     val schedules by viewModel.projectSchedules.collectAsStateWithLifecycle()
     val meetingMinutes by viewModel.meetingMinutes.collectAsStateWithLifecycle()
     val siteInspections by viewModel.siteInspections.collectAsStateWithLifecycle()
+    val projectDrawings by viewModel.projectDrawings.collectAsStateWithLifecycle()
+    val drawingRevisions by viewModel.drawingRevisions.collectAsStateWithLifecycle()
+    val drawingTransmittals by viewModel.drawingTransmittals.collectAsStateWithLifecycle()
     val rateBooks by viewModel.rateBooks.collectAsStateWithLifecycle()
     val rateBookAssignments by viewModel.projectRateBookAssignments.collectAsStateWithLifecycle()
 
@@ -298,6 +302,7 @@ fun ProjectWorkspaceScreen(
                     onOpenMBook = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) },
                     onRecord = { viewModel.openCanonicalMeasurement() }
                 )
+                ProjectHubSection.DRAWINGS -> DrawingRegisterScreen(viewModel, projectDrawings, drawingRevisions, drawingTransmittals)
                 ProjectHubSection.PLANNING -> ProjectPlanningScreen(viewModel, projectTasks, schedules, selectionItems, currentProject)
                 ProjectHubSection.REPORTS -> ProjectReportsScreen(viewModel, meetingMinutes, siteInspections)
                 ProjectHubSection.CONTRACTORS -> {
