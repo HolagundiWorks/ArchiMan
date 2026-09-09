@@ -1,6 +1,6 @@
 # ArchiMan Architectural Practice Scope
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 4 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 9 September 2026.
 
 ## Product boundary
 
@@ -45,7 +45,7 @@ The schema-21 release implements expanded practice/client profiles, project site
 
 ## DWG architecture decision
 
-DWG files remain the source artefacts. ArchiMan stores a controlled local copy, checksum, metadata and revision identity. Rendering is supplied through a `DrawingViewerEngine` boundary so the application can use a licensed native Android DWG engine without coupling project records to its API.
+DWG files remain the source artefacts. ArchiMan stores a controlled local copy, checksum, metadata and revision identity. A future licensed native Android renderer must be introduced through a vendor-neutral adapter so project records never depend directly on its SDK types; unused placeholder adapter code is not retained in the current build.
 
 Annotations and measurements are stored separately from the DWG using drawing-space coordinates. They never rewrite the source drawing. Each markup is tied to one drawing revision and records its author, creation time, calibration and unit.
 

@@ -1,8 +1,8 @@
 # ArchiMan Mobile UI/UX Audit — 360 dp Baseline
 
-- Date updated: 4 September 2026
+- Date updated: 9 September 2026
 - Reference device: Samsung A10s, 720 × 1520 px (approximately 360 dp wide)
-- Implementation baseline: ArchiMan schema 20
+- Implementation baseline: ArchiMan schema 21
 
 ## Scope
 
@@ -37,7 +37,7 @@ Project:   Project  | Work     | Record  | M-Book | More
 More:      Brief → Planning → Controls → Documents/Site → Team/Rate Books
 ```
 
-The project More screen contains Brief, Planning, Onboarding & Controls, Drawings, Site Reports, Project Team and Rate Books. Practice contains Company Profile/Connections and the Local Wi-Fi Portal. The obsolete portfolio Export Measurement Sheet screen is removed; M-Book owns measurement exports.
+The project More screen contains Brief, Planning, Onboarding & Controls, Drawings, Site Reports, Project Team and Rate Books. Practice contains Company Profile/Connections and the Local Wi-Fi Workspace. The obsolete portfolio Export Measurement Sheet screen is removed; M-Book owns measurement exports.
 
 ## Responsive rules
 

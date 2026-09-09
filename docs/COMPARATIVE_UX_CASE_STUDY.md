@@ -1,6 +1,6 @@
 # Comparative UX case study: field and construction applications
 
-Reviewed: 4 September 2026
+Reviewed: 9 September 2026
 Applied baseline: ArchiMan schema 21
 
 ## Objective
@@ -54,7 +54,7 @@ Projects | Directory | Work List | More
 
 - Directory contains Clients and Contractors as two views of one shared contact directory.
 - Work List is promoted because PWD SR items, UOMs and formulae are shared master data used throughout measurement entry.
-- More contains company profile and the local Wi-Fi portal; exports remain within the owning project workflow.
+- Practice contains company profile and the local Wi-Fi workspace; exports remain within the owning project workflow.
 
 ### Selected-project navigation
 

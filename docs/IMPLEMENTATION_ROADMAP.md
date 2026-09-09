@@ -2,7 +2,7 @@
 
 > ArchiMan is an Architectural Consultancy Management App with a field-first Measurement Book. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`. A statutory approval/compliance matrix and jurisdiction profiles are not part of the product.
 
-Current implementation baseline: Room schema 20, branded and audited 4 September 2026.
+Current implementation baseline: Room schema 21, branded and audited 9 September 2026.
 
 ## Phase 0 - Scope lock and safety
 
@@ -63,7 +63,7 @@ Exit criteria: one canonical work catalog with no unresolved duplicate candidate
 
 ## Phase 4 - Measurement sheet domain and safe schema migration
 
-Status: Completed through schema version 20 locally. WAL-consistent device preservation was verified through schema 15; schema-20 device acceptance remains open.
+Status: Completed through schema version 21 locally. The schema-21 APK has passed automated migration coverage and an in-place device startup check; a production backup/restore drill remains open.
 
 - [x] Split measurement sheet headers from linked measurement rows while retaining compatibility snapshots.
 - [x] Introduce immutable formula code, formula version, UOM, item, contractor, floor, and date snapshots.
@@ -106,13 +106,13 @@ Status: Started; offline security and encrypted platform backup controls are imp
 - [x] Privacy-safe, user-initiated offline support diagnostics export and operations runbook.
 - [x] CI build, unit/migration test, product-boundary, merged-manifest, report, and APK artifact gates.
 - Managed distribution and signed release promotion.
-- [x] Remove unused network SDKs; allow only the platform permissions required by the approved local Wi-Fi portal.
+- [x] Remove unused network SDKs; allow only the platform permissions required by the approved local Wi-Fi workspace.
 
 Exit criteria: multi-user, recoverable, supportable deployment with operational controls.
 
 ## Phase 5A - Project onboarding and controls
 
-Status: Core registers implemented in schema 20; template administration and formal sign-off documents remain open.
+Status: Core registers implemented through schema 21; template administration and formal sign-off documents remain open.
 
 - [x] Project-type onboarding questionnaire with stable question codes and template version snapshots.
 - [x] Persisted answers, clarifications and completion progress.
@@ -176,7 +176,7 @@ Status: Core registers implemented in schema 20; template administration and for
 
 ## Updated consultancy briefs programme
 
-The seven September 2026 source briefs were reconciled in `UPDATED_BRIEFS_SCOPE_RECONCILIATION.md`; one source file is an exact duplicate. WordPress/Supabase deployment instructions and all consultancy billing, tax, invoice and payment features are not part of the current app.
+The six distinct September 2026 source briefs remain under `Updated Briefs` as requirements evidence; the exact duplicate was removed on 9 September. Accepted work is represented in this roadmap and the product scope. WordPress deployment instructions and all consultancy billing, tax, invoice and payment features are outside the current app; Supabase remains an optional, user-configured connection only.
 
 - [x] Add schema-18 project consultancy profile and structured scope-register foundation.
 - [x] Add a mobile Brief & Scope project workspace for consultancy, phase, design stage, review status and core brief capture.
@@ -187,11 +187,12 @@ The seven September 2026 source briefs were reconciled in `UPDATED_BRIEFS_SCOPE_
 - [ ] Add reusable, versioned non-commercial consultancy templates and explicit project import.
 - [ ] Add client/technical decision records and linked project backlogs.
 - [ ] Add design/execution/handover progress and project-specific execution-level status.
-- [ ] Add roles, project assignments and cross-feature immutable audit events before any multi-user editing portal.
+- [x] Add local users, Admin/Editor/Viewer roles and immutable audit events for controlled LAN quick entry.
+- [ ] Add project-specific assignments and conflict handling before measurement or document editing is exposed over LAN.
 
 ## Architecture Consultancy ERP v3 proposal
 
-The downloaded ERP v3 brief is reconciled in `UPDATED_ERP_V3_SCOPE_RECONCILIATION.md`. Its finance, tax, agreement-fee, automatic cloud and immediately writable multi-user LAN instructions do not override ArchiMan's approved boundary or security gates.
+The ERP proposal is retained under `Updated Briefs` as reference material. Its finance, tax, agreement-fee and automatic-cloud instructions do not override ArchiMan's approved boundary or security gates.
 
 - [x] Remove the obsolete portfolio Export Measurement Sheet screen; keep measurement exports in M-Book.
 - [x] Expand company/practice identity with company type, country, PAN, principal and registration details.
@@ -199,6 +200,7 @@ The downloaded ERP v3 brief is reconciled in `UPDATED_ERP_V3_SCOPE_RECONCILIATIO
 - [x] Add structured project site data under Brief & Scope.
 - [ ] Add installation/server identity and local system-health reporting.
 - [ ] Design encrypted whole-company package export/import with preview, checksum and safety backup.
-- [ ] Add local users, roles, project assignments and immutable cross-feature audit before writable LAN access.
+- [x] Add local users, roles and immutable audit events for controlled writable LAN access.
+- [ ] Add project assignments and cross-feature conflict handling before expanding LAN writes.
 - [ ] Add authenticated responsive LAN administration only after concurrency, threat-model and recovery tests.
 - [ ] Evaluate optional Supabase backup separately from synchronization; neither is part of the current release.

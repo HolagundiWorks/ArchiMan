@@ -1,6 +1,6 @@
 # Support and Release Operations
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 4 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 9 September 2026.
 
 ## Scope
 
@@ -8,7 +8,7 @@ ArchiMan is offline-first. Support and release processes must preserve that boun
 
 ## Privacy-safe support diagnostics
 
-Open **More → Local Wi-Fi Portal** and select **Share support diagnostics**. The generated report contains:
+Open **Practice → Local Wi-Fi Workspace** and select **Share support diagnostics**. The generated report contains:
 
 - application version, database schema, and Android SDK;
 - counts of projects, contractors, work items, measurements, sheets, and archived sheets;

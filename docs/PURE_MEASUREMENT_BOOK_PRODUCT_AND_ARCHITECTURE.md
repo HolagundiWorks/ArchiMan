@@ -2,7 +2,7 @@
 
 ## Product, UX, Architecture, and Delivery Specification
 
-Status: Current product and architecture baseline at Room schema 21, reviewed 4 September 2026
+Status: Current product and architecture baseline at Room schema 21, reviewed 9 September 2026
 Product boundary: Offline-first architectural consultancy management with a field Measurement Book, project administration and contractor rate books
 Explicitly out of scope: invoices, bills, retention, payments, and accounting
 
@@ -100,7 +100,7 @@ Project | Work | Record | M-Book
 - Record resumes the canonical contractor-first measurement workflow.
 - M-Book opens searchable, reviewable measurement sheets and rows.
 - Project More contains Drawings, Site Reports, Project Team and Rate Books.
-- Portfolio More contains Company Profile and Local Wi-Fi Portal. Measurement exports belong inside M-Book; project-specific outputs belong inside their owning workspace.
+- Portfolio Practice contains Company Profile and Local Wi-Fi Workspace. Measurement exports belong inside M-Book; project-specific outputs belong inside their owning workspace.
 
 Returning to the portfolio uses the selected-project header back action.
 

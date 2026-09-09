@@ -1,6 +1,6 @@
 # ArchiMan Application Structure and Hierarchy
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 20, reviewed 4 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 9 September 2026.
 
 ## User-facing hierarchy
 
@@ -103,7 +103,7 @@ com.example
 
 ## Incremental refactoring sequence
 
-1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-20 baseline.
+1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-21 baseline.
 2. Split the monolithic `SiteViewModel` into project, measurement, catalogue and rate-book coordinators.
 3. Split `ProjectWorkspaceScreen` into overview, planning, team and rates feature files.
 4. Split `Entities.kt`, `SiteDaos.kt` and `SiteRepository.kt` by business area without changing the schema.

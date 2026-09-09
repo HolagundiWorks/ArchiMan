@@ -461,7 +461,7 @@ fun ClientFormDialog(
                     onValueChange = { correspondenceAddress = it },
                     placeholder = "Leave blank when same as client address",
                     keyboardType = KeyboardType.Text,
-                    testTag = "input_client_billing_address"
+                    testTag = "input_client_correspondence_address"
                 )
 
                 CarbonInputField(

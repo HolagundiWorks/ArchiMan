@@ -20,7 +20,7 @@ if ($prohibitedMatches) {
 
 $manifest = Get-Content $manifestPath -Raw
 if ($manifest -notmatch 'android\.permission\.INTERNET' -or $manifest -notmatch 'android\.permission\.ACCESS_NETWORK_STATE') {
-    throw "The approved local Wi-Fi portal requires INTERNET and ACCESS_NETWORK_STATE permissions."
+    throw "The approved local Wi-Fi workspace requires INTERNET and ACCESS_NETWORK_STATE permissions."
 }
 if ($manifest -notmatch 'android:usesCleartextTraffic="false"') {
     throw "Cleartext traffic must remain disabled."
@@ -50,7 +50,7 @@ $mergedManifest = Join-Path $repositoryRoot "app/build/intermediates/merged_mani
 if (Test-Path $mergedManifest) {
     $merged = Get-Content $mergedManifest -Raw
     if ($merged -notmatch 'android\.permission\.INTERNET' -or $merged -notmatch 'android\.permission\.ACCESS_NETWORK_STATE') {
-        throw "The merged manifest is missing an approved local Wi-Fi portal permission."
+        throw "The merged manifest is missing an approved local Wi-Fi workspace permission."
     }
 }
 
