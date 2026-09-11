@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -8,14 +10,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
@@ -24,13 +25,11 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.ContractorEntity
 import com.example.data.local.entity.ContractorQualifiedItemEntity
 import com.example.domain.CatalogDocumentParser
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -60,18 +59,34 @@ fun ContractorsScreen(
     }
 
     Scaffold(
-        containerColor = CarbonWhite,
+        topBar = {
+            Column {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text("Contractors")
+                            Text("${contractors.size} registered", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search contractors or trades") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("input_search_contractors"),
+                    singleLine = true
+                )
+            }
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = CarbonBlue60,
-                contentColor = CarbonWhite,
-                shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.testTag("fab_add_contractor")
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Add Contractor", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Add contractor")
             }
         }
     ) { paddingValues ->
@@ -80,54 +95,6 @@ fun ContractorsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header Section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CarbonWhite)
-                    .drawBehind {
-                        drawLine(
-                            color = CarbonGray20,
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 1.dp.toPx()
-                        )
-                    }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Contractors Directory",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CarbonGray100
-                        )
-                        Text(
-                            text = "${contractors.size} Registered Contractors with Qualified Items",
-                            fontSize = 12.sp,
-                            color = CarbonGray70,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Search Field
-                CarbonSearchField(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    placeholder = "Search contractors or trades...",
-                    testTag = "input_search_contractors"
-                )
-            }
-
             // Contractors List
             if (filteredContractors.isEmpty()) {
                 Box(
@@ -143,25 +110,25 @@ fun ContractorsScreen(
                         Icon(
                             imageVector = Icons.Default.Engineering,
                             contentDescription = null,
-                            tint = CarbonGray40,
+                            tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(54.dp)
                         )
                         Text(
                             text = if (searchQuery.isBlank()) "No contractors registered" else "No matching contractors found",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = CarbonGray80
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "Register contractors along with their qualified trade items (e.g., BrickWork 230mm, Plastering, Concrete).",
                             fontSize = 12.sp,
-                            color = CarbonGray60,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         Button(
                             onClick = { showAddDialog = true },
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_empty_add_contractor")
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -241,22 +208,22 @@ fun ContractorsScreen(
                         contractorToDelete?.let { viewModel.deleteContractor(it) }
                         contractorToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonRed60),
-                    shape = RoundedCornerShape(2.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Text("Delete", color = CarbonWhite)
+                    Text("Delete", color = MaterialTheme.colorScheme.surface)
                 }
             },
             dismissButton = {
                 OutlinedButton(
                     onClick = { contractorToDelete = null },
-                    shape = RoundedCornerShape(2.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Text("Cancel", color = CarbonGray100)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                 }
             },
-            containerColor = CarbonWhite,
-            shape = RoundedCornerShape(4.dp)
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.small
         )
     }
 }
@@ -275,9 +242,9 @@ fun ContractorCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("contractor_card_${contractor.id}"),
-        shape = RoundedCornerShape(2.dp),
-        colors = CardDefaults.cardColors(containerColor = CarbonWhite),
-        border = BorderStroke(1.dp, CarbonGray30),
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -300,13 +267,13 @@ fun ContractorCard(
                     Box(
                         modifier = Modifier
                             .size(38.dp)
-                            .background(CarbonCyan10, shape = RoundedCornerShape(2.dp)),
+                            .background(MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Engineering,
                             contentDescription = null,
-                            tint = CarbonCyan80,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -315,28 +282,28 @@ fun ContractorCard(
                             text = contractor.name,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CarbonGray100
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "${qualifiedItems.size} Qualified Item${if (qualifiedItems.size != 1) "s" else ""}",
-                            fontSize = 11.sp,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = CarbonBlue60
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Contractor", tint = CarbonGray70, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Contractor", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                     IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Contractor", tint = CarbonRed60, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Contractor", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
             // Address & Contact No
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -348,13 +315,13 @@ fun ContractorCard(
                         Icon(
                             imageVector = Icons.Default.LocationOn,
                             contentDescription = null,
-                            tint = CarbonGray60,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(15.dp).padding(top = 2.dp)
                         )
                         Text(
                             text = contractor.address,
                             fontSize = 12.sp,
-                            color = CarbonGray80
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -368,20 +335,20 @@ fun ContractorCard(
                         Icon(
                             imageVector = Icons.Default.Phone,
                             contentDescription = null,
-                            tint = CarbonGray60,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(15.dp)
                         )
                         Text(
                             text = "Contract No / Phone: $phoneDisplay",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = CarbonGray90
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
             }
 
-            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
             // Qualified Items Section
             Row(
@@ -391,9 +358,9 @@ fun ContractorCard(
             ) {
                 Text(
                     text = "ITEMS QUALIFIED",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = CarbonGray70,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 0.5.sp
                 )
                 TextButton(
@@ -401,23 +368,23 @@ fun ContractorCard(
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                     modifier = Modifier.height(28.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = CarbonBlue60)
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
-                    Text("Add Item", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60)
+                    Text("Add Item", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
             }
 
             if (qualifiedItems.isEmpty()) {
                 Surface(
-                    color = CarbonGray10,
-                    shape = RoundedCornerShape(2.dp),
-                    border = BorderStroke(1.dp, CarbonGray30),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "No items qualified yet. Click '+ Add Item' to qualify this contractor for masonry, plaster, concrete, etc.",
-                        fontSize = 11.sp,
-                        color = CarbonGray60,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(10.dp)
                     )
                 }
@@ -429,9 +396,9 @@ fun ContractorCard(
                 ) {
                     qualifiedItems.forEach { item ->
                         Surface(
-                            color = CarbonCyan10,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonCyan30)
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryContainer)
                         ) {
                             Row(
                                 modifier = Modifier.padding(start = 8.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
@@ -443,12 +410,12 @@ fun ContractorCard(
                                         text = item.itemName,
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = CarbonGray100
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
                                         text = "UOM: ${item.uom} • ${item.calculationType.displayName}",
                                         fontSize = 10.sp,
-                                        color = CarbonCyan80,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -459,7 +426,7 @@ fun ContractorCard(
                                     Icon(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "Remove item",
-                                        tint = CarbonGray60,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(12.dp)
                                     )
                                 }
@@ -507,11 +474,11 @@ fun AddContractorDialog(
 
     val presetItems = standardWorkItems[contractorType].orEmpty()
 
-    Dialog(onDismissRequest = onDismiss) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(2.dp),
-            color = CarbonWhite,
-            border = BorderStroke(1.dp, CarbonGray30),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth()
         ) {
             LazyColumn(
@@ -530,26 +497,26 @@ fun AddContractorDialog(
                             text = "Add New Contractor",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CarbonGray100
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = CarbonGray70)
+                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    HorizontalDivider(color = CarbonGray20, thickness = 1.dp, modifier = Modifier.padding(top = 8.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp, modifier = Modifier.padding(top = 8.dp))
                 }
 
                 if (errorMessage != null) {
                     item {
                         Surface(
-                            color = CarbonRed10,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonRed60),
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = errorMessage ?: "",
-                                color = CarbonRed60,
+                                color = MaterialTheme.colorScheme.error,
                                 fontSize = 12.sp,
                                 modifier = Modifier.padding(8.dp)
                             )
@@ -558,17 +525,17 @@ fun AddContractorDialog(
                 }
 
                 item {
-                    CarbonInputField(
-                        label = "CONTRACTOR / VENDOR NAME *",
+                    OutlinedTextField(
+                        label = { Text("CONTRACTOR / VENDOR NAME *") },
                         value = name,
                         onValueChange = {
                             name = it
                             errorMessage = null
                         },
-                        placeholder = "e.g. Sharma Civil Works",
-                        keyboardType = KeyboardType.Text,
-                        testTag = "input_contractor_name"
-                    )
+                        placeholder = { Text("e.g. Sharma Civil Works") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        modifier = Modifier.fillMaxWidth().testTag("input_contractor_name"),
+                        singleLine = true)
                 }
 
                 item {
@@ -627,46 +594,46 @@ fun AddContractorDialog(
                 }
 
                 item {
-                    CarbonInputField(
-                        label = "ADDRESS / BASE LOCATION",
+                    OutlinedTextField(
+                        label = { Text("ADDRESS / BASE LOCATION") },
                         value = address,
                         onValueChange = { address = it },
-                        placeholder = "e.g. Plot 18, Industrial Area Phase 1",
-                        keyboardType = KeyboardType.Text,
-                        testTag = "input_contractor_address"
-                    )
+                        placeholder = { Text("e.g. Plot 18, Industrial Area Phase 1") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        modifier = Modifier.fillMaxWidth().testTag("input_contractor_address"),
+                        singleLine = true)
                 }
 
                 item {
-                    CarbonInputField(
-                        label = "CONTRACT NO / PHONE *",
+                    OutlinedTextField(
+                        label = { Text("CONTRACT NO / PHONE *") },
                         value = contactNo,
                         onValueChange = { contactNo = it },
-                        placeholder = "e.g. +91 98765 43210",
-                        keyboardType = KeyboardType.Phone,
-                        testTag = "input_contractor_contact"
-                    )
+                        placeholder = { Text("e.g. +91 98765 43210") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        modifier = Modifier.fillMaxWidth().testTag("input_contractor_contact"),
+                        singleLine = true)
                 }
 
                 item {
                     Text(
                         text = "QUALIFIED TRADE ITEMS",
-                        fontSize = 11.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = CarbonGray70,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 0.5.sp
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
                         text = "Specify the work items this contractor is qualified to execute (item name and UOM):",
-                        fontSize = 11.sp,
-                        color = CarbonGray60
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
                 // Quick presets chips
                 item {
-                    Text("Quick Add Predefined Items:", fontSize = 10.sp, color = CarbonGray60, fontWeight = FontWeight.SemiBold)
+                    Text("Quick Add Predefined Items:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.padding(vertical = 4.dp)
@@ -680,8 +647,8 @@ fun AddContractorDialog(
                                         qualifiedItems.add(pName to pUom)
                                     }
                                 },
-                                label = { Text("$pName ($pUom)", fontSize = 11.sp) },
-                                shape = RoundedCornerShape(2.dp)
+                                label = { Text("$pName ($pUom)", style = MaterialTheme.typography.labelSmall) },
+                                shape = MaterialTheme.shapes.small
                             )
                         }
                     }
@@ -691,9 +658,9 @@ fun AddContractorDialog(
                 items(qualifiedItems.size) { idx ->
                     val item = qualifiedItems[idx]
                     Surface(
-                        color = CarbonGray10,
-                        shape = RoundedCornerShape(2.dp),
-                        border = BorderStroke(1.dp, CarbonGray30),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -702,14 +669,14 @@ fun AddContractorDialog(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column {
-                                Text(item.first, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CarbonGray100)
-                                Text("UOM: ${item.second}", fontSize = 10.sp, color = CarbonGray70)
+                                Text(item.first, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface)
+                                Text("UOM: ${item.second}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             IconButton(
                                 onClick = { qualifiedItems.removeAt(idx) },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete item", tint = CarbonRed60, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete item", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -718,18 +685,18 @@ fun AddContractorDialog(
                 // Custom item addition row
                 item {
                     Surface(
-                        color = CarbonWhite,
-                        shape = RoundedCornerShape(2.dp),
-                        border = BorderStroke(1.dp, CarbonGray30),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Add Custom Qualified Item", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray80)
+                            Text("Add Custom Qualified Item", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 OutlinedTextField(
                                     value = newItemName,
                                     onValueChange = { newItemName = it },
-                                    placeholder = { Text("Item Name", fontSize = 11.sp) },
+                                    placeholder = { Text("Item Name", style = MaterialTheme.typography.labelSmall) },
                                     modifier = Modifier.weight(2f),
                                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
                                     singleLine = true
@@ -737,7 +704,7 @@ fun AddContractorDialog(
                                 OutlinedTextField(
                                     value = newItemUom,
                                     onValueChange = { newItemUom = it },
-                                    placeholder = { Text("UOM", fontSize = 11.sp) },
+                                    placeholder = { Text("UOM", style = MaterialTheme.typography.labelSmall) },
                                     modifier = Modifier.weight(1f),
                                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp),
                                     singleLine = true
@@ -750,11 +717,11 @@ fun AddContractorDialog(
                                         newItemName = ""
                                     }
                                 },
-                                shape = RoundedCornerShape(2.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CarbonGray90),
+                                shape = MaterialTheme.shapes.small,
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.onSurface),
                                 modifier = Modifier.align(Alignment.End)
                             ) {
-                                Text("+ Add Item", fontSize = 11.sp, color = CarbonWhite)
+                                Text("+ Add Item", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.surface)
                             }
                         }
                     }
@@ -769,10 +736,10 @@ fun AddContractorDialog(
                         OutlinedButton(
                             onClick = onDismiss,
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonGray40)
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
-                            Text("Cancel", color = CarbonGray100, fontSize = 12.sp)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                         }
 
                         Button(
@@ -786,10 +753,10 @@ fun AddContractorDialog(
                             modifier = Modifier
                                 .weight(1f)
                                 .testTag("btn_save_contractor"),
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Save Contractor", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CarbonWhite)
+                            Text("Save Contractor", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.surface)
                         }
                     }
                 }
@@ -808,11 +775,11 @@ fun EditContractorDialog(
     var address by remember { mutableStateOf(contractor.address) }
     var contactNo by remember { mutableStateOf(contractor.contactNo.ifBlank { contractor.phone }) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(2.dp),
-            color = CarbonWhite,
-            border = BorderStroke(1.dp, CarbonGray30),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -825,34 +792,34 @@ fun EditContractorDialog(
                     text = "Edit Contractor Details",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = CarbonGray100
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
-                CarbonInputField(
-                    label = "CONTRACTOR NAME",
+                OutlinedTextField(
+                    label = { Text("CONTRACTOR NAME") },
                     value = name,
                     onValueChange = { name = it },
-                    placeholder = "e.g. Sharma Civil Works",
-                    testTag = "input_edit_contractor_name"
-                )
+                    placeholder = { Text("e.g. Sharma Civil Works") },
+                    modifier = Modifier.fillMaxWidth().testTag("input_edit_contractor_name"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "ADDRESS",
+                OutlinedTextField(
+                    label = { Text("ADDRESS") },
                     value = address,
                     onValueChange = { address = it },
-                    placeholder = "e.g. Plot 18, Industrial Area",
-                    testTag = "input_edit_contractor_address"
-                )
+                    placeholder = { Text("e.g. Plot 18, Industrial Area") },
+                    modifier = Modifier.fillMaxWidth().testTag("input_edit_contractor_address"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "CONTACT NO / PHONE",
+                OutlinedTextField(
+                    label = { Text("CONTACT NO / PHONE") },
                     value = contactNo,
                     onValueChange = { contactNo = it },
-                    placeholder = "e.g. +91 98765 43210",
-                    keyboardType = KeyboardType.Phone,
-                    testTag = "input_edit_contractor_contact"
-                )
+                    placeholder = { Text("e.g. +91 98765 43210") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth().testTag("input_edit_contractor_contact"),
+                    singleLine = true)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -861,19 +828,19 @@ fun EditContractorDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(2.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
-                        Text("Cancel", color = CarbonGray100)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                     }
                     Button(
                         onClick = {
                             onSave(contractor.copy(name = name, address = address, contactNo = contactNo, phone = contactNo))
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                        shape = MaterialTheme.shapes.small,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("Update", color = CarbonWhite, fontWeight = FontWeight.Bold)
+                        Text("Update", color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -903,11 +870,11 @@ fun AddQualifiedItemDialog(
         Pair("Putty", "m²")
     )
 
-    Dialog(onDismissRequest = onDismiss) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(2.dp),
-            color = CarbonWhite,
-            border = BorderStroke(1.dp, CarbonGray30),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -920,17 +887,17 @@ fun AddQualifiedItemDialog(
                     text = "Add Qualified Item",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
-                    color = CarbonGray100
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Contractor: ${contractor.name}",
                     fontSize = 12.sp,
-                    color = CarbonBlue60,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Medium
                 )
-                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
-                Text("Select from Standard Library:", fontSize = 11.sp, color = CarbonGray70, fontWeight = FontWeight.SemiBold)
+                Text("Select from Standard Library:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold)
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -942,27 +909,27 @@ fun AddQualifiedItemDialog(
                                 itemName = pName
                                 uom = pUom
                             },
-                            label = { Text(pName, fontSize = 11.sp) },
-                            shape = RoundedCornerShape(2.dp)
+                            label = { Text(pName, style = MaterialTheme.typography.labelSmall) },
+                            shape = MaterialTheme.shapes.small
                         )
                     }
                 }
 
-                CarbonInputField(
-                    label = "ITEM NAME *",
+                OutlinedTextField(
+                    label = { Text("ITEM NAME *") },
                     value = itemName,
                     onValueChange = { itemName = it },
-                    placeholder = "e.g. BrickWork 230mm",
-                    testTag = "input_qual_item_name"
-                )
+                    placeholder = { Text("e.g. BrickWork 230mm") },
+                    modifier = Modifier.fillMaxWidth().testTag("input_qual_item_name"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "UOM *",
+                OutlinedTextField(
+                    label = { Text("UOM *") },
                     value = uom,
                     onValueChange = { uom = it },
-                    placeholder = "m², m³, m, Nos",
-                    testTag = "input_qual_item_uom"
-                )
+                    placeholder = { Text("m², m³, m, Nos") },
+                    modifier = Modifier.fillMaxWidth().testTag("input_qual_item_uom"),
+                    singleLine = true)
 
                 Spacer(Modifier.height(4.dp))
 
@@ -973,9 +940,9 @@ fun AddQualifiedItemDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(2.dp)
+                        shape = MaterialTheme.shapes.small
                     ) {
-                        Text("Cancel", color = CarbonGray100)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                     }
                     Button(
                         onClick = {
@@ -984,10 +951,10 @@ fun AddQualifiedItemDialog(
                             }
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                        shape = MaterialTheme.shapes.small,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
-                        Text("Add Item", color = CarbonWhite, fontWeight = FontWeight.Bold)
+                        Text("Add Item", color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold)
                     }
                 }
             }

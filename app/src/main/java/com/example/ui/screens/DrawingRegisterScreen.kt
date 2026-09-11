@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import com.example.data.local.entity.DrawingRevisionEntity
 import com.example.data.local.entity.DrawingTransmittalEntity
 import com.example.data.local.entity.ProjectDrawingEntity
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -55,19 +54,19 @@ fun DrawingRegisterScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        Surface(color = CarbonBlue10, modifier = Modifier.fillMaxWidth()) {
+        Surface(color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth()) {
             Row(
                 modifier = Modifier.padding(12.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Architecture, contentDescription = null, tint = CarbonBlue60)
+                Icon(Icons.Default.Architecture, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("Controlled drawing register", fontWeight = FontWeight.Bold, color = CarbonGray100)
+                    Text("Controlled drawing register", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         "DWG viewing, markup and measurement engine is the next delivery slice. Registered source revisions remain authoritative.",
                         style = MaterialTheme.typography.bodySmall,
-                        color = CarbonGray70
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Button(
@@ -96,9 +95,9 @@ fun DrawingRegisterScreen(
         if (drawings.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Layers, null, tint = CarbonGray50, modifier = Modifier.size(40.dp))
-                    Text("No controlled drawings", fontWeight = FontWeight.Bold, color = CarbonGray90)
-                    Text("Import the first DWG revision to start the register.", color = CarbonGray60)
+                    Icon(Icons.Default.Layers, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+                    Text("No controlled drawings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text("Import the first DWG revision to start the register.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         } else {
@@ -158,10 +157,10 @@ fun DrawingRegisterScreen(
 
 @Composable
 private fun RegisterStat(label: String, value: String, modifier: Modifier = Modifier) {
-    Surface(modifier = modifier, color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray20)) {
+    Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceVariant, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         Column(modifier = Modifier.padding(8.dp)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = CarbonGray60)
-            Text(value, fontWeight = FontWeight.Bold, color = CarbonGray100)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
@@ -174,23 +173,23 @@ private fun DrawingRegisterCard(
     onOpen: (DrawingRevisionEntity) -> Unit
 ) {
     val latest = revisions.maxByOrNull { it.createdAt }
-    Surface(color = CarbonWhite, border = BorderStroke(1.dp, CarbonGray30), shape = MaterialTheme.shapes.small) {
+    Surface(color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Description, null, tint = CarbonBlue60)
+                Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary)
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(drawing.drawingNumber, fontWeight = FontWeight.Bold, color = CarbonGray100)
-                    Text(drawing.title, color = CarbonGray80, style = MaterialTheme.typography.bodySmall)
-                    Text("${drawing.discipline} · ${revisions.size} revision(s)", color = CarbonGray60, style = MaterialTheme.typography.labelSmall)
+                    Text(drawing.drawingNumber, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                    Text(drawing.title, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    Text("${drawing.discipline} · ${revisions.size} revision(s)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                 }
                 AssistChip(onClick = {}, label = { Text(latest?.issueStatus ?: drawing.status) })
             }
             latest?.let { revision ->
-                HorizontalDivider(color = CarbonGray20)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text("Revision ${revision.revisionCode}${if (revision.isAsBuilt) " · AS-BUILT" else ""}", fontWeight = FontWeight.SemiBold)
-                        Text("${revision.fileName} · ${formatDate(revision.createdAt)}", style = MaterialTheme.typography.labelSmall, color = CarbonGray60)
+                        Text("${revision.fileName} · ${formatDate(revision.createdAt)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     IconButton(onClick = { onOpen(revision) }) {
                         Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open drawing source")
@@ -226,7 +225,7 @@ private fun DrawingRevisionDialog(
         title = { Text(if (existingDrawing == null) "Register DWG" else "Add drawing revision") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(initialFileName, style = MaterialTheme.typography.labelSmall, color = CarbonGray60)
+                Text(initialFileName, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(number, { number = it }, label = { Text("Drawing number") }, enabled = existingDrawing == null, singleLine = true)
                 OutlinedTextField(title, { title = it }, label = { Text("Drawing title") }, enabled = existingDrawing == null, singleLine = true)
                 OutlinedTextField(discipline, { discipline = it }, label = { Text("Discipline") }, enabled = existingDrawing == null, singleLine = true)

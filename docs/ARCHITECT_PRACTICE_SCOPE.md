@@ -1,10 +1,10 @@
 # ArchiMan Architectural Practice Scope
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 9 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 22, reviewed 11 September 2026.
 
 ## Product boundary
 
-ArchiMan is an offline-first Architectural Consultancy Management App with project administration and measurement-book capabilities. It is not a statutory approval portal, CAD/BIM authoring package, accounting system, billing system, or launcher.
+ArchiMan is an offline-first, quantity-only Architectural Consultancy Measurement Book with supporting project administration. It is not a rate, valuation, billing, statutory approval portal, CAD/BIM authoring package, accounting system, or launcher.
 
 ArchiMan may expose a write-enabled web workspace on the phone's current local Wi-Fi network only after an explicit user action. Access uses named local accounts with Admin, Editor or Viewer roles. Passwords are salted and deliberately slow-hashed; data is disclosed only after authentication; state-changing requests require CSRF tokens and create append-only audit events. The workspace uses phone-generated HTTPS, binds to the Wi-Fi address, performs no cloud upload, and stops on user request, after one hour, or on application teardown.
 
@@ -14,7 +14,7 @@ The approval/compliance matrix and jurisdiction-profile proposal is explicitly e
 
 ## Canonical project workspaces
 
-The schema-21 release implements expanded practice/client profiles, project site data, Brief & Scope, planning, measurement, contractor rate books, drawing-register foundations, site reports and controlled LAN quick entry for tasks, approvals and backlog actions. Items below that require full DWG rendering, coordination workflows, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
+The schema-22 release implements expanded practice/client profiles, project site data, Brief & Scope, planning, quantity-only measurement, drawing-register foundations, site reports and controlled LAN quick entry for tasks, approvals and backlog actions. Its current Room model contains no commercial tables or columns; preserving migrations upgrade older databases. Items below that require full DWG rendering, coordination workflows, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
 
 1. Drawings
    - DWG viewing, layers, pan, zoom and extents.

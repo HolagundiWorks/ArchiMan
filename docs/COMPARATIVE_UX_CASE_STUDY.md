@@ -1,7 +1,7 @@
 # Comparative UX case study: field and construction applications
 
 Reviewed: 9 September 2026
-Applied baseline: ArchiMan schema 21
+Applied baseline: ArchiMan schema 22
 
 ## Objective
 
@@ -75,12 +75,12 @@ Overview | Brief | Planning | More
 - Overview provides identity, current status, next steps and small operational counts.
 - Brief contains consultancy type, design phase, client requirements and agreed scope.
 - Planning contains tasks, schedule and material/specification selections.
-- More contains drawings, site reports, team and contractor rate books.
+- More contains drawings, site reports and project team tools.
 
 ## Deliberately not copied
 
 - Cloud-only assumptions, subscription limits and always-online authentication.
-- Billing, accounting, procurement pricing or contract-finance navigation.
+- Rates, valuation, billing, accounting, procurement pricing or contract-finance navigation.
 - A configurable tool launcher before roles and permissions exist; premature customization makes support and training harder.
 - Automatic statutory compliance conclusions.
 - Separate location systems per feature. ArchiMan should reuse the project execution-level hierarchy.
@@ -91,7 +91,7 @@ Overview | Brief | Planning | More
 - Project navigation is now Project, Work, Record and M-Book.
 - The project workspace is now Overview, Brief, Planning and More.
 - Clients and Contractors are consolidated under Directory.
-- Drawings, site reports, project team and rate books are grouped under project More.
+- Drawings, site reports and project team tools are grouped under project More.
 
 ## Next structural steps
 

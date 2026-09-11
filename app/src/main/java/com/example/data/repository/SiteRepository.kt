@@ -3,7 +3,6 @@ package com.example.data.repository
 import androidx.room.withTransaction
 import com.example.domain.MeasurementSheetStatus
 import com.example.domain.MeasurementSheetWorkflow
-import com.example.domain.RateBookCalculator
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
@@ -17,7 +16,6 @@ class SiteRepository(private val database: AppDatabase) {
     val allQualifiedItems: Flow<List<ContractorQualifiedItemEntity>> = database.contractorDao().getAllQualifiedItems()
     val allItems: Flow<List<ItemMasterEntity>> = database.itemMasterDao().getAllItems()
     val allMeasurements: Flow<List<MeasurementEntity>> = database.measurementDao().getAllMeasurements()
-    val allRateBooks: Flow<List<ContractorRateBookEntity>> = database.rateBookDao().getAllBooks()
     val companyProfile: Flow<CompanyProfileEntity?> = database.companyProfileDao().observe()
     val localUsers: Flow<List<LocalUserEntity>> = database.portalAccessDao().observeUsers()
     val portalAuditEvents: Flow<List<PortalAuditEventEntity>> = database.portalAccessDao().observeAuditEvents()
@@ -58,13 +56,6 @@ class SiteRepository(private val database: AppDatabase) {
     suspend fun insertProjectBacklogItem(item: ProjectBacklogEntity) = database.projectConsultancyDao().insertBacklogItem(item)
     suspend fun updateProjectBacklogItem(item: ProjectBacklogEntity) = database.projectConsultancyDao().updateBacklogItem(item)
     suspend fun deleteProjectBacklogItem(item: ProjectBacklogEntity) = database.projectConsultancyDao().deleteBacklogItem(item)
-
-    fun getRateBookItems(rateBookId: Long) = database.rateBookDao().getItems(rateBookId)
-    fun getProjectRateBookAssignments(projectId: Long) = database.rateBookDao().getAssignments(projectId)
-    suspend fun createRateBook(book: ContractorRateBookEntity) = database.rateBookDao().insertBook(book)
-    suspend fun upsertRateBookItem(item: ContractorRateBookItemEntity) = database.rateBookDao().upsertItem(item)
-    suspend fun deleteRateBookItem(item: ContractorRateBookItemEntity) = database.rateBookDao().deleteItem(item)
-    suspend fun assignRateBook(assignment: ProjectRateBookAssignmentEntity) = database.rateBookDao().assign(assignment)
 
     fun getProjectTasks(projectId: Long) = database.projectTaskDao().getByProject(projectId)
     suspend fun insertProjectTask(task: ProjectTaskEntity) = database.projectTaskDao().insert(task)
@@ -478,20 +469,18 @@ class SiteRepository(private val database: AppDatabase) {
 
     // Measurements
     suspend fun insertMeasurement(measurement: MeasurementEntity): Long = database.withTransaction {
-        val pricedMeasurement = measurement.withApplicableRate()
-        if (pricedMeasurement.sheetId > 0) database.measurementDao().insertMeasurement(pricedMeasurement)
+        if (measurement.sheetId > 0) database.measurementDao().insertMeasurement(measurement)
         else {
-            val sheetId = database.measurementSheetDao().insert(pricedMeasurement.toSheet())
-            database.measurementDao().insertMeasurement(pricedMeasurement.withSheet(sheetId))
+            val sheetId = database.measurementSheetDao().insert(measurement.toSheet())
+            database.measurementDao().insertMeasurement(measurement.withSheet(sheetId))
         }
     }
 
     suspend fun insertMeasurementBatch(measurements: List<MeasurementEntity>): Int = database.withTransaction {
         if (measurements.isEmpty()) return@withTransaction 0
-        val pricedMeasurements = measurements.map { it.withApplicableRate() }
-        val first = pricedMeasurements.first()
+        val first = measurements.first()
         val sheetId = database.measurementSheetDao().insert(first.toSheet())
-        database.measurementDao().insertMeasurements(pricedMeasurements.map { it.withSheet(sheetId) }).size
+        database.measurementDao().insertMeasurements(measurements.map { it.withSheet(sheetId) }).size
     }
 
     fun getMeasurementSheets(): Flow<List<MeasurementSheetEntity>> = database.measurementSheetDao().getAllSheets()
@@ -526,19 +515,7 @@ class SiteRepository(private val database: AppDatabase) {
     suspend fun updateMeasurement(measurement: MeasurementEntity) = database.withTransaction {
         val sheet = requireNotNull(database.measurementSheetDao().getById(measurement.sheetId)) { "Measurement sheet does not exist" }
         require(sheet.status == "DRAFT" || sheet.status == "RETURNED") { "Only draft or returned sheets can be edited" }
-        database.measurementDao().updateMeasurement(
-            measurement.copy(amountSnapshot = measurement.rateSnapshot?.let { RateBookCalculator.amount(measurement.quantity, it) })
-        )
-    }
-
-    private suspend fun MeasurementEntity.withApplicableRate(): MeasurementEntity {
-        val assignment = database.rateBookDao().getAssignment(projectId, contractorId) ?: return this
-        val rateItem = database.rateBookDao().getItem(assignment.rateBookId, itemId) ?: return this
-        return copy(
-            appliedRateBookId = assignment.rateBookId,
-            rateSnapshot = rateItem.rate,
-            amountSnapshot = RateBookCalculator.amount(quantity, rateItem.rate)
-        )
+        database.measurementDao().updateMeasurement(measurement)
     }
 
     suspend fun deleteMeasurement(measurement: MeasurementEntity) = archiveMeasurementSheet(measurement.sheetId, "Local User")

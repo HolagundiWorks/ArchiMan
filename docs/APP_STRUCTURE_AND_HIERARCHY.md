@@ -1,6 +1,6 @@
 # ArchiMan Application Structure and Hierarchy
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 21, reviewed 9 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 22, reviewed 11 September 2026.
 
 ## User-facing hierarchy
 
@@ -28,7 +28,6 @@ Portfolio
 │       │       │   ├── Meeting Minutes
 │       │       │   └── Site Inspections
 │       │       ├── Team / Contractors
-│       │       ├── Contractor Rate Books
 │       │       ├── Coordination
 │       │       │   ├── RFIs / Submittals / Site Instructions
 │       │       │   └── Consultants / Responsibility Matrix
@@ -39,7 +38,7 @@ Portfolio
 ├── Contacts
 │   ├── Clients
 │   └── Contractors
-│       └── Contractor → Type → Qualified Items → Versioned Rate Books
+│       └── Contractor → Type → Qualified Work Items
 ├── Library
 │   └── PWD SR → Work Type → Work Item → UOM / Formula
 └── Practice
@@ -56,15 +55,16 @@ The bottom navigation represents stable hierarchy levels, not a second copy of p
 - M-Book and Record remain persistent project actions and are not repeated inside the Overview menu.
 - Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of ArchiMan.
 
+## Project creation contract
+
+Project creation establishes identity only: project name, optional project code, linked client, project type and site address. The app creates one Ground Floor baseline so measurement entry has a valid level, without asking users to define the whole building during onboarding. Additional floors belong to measurement setup; contractors belong to Project Team and are selected contractor-first when recording. Dates, areas, status, description and architect-in-charge remain editable in Project Profile.
+
 ## Data ownership
 
 - PWD SR owns the canonical item identity, specification, unit and formula.
-- A contractor owns zero or more named and versioned rate books.
-- A rate-book row references a canonical PWD item and snapshots its description and unit.
-- A project selects one applicable rate book per contractor.
 - A measurement sheet owns member rows.
-- Each saved measurement snapshots the applied rate-book ID, rate and calculated amount.
-- Changing a rate book never rewrites historical measurements.
+- Each saved measurement snapshots dimensions, quantity, formula, UOM, work item, contractor, floor and date.
+- Schema 22 contains no commercial tables or measurement columns; older databases are upgraded through preserving migrations.
 
 ## Code organization target
 
@@ -80,7 +80,6 @@ com.example
 ├── domain
 │   ├── catalog
 │   ├── measurement
-│   ├── ratebook
 │   └── project
 └── ui
     ├── navigation        destinations and hierarchy rules
@@ -90,6 +89,15 @@ com.example
     ├── contractor
     └── shared
 ```
+
+## UI composition contract
+
+- The app shell owns portfolio and project-level navigation; feature screens do not create competing navigation systems.
+- Portfolio destinations are Projects, Contacts, Library and Practice. Project destinations are Project, Work, Record, M-Book and More.
+- A feature screen uses Material 3 primitives directly: `Scaffold`, app bars, navigation bars, `ListItem`, cards, buttons, fields, chips, dialogs and bottom sheets.
+- Shared composables may package repeated app behavior, accessibility or navigation, but must not recreate Material components or introduce custom color, typography, shape or elevation systems.
+- Screen-specific sections remain close to their feature until a genuinely reused component emerges.
+- Adaptive behavior is driven by available width and Material guidance; the 360 dp phone remains the minimum acceptance viewport.
 
 ## Refactoring rules
 
@@ -103,9 +111,9 @@ com.example
 
 ## Incremental refactoring sequence
 
-1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-21 baseline.
-2. Split the monolithic `SiteViewModel` into project, measurement, catalogue and rate-book coordinators.
-3. Split `ProjectWorkspaceScreen` into overview, planning, team and rates feature files.
+1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-22 baseline.
+2. Split the monolithic `SiteViewModel` into project, measurement and catalogue coordinators.
+3. Split `ProjectWorkspaceScreen` into overview, planning and team feature files.
 4. Split `Entities.kt`, `SiteDaos.kt` and `SiteRepository.kt` by business area without changing the schema.
 5. Replace broad global streams with project-scoped queries and immutable UI state.
 6. Add navigation, repository and migration tests for every hierarchy boundary.

@@ -503,26 +503,3 @@ interface WorkItemAliasDao {
     @Delete
     suspend fun delete(alias: WorkItemAliasEntity)
 }
-
-@Dao
-interface RateBookDao {
-    @Query("SELECT * FROM contractor_rate_books ORDER BY contractorId, createdAt DESC")
-    fun getAllBooks(): Flow<List<ContractorRateBookEntity>>
-
-    @Query("SELECT * FROM contractor_rate_book_items WHERE rateBookId=:rateBookId ORDER BY itemNameSnapshot")
-    fun getItems(rateBookId: Long): Flow<List<ContractorRateBookItemEntity>>
-
-    @Query("SELECT * FROM project_rate_book_assignments WHERE projectId=:projectId")
-    fun getAssignments(projectId: Long): Flow<List<ProjectRateBookAssignmentEntity>>
-
-    @Query("SELECT * FROM project_rate_book_assignments WHERE projectId=:projectId AND contractorId=:contractorId LIMIT 1")
-    suspend fun getAssignment(projectId: Long, contractorId: Long): ProjectRateBookAssignmentEntity?
-
-    @Query("SELECT * FROM contractor_rate_book_items WHERE rateBookId=:rateBookId AND itemId=:itemId LIMIT 1")
-    suspend fun getItem(rateBookId: Long, itemId: Long): ContractorRateBookItemEntity?
-
-    @Insert suspend fun insertBook(book: ContractorRateBookEntity): Long
-    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertItem(item: ContractorRateBookItemEntity): Long
-    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun assign(assignment: ProjectRateBookAssignmentEntity): Long
-    @Delete suspend fun deleteItem(item: ContractorRateBookItemEntity)
-}

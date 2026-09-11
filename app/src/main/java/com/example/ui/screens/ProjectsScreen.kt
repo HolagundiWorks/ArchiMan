@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -21,11 +23,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.ContractorEntity
 import com.example.data.local.entity.ProjectEntity
-import com.example.ui.theme.*
 import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 
@@ -45,7 +45,7 @@ fun ProjectsScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = SleekBgLight,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             Row(
                 modifier = Modifier
@@ -63,7 +63,7 @@ fun ProjectsScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(SleekOutline)
+                            .background(MaterialTheme.colorScheme.outline)
                             .clickable { viewModel.navigateTo(AppScreen.HOME) }
                             .testTag("btn_back_home"),
                         contentAlignment = Alignment.Center
@@ -71,7 +71,7 @@ fun ProjectsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = SleekTextPrimary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -79,7 +79,7 @@ fun ProjectsScreen(
                         text = "Projects & Contractors",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold,
-                        color = SleekTextPrimary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = (-0.5).sp
                     )
                 }
@@ -88,12 +88,12 @@ fun ProjectsScreen(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(SleekPrimaryContainer)
+                        .background(MaterialTheme.colorScheme.primaryContainer)
                         .clickable { showAddProjectDialog = true }
                         .testTag("btn_add_project_top"),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "New Project", tint = SleekPrimaryBlue, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Default.Add, contentDescription = "New Project", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 }
             }
         },
@@ -102,9 +102,9 @@ fun ProjectsScreen(
                 onClick = { showAddProjectDialog = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("New Project", fontWeight = FontWeight.Bold) },
-                containerColor = SleekPrimaryBlue,
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
-                shape = RoundedCornerShape(24.dp),
+                shape = MaterialTheme.shapes.extraLarge,
                 modifier = Modifier.testTag("fab_add_project")
             )
         }
@@ -133,13 +133,13 @@ fun ProjectsScreen(
                                 modifier = Modifier
                                     .size(64.dp)
                                     .clip(CircleShape)
-                                    .background(SleekSurfaceVariant),
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Business,
                                     contentDescription = null,
-                                    tint = SleekTextTertiary,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(32.dp)
                                 )
                             }
@@ -147,12 +147,12 @@ fun ProjectsScreen(
                                 text = "No projects created yet",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
-                                color = SleekTextPrimary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Button(
                                 onClick = { showAddProjectDialog = true },
-                                shape = RoundedCornerShape(20.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = SleekPrimaryBlue),
+                                shape = MaterialTheme.shapes.large,
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.testTag("btn_create_first_project")
                             ) {
                                 Text("+ Create First Project")
@@ -167,12 +167,12 @@ fun ProjectsScreen(
                     val projectMeasurements = measurements.filter { it.projectId == project.id }
 
                     Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = SleekSurfaceLight,
+                        shape = MaterialTheme.shapes.large,
+                        color = MaterialTheme.colorScheme.surface,
                         shadowElevation = if (isSelected) 2.dp else 1.dp,
                         border = BorderStroke(
                             width = if (isSelected) 2.dp else 1.dp,
-                            color = if (isSelected) SleekPrimaryBlue else SleekOutline
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                         ),
                         modifier = Modifier.fillMaxWidth().testTag("card_project_${project.id}")
                     ) {
@@ -188,18 +188,18 @@ fun ProjectsScreen(
                                             text = project.name,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 17.sp,
-                                            color = SleekTextPrimary
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         if (isSelected) {
                                             Surface(
-                                                color = SleekPrimaryContainer,
-                                                shape = RoundedCornerShape(6.dp)
+                                                color = MaterialTheme.colorScheme.primaryContainer,
+                                                shape = MaterialTheme.shapes.small
                                             ) {
                                                 Text(
                                                     text = "ACTIVE",
                                                     fontSize = 10.sp,
                                                     fontWeight = FontWeight.Black,
-                                                    color = SleekOnPrimaryContainer,
+                                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                                 )
                                             }
@@ -210,14 +210,14 @@ fun ProjectsScreen(
                                         Text(
                                             text = "Client: ${project.client}",
                                             fontSize = 12.sp,
-                                            color = SleekTextSecondary
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                     if (project.siteLocation.isNotBlank()) {
                                         Text(
                                             text = "Site: ${project.siteLocation}",
                                             fontSize = 12.sp,
-                                            color = SleekTextSecondary
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
@@ -225,10 +225,10 @@ fun ProjectsScreen(
                                 if (!isSelected) {
                                     FilledTonalButton(
                                         onClick = { viewModel.selectProject(project.id) },
-                                        shape = RoundedCornerShape(16.dp),
+                                        shape = MaterialTheme.shapes.large,
                                         colors = ButtonDefaults.filledTonalButtonColors(
-                                            containerColor = SleekPrimaryContainer,
-                                            contentColor = SleekOnPrimaryContainer
+                                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                                         ),
                                         modifier = Modifier.testTag("btn_select_project_${project.id}")
                                     ) {
@@ -237,7 +237,7 @@ fun ProjectsScreen(
                                 }
                             }
 
-                            HorizontalDivider(color = SleekDivider, thickness = 1.dp)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
                             // Contractor list under this project
                             Row(
@@ -247,18 +247,18 @@ fun ProjectsScreen(
                             ) {
                                 Text(
                                     text = "ASSIGNED CONTRACTORS (${projectContractors.size})",
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = SleekTextSecondary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     letterSpacing = 0.5.sp
                                 )
                                 TextButton(
                                     onClick = { showAddContractorDialogForProject = project },
                                     modifier = Modifier.testTag("btn_add_contractor_proj_${project.id}")
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = SleekPrimaryBlue, modifier = Modifier.size(16.dp))
+                                    Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Add Contractor", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = SleekPrimaryBlue)
+                                    Text("Add Contractor", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
 
@@ -266,16 +266,16 @@ fun ProjectsScreen(
                                 Text(
                                     text = "No contractors assigned. Tap '+ Add Contractor' above.",
                                     fontSize = 12.sp,
-                                    color = SleekTextTertiary,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     style = androidx.compose.ui.text.TextStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
                                 )
                             } else {
                                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                     projectContractors.forEach { contractor ->
                                         Surface(
-                                            color = SleekSurfaceVariant,
-                                            shape = RoundedCornerShape(12.dp),
-                                            border = BorderStroke(1.dp, SleekOutlineVariant),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = MaterialTheme.shapes.medium,
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Row(
@@ -289,7 +289,7 @@ fun ProjectsScreen(
                                                     Icon(
                                                         imageVector = Icons.Default.Engineering,
                                                         contentDescription = null,
-                                                        tint = SleekPrimaryBlue,
+                                                        tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(18.dp)
                                                     )
                                                     Column {
@@ -297,13 +297,13 @@ fun ProjectsScreen(
                                                             text = contractor.name,
                                                             fontWeight = FontWeight.SemiBold,
                                                             fontSize = 13.sp,
-                                                            color = SleekTextPrimary
+                                                            color = MaterialTheme.colorScheme.onSurface
                                                         )
                                                         if (contractor.phone.isNotBlank()) {
                                                             Text(
                                                                 text = "📞 ${contractor.phone}",
-                                                                fontSize = 11.sp,
-                                                                color = SleekTextSecondary
+                                                                style = MaterialTheme.typography.labelSmall,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                                             )
                                                         }
                                                     }
@@ -335,14 +335,14 @@ fun ProjectsScreen(
                             ) {
                                 Text(
                                     text = "${projectMeasurements.size} Measurements Logged",
-                                    fontSize = 11.sp,
-                                    color = SleekTextSecondary
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
                                     text = "${projectMeasurements.size} measurement entries",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = SleekPrimaryBlue
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
@@ -358,11 +358,11 @@ fun ProjectsScreen(
         var clientName by remember { mutableStateOf("") }
         var siteLoc by remember { mutableStateOf("") }
 
-        Dialog(onDismissRequest = { showAddProjectDialog = false }) {
+        BasicAlertDialog(onDismissRequest = { showAddProjectDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = SleekSurfaceLight,
-                border = BorderStroke(1.dp, SleekOutline),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
             ) {
                 Column(
@@ -373,7 +373,7 @@ fun ProjectsScreen(
                         text = "New Project Setup",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = SleekTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     OutlinedTextField(
                         value = projName,
@@ -381,7 +381,7 @@ fun ProjectsScreen(
                         label = { Text("Project Name *") },
                         placeholder = { Text("e.g. Greenfield Heights") },
                         modifier = Modifier.fillMaxWidth().testTag("input_project_name"),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
                     OutlinedTextField(
@@ -390,7 +390,7 @@ fun ProjectsScreen(
                         label = { Text("Client Name") },
                         placeholder = { Text("e.g. Apex Corp") },
                         modifier = Modifier.fillMaxWidth().testTag("input_client_name"),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
                     OutlinedTextField(
@@ -399,7 +399,7 @@ fun ProjectsScreen(
                         label = { Text("Site Location") },
                         placeholder = { Text("e.g. Sector 12, Plot 4") },
                         modifier = Modifier.fillMaxWidth().testTag("input_site_location"),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
 
@@ -417,8 +417,8 @@ fun ProjectsScreen(
                                     showAddProjectDialog = false
                                 }
                             },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SleekPrimaryBlue),
+                            shape = MaterialTheme.shapes.large,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_confirm_add_project")
                         ) {
                             Text("Create Project")
@@ -435,11 +435,11 @@ fun ProjectsScreen(
         var contractorName by remember { mutableStateOf("") }
         var contractorPhone by remember { mutableStateOf("") }
 
-        Dialog(onDismissRequest = { showAddContractorDialogForProject = null }) {
+        BasicAlertDialog(onDismissRequest = { showAddContractorDialogForProject = null }) {
             Surface(
-                shape = RoundedCornerShape(24.dp),
-                color = SleekSurfaceLight,
-                border = BorderStroke(1.dp, SleekOutline),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
             ) {
                 Column(
@@ -450,7 +450,7 @@ fun ProjectsScreen(
                         text = "Add Contractor to ${targetProject.name}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = SleekTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     OutlinedTextField(
                         value = contractorName,
@@ -458,7 +458,7 @@ fun ProjectsScreen(
                         label = { Text("Contractor / Agency Name *") },
                         placeholder = { Text("e.g. Sharma Constructions") },
                         modifier = Modifier.fillMaxWidth().testTag("input_contractor_name"),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
                     OutlinedTextField(
@@ -467,7 +467,7 @@ fun ProjectsScreen(
                         label = { Text("Phone Number") },
                         placeholder = { Text("e.g. 9876543210") },
                         modifier = Modifier.fillMaxWidth().testTag("input_contractor_phone"),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
 
@@ -488,8 +488,8 @@ fun ProjectsScreen(
                                     showAddContractorDialogForProject = null
                                 }
                             },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SleekPrimaryBlue),
+                            shape = MaterialTheme.shapes.large,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_confirm_add_contractor")
                         ) {
                             Text("Add Contractor")

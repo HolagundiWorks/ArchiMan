@@ -40,7 +40,7 @@ fun BreadcrumbBar(
     ) {
         // Home icon
         Surface(
-            shape = RoundedCornerShape(8.dp),
+            shape = MaterialTheme.shapes.medium,
             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f),
             modifier = Modifier.clickable { onHomeClick() }
         ) {
@@ -62,10 +62,10 @@ fun BreadcrumbBar(
 
             val isLast = index == items.size - 1
             Surface(
-                shape = RoundedCornerShape(8.dp),
+                shape = MaterialTheme.shapes.medium,
                 color = if (isLast) MaterialTheme.colorScheme.primary else Color.Transparent,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(MaterialTheme.shapes.medium)
                     .then(
                         if (!isLast && item.onClick != null) Modifier.clickable { item.onClick.invoke() }
                         else Modifier

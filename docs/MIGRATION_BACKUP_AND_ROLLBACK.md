@@ -1,6 +1,6 @@
 # ArchiMan Database Migration Backup and Rollback Runbook
 
-> Current database target: Room schema 21. Package ID and database filename remain unchanged to preserve upgrades and field data.
+> Current database target: Room schema 22. Package ID and database filename remain unchanged to preserve upgrades and field data.
 
 ## Purpose
 
@@ -39,7 +39,7 @@ After first launch, verify:
 - `PRAGMA foreign_key_check` returns no rows;
 - formula codes and versions are populated;
 - expanded practice/client profile and project consultancy/site-data fields are available from schema 19, with LAN users and immutable web audit events added in schema 21;
-- project operations, drawing-control and contractor-rate-book tables retain their records;
+- schema 22 removes the obsolete commercial tables and columns only after copying every quantity-bearing measurement field into the replacement table;
 - managed photo paths referenced by measurements exist;
 - the application opens the M-Book and canonical editor without a fatal error.
 

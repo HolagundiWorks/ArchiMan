@@ -86,7 +86,7 @@ object ExportHelper {
         val sb = StringBuilder()
         // UTF-8 BOM for Excel compatibility
         sb.append("\uFEFF")
-        sb.append("Sr No,Date,Project,Floor,Location / Member,Item of Work,Calculation Formula,Nos,Length (m),Width (m),Height / Depth (m),Deduction,Quantity,Unit,Rate Book ID,Rate,Amount,Remarks\n")
+        sb.append("Sr No,Date,Project,Floor,Location / Member,Item of Work,Calculation Formula,Nos,Length,Breadth,Height / Depth,Deduction,Quantity,Unit,Remarks\n")
 
         val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         for ((idx, m) in measurements.withIndex()) {
@@ -98,7 +98,7 @@ object ExportHelper {
             val formulaEscaped = m.calculationType.displayName.replace("\"", "\"\"")
             val remarksEscaped = m.remarks.replace("\"", "\"\"")
 
-            sb.append("${idx + 1},\"$dateStr\",\"$projEscaped\",\"$floorEscaped\",\"$locEscaped\",\"$itemEscaped\",\"$formulaEscaped\",${m.nos},${m.length},${m.width},${m.height},${m.deduction},${m.quantity},\"${m.unit}\",${m.appliedRateBookId ?: ""},${m.rateSnapshot ?: ""},${m.amountSnapshot ?: ""},\"$remarksEscaped\"\n")
+            sb.append("${idx + 1},\"$dateStr\",\"$projEscaped\",\"$floorEscaped\",\"$locEscaped\",\"$itemEscaped\",\"$formulaEscaped\",${m.nos},${m.length},${m.width},${m.height},${m.deduction},${m.quantity},\"${m.unit}\",\"$remarksEscaped\"\n")
         }
 
         try {
@@ -237,7 +237,7 @@ object ExportHelper {
     <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Formula</Data></Cell>
     <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Nos</Data></Cell>
     <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Length</Data></Cell>
-    <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Width</Data></Cell>
+    <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Breadth</Data></Cell>
     <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Depth/Ht</Data></Cell>
     <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Deduction</Data></Cell>
     <Cell ss:StyleID="sColHeader"><Data ss:Type="String">Quantity</Data></Cell>
@@ -398,15 +398,15 @@ object ExportHelper {
                 paint.color = Color.rgb(22, 22, 22) // Carbon Black
                 c.drawRect(30f, 70f, 565f, 88f, paint)
 
-                // Columns: Sr(20), Item(120), Floor/Loc(100), Formula(65), Nos(25), L(35), W(35), D(35), Ded(35), Qty(45), Unit(20)
+                // Dimensions use the row's Unit column; a book may contain metric and imperial sheets.
                 c.drawText("#", 35f, 82f, headerPaint)
                 c.drawText("Item / Description", 55f, 82f, headerPaint)
                 c.drawText("Floor / Space", 175f, 82f, headerPaint)
                 c.drawText("Formula", 270f, 82f, headerPaint)
                 c.drawText("Nos", 335f, 82f, headerPaint)
-                c.drawText("L (m)", 360f, 82f, headerPaint)
-                c.drawText("W (m)", 395f, 82f, headerPaint)
-                c.drawText("D (m)", 430f, 82f, headerPaint)
+                c.drawText("L", 360f, 82f, headerPaint)
+                c.drawText("B", 395f, 82f, headerPaint)
+                c.drawText("H/D", 430f, 82f, headerPaint)
                 c.drawText("Ded", 465f, 82f, headerPaint)
                 c.drawText("Qty", 500f, 82f, headerPaint)
                 c.drawText("Unit", 535f, 82f, headerPaint)

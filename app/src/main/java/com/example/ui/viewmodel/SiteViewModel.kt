@@ -6,8 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import com.example.data.repository.SiteRepository
-import com.example.domain.MeasurementInput
-import com.example.domain.QuantityCalculator
 import com.example.domain.WorkCatalog
 import com.example.domain.CatalogDocumentParser
 import com.example.domain.MeasurementSheetStatus
@@ -29,21 +27,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
-
-data class QuickEntryFormState(
-    val description: String = "",
-    val length: String = "",
-    val width: String = "",
-    val height: String = "",
-    val nos: String = "1",
-    val deduction: String = "",
-    val floor: String = "",
-    val location: String = "",
-    val remarks: String = "",
-    val photoUri: String? = null,
-    val consecutiveSavedCount: Int = 0,
-    val lastSavedSummary: String? = null
-)
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SiteViewModel(application: Application) : AndroidViewModel(application) {
@@ -85,8 +68,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     val measurements: StateFlow<List<MeasurementEntity>> = repository.allMeasurements
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val measurementSheets: StateFlow<List<MeasurementSheetEntity>> = repository.getMeasurementSheets()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-    val rateBooks: StateFlow<List<ContractorRateBookEntity>> = repository.allRateBooks
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val companyProfile: StateFlow<CompanyProfileEntity?> = repository.companyProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -155,9 +136,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { it?.let(repository::getDrawingTransmittals) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val projectRateBookAssignments: StateFlow<List<ProjectRateBookAssignmentEntity>> = selectedProjectId
-        .flatMapLatest { it?.let(repository::getProjectRateBookAssignments) ?: flowOf(emptyList()) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val projectConsultancyProfile: StateFlow<ProjectConsultancyProfileEntity?> = selectedProjectId
         .flatMapLatest { it?.let(repository::getProjectConsultancyProfile) ?: flowOf(null) }
@@ -255,9 +233,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _formState = MutableStateFlow(QuickEntryFormState())
-    val formState: StateFlow<QuickEntryFormState> = _formState.asStateFlow()
-
     // Register filters
     private val _filterProjectId = MutableStateFlow<Long?>(null)
     val filterProjectId: StateFlow<Long?> = _filterProjectId.asStateFlow()
@@ -273,11 +248,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     val editingMeasurement: StateFlow<MeasurementEntity?> = _editingMeasurement.asStateFlow()
 
     init {
-        // Ensure predefined data is seeded
-        viewModelScope.launch(Dispatchers.IO) {
-            database.seedPredefinedData()
-        }
-
         // Auto-select initial context
         viewModelScope.launch {
             projects.collect { list ->
@@ -652,39 +622,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createRateBook(contractorId: Long, name: String, version: Int = 1, onComplete: (Long) -> Unit = {}) {
-        if (name.isBlank()) return
-        viewModelScope.launch(Dispatchers.IO) {
-            val id = repository.createRateBook(ContractorRateBookEntity(contractorId = contractorId, name = name.trim(), version = version.coerceAtLeast(1)))
-            withContext(Dispatchers.Main) { onComplete(id) }
-        }
-    }
-
-    fun setRateBookItem(rateBookId: Long, item: ItemMasterEntity, rate: Double) {
-        if (rate < 0.0) return
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.upsertRateBookItem(ContractorRateBookItemEntity(
-                rateBookId = rateBookId,
-                itemId = item.id,
-                itemNameSnapshot = item.name,
-                uomSnapshot = item.unit,
-                specificationSnapshot = item.specification,
-                sourceItemCodeSnapshot = item.sourceItemCode,
-                rate = rate
-            ))
-        }
-    }
-
-    fun deleteRateBookItem(item: ContractorRateBookItemEntity) {
-        viewModelScope.launch(Dispatchers.IO) { repository.deleteRateBookItem(item) }
-    }
-
-    fun assignRateBook(projectId: Long, contractorId: Long, rateBookId: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.assignRateBook(ProjectRateBookAssignmentEntity(projectId = projectId, contractorId = contractorId, rateBookId = rateBookId))
-        }
-    }
-
     /** Opens the single authoritative measurement editor using current project context. */
     fun openCanonicalMeasurement(): Boolean {
         val contractorId = _selectedContractorId.value ?: contractors.value.firstOrNull()?.id ?: return false
@@ -736,21 +673,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     fun selectComponentWorkItem(item: ComponentWorkItemEntity) {
         _selectedComponentWorkItem.value = item
         _selectedItemId.value = item.itemId
-
-        // Prefill form dimensions from component if available
-        val comp = components.value.firstOrNull { it.id == _selectedComponentId.value }
-        if (comp != null) {
-            _formState.update { current ->
-                current.copy(
-                    description = comp.name,
-                    length = if (comp.length > 0) comp.length.toString() else current.length,
-                    width = if (comp.width > 0) comp.width.toString() else current.width,
-                    height = if (comp.height > 0) comp.height.toString() else current.height,
-                    nos = "1",
-                    deduction = "0"
-                )
-            }
-        }
     }
 
     fun selectContractor(contractorId: Long) {
@@ -786,13 +708,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         _selectedRoomId.value = 0L
         _selectedComponentId.value = null
         _selectedComponentWorkItem.value = null
-        val flr = floors.value.firstOrNull { it.id == floorId }
-        _formState.update { current ->
-            current.copy(
-                floor = flr?.name ?: "Floor Level",
-                location = "${flr?.name ?: "Floor"} - Structural (Beams/Slabs)"
-            )
-        }
     }
 
     fun jumpToRoom(roomId: Long) {
@@ -1081,274 +996,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Quick Entry / Form state
-    fun updateForm(
-        description: String? = null,
-        length: String? = null,
-        width: String? = null,
-        height: String? = null,
-        nos: String? = null,
-        deduction: String? = null,
-        floor: String? = null,
-        location: String? = null,
-        remarks: String? = null,
-        photoUri: String? = null
-    ) {
-        _formState.update { current ->
-            current.copy(
-                description = description ?: current.description,
-                length = length ?: current.length,
-                width = width ?: current.width,
-                height = height ?: current.height,
-                nos = nos ?: current.nos,
-                deduction = deduction ?: current.deduction,
-                floor = floor ?: current.floor,
-                location = location ?: current.location,
-                remarks = remarks ?: current.remarks,
-                photoUri = if (photoUri != null && photoUri == "CLEAR") null else (photoUri ?: current.photoUri)
-            )
-        }
-    }
-
-    fun updateFormDescription(value: String) = updateForm(description = value)
-    fun updateFormNos(value: String) = updateForm(nos = value)
-    fun updateFormLength(value: String) = updateForm(length = value)
-    fun updateFormWidth(value: String) = updateForm(width = value)
-    fun updateFormHeight(value: String) = updateForm(height = value)
-    fun updateFormDeduction(value: String) = updateForm(deduction = value)
-
-    fun repeatFormValues() {
-        // Keeps dimension values while letting the user change the description.
-        _formState.update { current ->
-            current.copy(
-                description = if (current.description.isNotBlank()) "${current.description} (Copy)" else ""
-            )
-        }
-    }
-
-    fun computeQuantity(calcType: CalculationType, state: QuickEntryFormState): Double {
-        val l = state.length.toDoubleOrNull() ?: 0.0
-        val w = state.width.toDoubleOrNull() ?: 0.0
-        val h = state.height.toDoubleOrNull() ?: 0.0
-        val n = state.nos.toDoubleOrNull() ?: 1.0
-        val d = state.deduction.toDoubleOrNull() ?: 0.0
-
-        return QuantityCalculator.calculate(
-            calcType,
-            MeasurementInput(no = n, length = l, breadth = w, height = h, deduction = d)
-        )
-    }
-
-    fun computeQuantity(item: ItemMasterEntity?, state: QuickEntryFormState): Double {
-        val type = item?.calculationType ?: CalculationType.WALL_PLASTER
-        return computeQuantity(type, state)
-    }
-
-    fun saveMeasurement(andNext: Boolean = false, onSaved: () -> Unit = {}) {
-        saveMeasurementRow {
-            onSaved()
-        }
-    }
-
-    // Save Row in Work Item Measurement or Quick Entry
-    fun saveMeasurementRow(
-        onSaved: (MeasurementEntity) -> Unit = {}
-    ) {
-        val projId = _selectedProjectId.value ?: return
-        val contId = _selectedContractorId.value ?: return
-        val itemId = _selectedItemId.value ?: return
-
-        val proj = projects.value.firstOrNull { it.id == projId } ?: return
-        val cont = contractors.value.firstOrNull { it.id == contId } ?: return
-        val item = items.value.firstOrNull { it.id == itemId } ?: return
-
-        val currentFloor = floors.value.firstOrNull { it.id == _selectedFloorId.value }
-        val currentRoom = rooms.value.firstOrNull { it.id == _selectedRoomId.value }
-        val currentComp = components.value.firstOrNull { it.id == _selectedComponentId.value }
-
-        val form = _formState.value
-        val qty = computeQuantity(item.calculationType, form)
-
-        val floorName = form.floor.ifBlank { currentFloor?.name ?: "" }
-        val locationName = form.location.ifBlank {
-            listOfNotNull(currentRoom?.name, currentComp?.name).joinToString(" - ")
-        }
-        val desc = form.description.ifBlank { currentComp?.name ?: item.name }
-
-        val measurement = MeasurementEntity(
-            projectId = projId,
-            floorId = _selectedFloorId.value,
-            roomId = _selectedRoomId.value,
-            componentId = _selectedComponentId.value,
-            componentWorkItemId = _selectedComponentWorkItem.value?.id,
-            contractorId = contId,
-            contractorName = cont.name,
-            itemId = itemId,
-            itemName = item.name,
-            unit = item.unit,
-            calculationType = item.calculationType,
-            description = desc,
-            length = form.length.toDoubleOrNull() ?: 0.0,
-            width = form.width.toDoubleOrNull() ?: 0.0,
-            height = form.height.toDoubleOrNull() ?: 0.0,
-            nos = form.nos.toDoubleOrNull() ?: 1.0,
-            deduction = form.deduction.toDoubleOrNull() ?: 0.0,
-            quantity = qty,
-            floor = floorName,
-            location = locationName,
-            remarks = form.remarks,
-            photoUri = form.photoUri,
-            date = System.currentTimeMillis()
-        )
-
-        viewModelScope.launch(Dispatchers.IO) {
-            val insertedId = repository.insertMeasurement(measurement)
-            val savedEntity = measurement.copy(id = insertedId)
-
-            val summary = "$desc: $qty ${item.unit}"
-
-            _formState.update { current ->
-                current.copy(
-                    description = "",
-                    length = "",
-                    width = "",
-                    height = "",
-                    nos = "1",
-                    deduction = "",
-                    photoUri = null,
-                    consecutiveSavedCount = current.consecutiveSavedCount + 1,
-                    lastSavedSummary = summary
-                )
-            }
-
-            onSaved(savedEntity)
-        }
-    }
-
-    // Save and duplicate entry across multiple selected floors
-    fun saveMeasurementWithFloorDuplication(
-        targetFloorIds: List<Long>,
-        onComplete: (Int) -> Unit = {}
-    ) {
-        val projId = _selectedProjectId.value ?: return
-        val contId = _selectedContractorId.value ?: return
-        val itemId = _selectedItemId.value ?: return
-
-        val proj = projects.value.firstOrNull { it.id == projId } ?: return
-        val cont = contractors.value.firstOrNull { it.id == contId } ?: return
-        val item = items.value.firstOrNull { it.id == itemId } ?: return
-
-        val currentFloor = floors.value.firstOrNull { it.id == _selectedFloorId.value }
-        val currentRoom = rooms.value.firstOrNull { it.id == _selectedRoomId.value }
-        val currentComp = components.value.firstOrNull { it.id == _selectedComponentId.value }
-
-        val form = _formState.value
-        val qty = computeQuantity(item.calculationType, form)
-
-        val desc = form.description.ifBlank { currentComp?.name ?: item.name }
-        val locationName = form.location.ifBlank {
-            listOfNotNull(currentRoom?.name, currentComp?.name).joinToString(" - ")
-        }
-
-        val allFloorList = floors.value
-
-        viewModelScope.launch(Dispatchers.IO) {
-            var count = 0
-            // 1. Primary selected floor
-            val baseFloorName = form.floor.ifBlank { currentFloor?.name ?: "" }
-            val baseMeasurement = MeasurementEntity(
-                projectId = projId,
-                floorId = _selectedFloorId.value,
-                roomId = _selectedRoomId.value,
-                componentId = _selectedComponentId.value,
-                componentWorkItemId = _selectedComponentWorkItem.value?.id,
-                contractorId = contId,
-                contractorName = cont.name,
-                itemId = itemId,
-                itemName = item.name,
-                unit = item.unit,
-                calculationType = item.calculationType,
-                description = desc,
-                length = form.length.toDoubleOrNull() ?: 0.0,
-                width = form.width.toDoubleOrNull() ?: 0.0,
-                height = form.height.toDoubleOrNull() ?: 0.0,
-                nos = form.nos.toDoubleOrNull() ?: 1.0,
-                deduction = form.deduction.toDoubleOrNull() ?: 0.0,
-                quantity = qty,
-                floor = baseFloorName,
-                location = locationName,
-                remarks = form.remarks,
-                photoUri = form.photoUri,
-                date = System.currentTimeMillis()
-            )
-            repository.insertMeasurement(baseMeasurement)
-            count++
-
-            // 2. Additional target floors
-            for (fId in targetFloorIds) {
-                if (fId == _selectedFloorId.value) continue
-                val targetFloor = allFloorList.firstOrNull { it.id == fId } ?: continue
-                val dupMeasurement = baseMeasurement.copy(
-                    id = 0L,
-                    floorId = fId,
-                    floor = targetFloor.name,
-                    roomId = null,
-                    componentId = null,
-                    componentWorkItemId = null,
-                    date = System.currentTimeMillis()
-                )
-                repository.insertMeasurement(dupMeasurement)
-                count++
-            }
-
-            val summary = "$desc: $qty ${item.unit} duplicated across $count floor(s)"
-            _formState.update { current ->
-                current.copy(
-                    description = "",
-                    length = "",
-                    width = "",
-                    height = "",
-                    nos = "1",
-                    deduction = "",
-                    photoUri = null,
-                    consecutiveSavedCount = current.consecutiveSavedCount + count,
-                    lastSavedSummary = summary
-                )
-            }
-            onComplete(count)
-        }
-    }
-
-    // Continue Navigation Loops
-    fun continueNextItem() {
-        val currentWorkList = componentWorkItems.value
-        val currentIndex = currentWorkList.indexOfFirst { it.id == _selectedComponentWorkItem.value?.id }
-        if (currentIndex >= 0 && currentIndex < currentWorkList.size - 1) {
-            val nextItem = currentWorkList[currentIndex + 1]
-            selectComponentWorkItem(nextItem)
-        }
-    }
-
-    fun continueNextComponent() {
-        val currentCompList = components.value
-        val currentIndex = currentCompList.indexOfFirst { it.id == _selectedComponentId.value }
-        if (currentIndex >= 0 && currentIndex < currentCompList.size - 1) {
-            val nextComp = currentCompList[currentIndex + 1]
-            selectComponent(nextComp.id)
-            _currentScreen.value = AppScreen.ROOM_WORKSPACE
-        }
-    }
-
-    fun continueNextRoom() {
-        val currentRoomList = rooms.value
-        val currentIndex = currentRoomList.indexOfFirst { it.id == _selectedRoomId.value }
-        if (currentIndex >= 0 && currentIndex < currentRoomList.size - 1) {
-            val nextRoom = currentRoomList[currentIndex + 1]
-            selectRoom(nextRoom.id)
-            _currentScreen.value = AppScreen.ROOM_WORKSPACE
-        }
-    }
-
     fun startEditingMeasurement(measurement: MeasurementEntity) {
         _editingMeasurement.value = measurement
     }
@@ -1481,45 +1128,35 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // Projects with Client & Contractors Multi-Select
-    fun addProjectWithClientAndContractors(
+    // Create only the project identity. Team assignment and measurement levels
+    // are explicit project setup actions after creation.
+    fun createProject(
         name: String,
+        projectCode: String,
         clientName: String,
         clientId: Long,
+        projectType: String,
         siteLocation: String,
-        floorNames: List<String>,
-        contractorIds: List<Long>,
         onComplete: (Long) -> Unit = {}
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             val projId = repository.insertProject(
                 ProjectEntity(
                     name = name.trim(),
+                    projectCode = projectCode.trim(),
                     client = clientName.trim(),
                     clientId = clientId,
+                    projectType = projectType.trim(),
                     siteLocation = siteLocation.trim()
                 )
             )
             _selectedProjectId.value = projId
-
-            // Insert Floor Levels
-            var firstFloorId: Long? = null
-            floorNames.filter { it.isNotBlank() }.forEachIndexed { idx, fName ->
-                val fId = repository.insertFloor(FloorEntity(projectId = projId, name = fName.trim(), orderIndex = idx))
-                if (firstFloorId == null) firstFloorId = fId
-            }
-            if (firstFloorId == null) {
-                firstFloorId = repository.insertFloor(FloorEntity(projectId = projId, name = "Ground Floor", orderIndex = 0))
-            }
-            _selectedFloorId.value = firstFloorId
-
-            // Link selected contractors to this project
-            if (contractorIds.isNotEmpty()) {
-                val refs = contractorIds.map { cId ->
-                    ProjectContractorCrossRef(projectId = projId, contractorId = cId)
-                }
-                repository.insertProjectContractorRefs(refs)
-            }
+            // Keep measurement entry ready without asking users to design the
+            // building hierarchy during project creation. More levels are added
+            // from the project's measurement setup.
+            _selectedFloorId.value = repository.insertFloor(
+                FloorEntity(projectId = projId, name = "Ground Floor", orderIndex = 0)
+            )
             onComplete(projId)
         }
     }

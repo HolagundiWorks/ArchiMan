@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import android.content.Intent
@@ -14,7 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,10 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -41,10 +39,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.*
-import com.example.ui.theme.*
 import com.example.ui.navigation.AppScreen
 import com.example.ui.navigation.ProjectSection
 import com.example.ui.viewmodel.SiteViewModel
@@ -73,8 +69,6 @@ fun ProjectWorkspaceScreen(
     val projectDrawings by viewModel.projectDrawings.collectAsStateWithLifecycle()
     val drawingRevisions by viewModel.drawingRevisions.collectAsStateWithLifecycle()
     val drawingTransmittals by viewModel.drawingTransmittals.collectAsStateWithLifecycle()
-    val rateBooks by viewModel.rateBooks.collectAsStateWithLifecycle()
-    val rateBookAssignments by viewModel.projectRateBookAssignments.collectAsStateWithLifecycle()
     val consultancyProfile by viewModel.projectConsultancyProfile.collectAsStateWithLifecycle()
     val scopeItems by viewModel.projectScopeItems.collectAsStateWithLifecycle()
     val onboardingResponses by viewModel.projectOnboardingResponses.collectAsStateWithLifecycle()
@@ -104,7 +98,6 @@ fun ProjectWorkspaceScreen(
         ProjectSection.REPORTS -> "Site reports"
         ProjectSection.CONTROLS -> "Onboarding & controls"
         ProjectSection.CONTRACTORS -> "Project team"
-        ProjectSection.RATE_BOOKS -> "Rate books"
     }
     val navigateUp: () -> Unit = {
         when (selectedSection) {
@@ -115,120 +108,30 @@ fun ProjectWorkspaceScreen(
     }
 
     Scaffold(
-        containerColor = CarbonWhite,
         topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CarbonWhite)
-                    .statusBarsPadding()
-                    .drawBehind {
-                        drawLine(
-                            color = CarbonGray20,
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 1.dp.toPx()
-                        )
-                    }
-            ) {
-                // Top Navigation Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        IconButton(
-                            onClick = navigateUp,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
-                                .testTag("btn_back_home")
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = if (selectedSection == ProjectSection.OVERVIEW) "Back to projects" else "Back in project",
-                                tint = CarbonGray100,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-
-                        Column {
-                            Text(
-                                text = currentProject?.name ?: "Select Project",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = CarbonGray100,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = listOf(sectionTitle, currentProject?.siteLocation.orEmpty()).filter(String::isNotBlank).joinToString(" · "),
-                                fontSize = 11.sp,
-                                color = CarbonGray70
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = { showSwitchProjectDialog = true },
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(CarbonGray10, shape = RoundedCornerShape(2.dp))
-                            .testTag("btn_switch_project")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SwapHoriz,
-                            contentDescription = "Switch Project",
-                            tint = CarbonBlue60,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                // Project Overview Stat Header Strip
-                Surface(
-                    color = CarbonGray10,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(currentProject?.name ?: "Select project", maxLines = 1)
                         Text(
-                            "${projectMeasurements.size} entries  ·  ${projectContractors.size} team  ·  ${floors.size} levels",
-                            modifier = Modifier.weight(1f),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = CarbonGray80,
+                            listOf(sectionTitle, currentProject?.siteLocation.orEmpty()).filter(String::isNotBlank).joinToString(" · "),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
                         )
-
-                        Surface(
-                            color = CarbonBlue10,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonBlue60)
-                        ) {
-                            Text(
-                                text = currentProject?.status?.replace('_', ' ') ?: "ACTIVE",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = CarbonBlue60,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = navigateUp, modifier = Modifier.testTag("btn_back_home")) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = if (selectedSection == ProjectSection.OVERVIEW) "Back to projects" else "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showSwitchProjectDialog = true }, modifier = Modifier.testTag("btn_switch_project")) {
+                        Icon(Icons.Default.SwapHoriz, contentDescription = "Switch project")
                     }
                 }
-
-            }
+            )
         }
     ) { innerPadding ->
         Box(
@@ -261,7 +164,6 @@ fun ProjectWorkspaceScreen(
                     drawingCount = projectDrawings.size,
                     reportCount = meetingMinutes.size + siteInspections.size,
                     contractorCount = projectContractors.size,
-                    rateBookCount = rateBookAssignments.size,
                     controlCount = approvals.count { it.status != "APPROVED" } + backlog.count { it.status == "OPEN" },
                     onSelect = viewModel::setProjectSection
                 )
@@ -284,88 +186,34 @@ fun ProjectWorkspaceScreen(
                         onViewContractorMeasurements = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) }
                     )
                 }
-                ProjectSection.RATE_BOOKS -> ProjectSecondarySection("Rate books") {
-                    ProjectRateBooksTab(
-                        viewModel = viewModel,
-                        project = currentProject,
-                        contractors = projectContractors,
-                        pwdItems = items.filter { it.sourceName.isNotBlank() },
-                        rateBooks = rateBooks,
-                        assignments = rateBookAssignments
-                    )
-                }
             }
         }
     }
 
     // Switch Project Dialog
     if (showSwitchProjectDialog) {
-        Dialog(onDismissRequest = { showSwitchProjectDialog = false }) {
-            Surface(
-                shape = RoundedCornerShape(2.dp),
-                color = CarbonWhite,
-                border = BorderStroke(1.dp, CarbonGray30),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = "Switch Project",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CarbonGray100
-                    )
-                    HorizontalDivider(color = CarbonGray20)
-                    LazyColumn(
-                        modifier = Modifier.heightIn(max = 300.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        items(projects) { proj ->
-                            val isSelected = proj.id == currentProject?.id
-                            Surface(
-                                color = if (isSelected) CarbonBlue10 else CarbonGray10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, if (isSelected) CarbonBlue60 else CarbonGray30),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        viewModel.selectProject(proj.id)
-                                        showSwitchProjectDialog = false
-                                    }
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        Text(proj.name, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = CarbonGray100)
-                                        Text(proj.siteLocation, fontSize = 11.sp, color = CarbonGray70)
-                                    }
-                                    if (isSelected) {
-                                        Icon(Icons.Default.Check, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(16.dp))
-                                    }
-                                }
+        AlertDialog(
+            onDismissRequest = { showSwitchProjectDialog = false },
+            title = { Text("Switch project") },
+            text = {
+                LazyColumn(modifier = Modifier.heightIn(max = 360.dp)) {
+                    items(projects) { project ->
+                        ListItem(
+                            headlineContent = { Text(project.name) },
+                            supportingContent = { Text(project.siteLocation) },
+                            trailingContent = { if (project.id == currentProject?.id) Icon(Icons.Default.Check, contentDescription = "Selected") },
+                            modifier = Modifier.clickable {
+                                viewModel.selectProject(project.id)
+                                showSwitchProjectDialog = false
                             }
-                        }
-                    }
-                    Button(
-                        onClick = { showSwitchProjectDialog = false },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarbonGray100)
-                    ) {
-                        Text("Close", color = CarbonWhite)
+                        )
                     }
                 }
+            },
+            confirmButton = {
+                TextButton(onClick = { showSwitchProjectDialog = false }) { Text("Close") }
             }
-        }
+        )
     }
 
     if (showProjectProfileDialog && currentProject != null) {
@@ -385,7 +233,6 @@ private fun ProjectMoreMenu(
     drawingCount: Int,
     reportCount: Int,
     contractorCount: Int,
-    rateBookCount: Int,
     controlCount: Int,
     onSelect: (ProjectSection) -> Unit
 ) {
@@ -396,18 +243,17 @@ private fun ProjectMoreMenu(
     ) {
         item {
             Text("Project tools", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Documents, field records and project setup", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+            Text("Documents, field records and project setup", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        item { Text("CORE WORKFLOW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp) }
+        item { Text("CORE WORKFLOW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp) }
         item { ProjectMoreRow("Project brief & scope", "Requirements, site data, deliverables and responsibilities", Icons.AutoMirrored.Filled.FactCheck) { onSelect(ProjectSection.BRIEF_SCOPE) } }
         item { ProjectMoreRow("Planning", "Tasks, schedules and material selections", Icons.AutoMirrored.Filled.EventNote) { onSelect(ProjectSection.PLANNING) } }
         item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", Icons.AutoMirrored.Filled.Rule) { onSelect(ProjectSection.CONTROLS) } }
-        item { Text("DOCUMENTS & SITE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
+        item { Text("DOCUMENTS & SITE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
         item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", Icons.Default.Architecture) { onSelect(ProjectSection.DRAWINGS) } }
         item { ProjectMoreRow("Site reports", "$reportCount meeting minutes and inspection reports", Icons.AutoMirrored.Filled.Assignment) { onSelect(ProjectSection.REPORTS) } }
-        item { Text("TEAM & RATE BOOKS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
+        item { Text("PROJECT TEAM", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp)) }
         item { ProjectMoreRow("Project team", "$contractorCount assigned contractors", Icons.Default.Engineering) { onSelect(ProjectSection.CONTRACTORS) } }
-        item { ProjectMoreRow("Rate books", "$rateBookCount rate books applied to this project", Icons.Default.PriceChange) { onSelect(ProjectSection.RATE_BOOKS) } }
     }
 }
 
@@ -418,32 +264,21 @@ private fun ProjectMoreRow(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
-    Surface(
-        color = CarbonWhite,
-        border = BorderStroke(1.dp, CarbonGray20),
-        shape = RoundedCornerShape(4.dp),
+    ListItem(
+        headlineContent = { Text(title) },
+        supportingContent = { Text(supportingText) },
+        leadingContent = { Icon(icon, contentDescription = null) },
+        trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-    ) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(40.dp).background(CarbonBlue10, RoundedCornerShape(4.dp)), contentAlignment = Alignment.Center) {
-                Icon(icon, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(21.dp))
-            }
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(title, fontWeight = FontWeight.SemiBold, color = CarbonGray100)
-                Text(supportingText, style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
-            }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CarbonGray60)
-        }
-    }
+    )
+    HorizontalDivider()
 }
 
 @Composable
 private fun ProjectSecondarySection(title: String, content: @Composable () -> Unit) {
     Column(Modifier.fillMaxSize()) {
-        Surface(color = CarbonGray10, modifier = Modifier.fillMaxWidth()) {
-            Text(title, color = CarbonGray100, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 16.dp, vertical = 9.dp))
-        }
+        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+        HorizontalDivider()
         Box(Modifier.weight(1f)) { content() }
     }
 }
@@ -497,10 +332,10 @@ private fun ProjectBriefScopeScreen(
     ) {
         item {
             Text("Project brief", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Capture the agreed design intent before drawings and site work proceed.", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+            Text("Capture the agreed design intent before drawings and site work proceed.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
-            Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(4.dp)) {
+            Surface(color = MaterialTheme.colorScheme.surfaceVariant, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Consultancy", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -533,10 +368,10 @@ private fun ProjectBriefScopeScreen(
                     Text(if (siteDataExpanded) "Hide site data" else "Add / review site data")
                 }
                 if (siteDataExpanded) {
-                    Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(4.dp)) {
+                    Surface(color = MaterialTheme.colorScheme.surfaceVariant, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text("Site data", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Text("Record supplied or observed information. ArchiMan does not certify legal or planning compliance.", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+                            Text("Record supplied or observed information. ArchiMan does not certify legal or planning compliance.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             OutlinedTextField(siteDimensions, { siteDimensions = it }, label = { Text("Site dimensions") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                             OutlinedTextField(siteOrientation, { siteOrientation = it }, label = { Text("Orientation") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                             OutlinedTextField(siteAccess, { siteAccess = it }, label = { Text("Access and approach") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
@@ -587,7 +422,7 @@ private fun ProjectBriefScopeScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column {
                     Text("Scope register", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text("Scope, deliverables, exclusions and responsibilities", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+                    Text("Scope, deliverables, exclusions and responsibilities", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 FilledTonalButton(onClick = { showAddScope = true }) {
                     Icon(Icons.Default.Add, null)
@@ -598,20 +433,20 @@ private fun ProjectBriefScopeScreen(
         }
         if (scopeItems.isEmpty()) {
             item {
-                Surface(color = CarbonGray10, modifier = Modifier.fillMaxWidth()) {
+                Surface(color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.fillMaxWidth()) {
                     Text("No scope items yet. Add the agreed inclusions before work begins.", modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
                 }
             }
         } else {
             items(scopeItems, key = { it.id }) { item ->
-                Surface(border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(4.dp), color = CarbonWhite) {
+                Surface(border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surface) {
                     Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = item.status == "COMPLETE", onCheckedChange = { viewModel.toggleProjectScopeItem(item) })
                         Column(Modifier.weight(1f)) {
-                            Text(item.category.replace('_', ' '), style = MaterialTheme.typography.labelSmall, color = CarbonBlue60)
+                            Text(item.category.replace('_', ' '), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             Text(item.title, fontWeight = FontWeight.SemiBold)
-                            if (item.details.isNotBlank()) Text(item.details, style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
-                            Text(item.status.replace('_', ' '), style = MaterialTheme.typography.labelSmall, color = CarbonGray60)
+                            if (item.details.isNotBlank()) Text(item.details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(item.status.replace('_', ' '), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         IconButton(onClick = { viewModel.deleteProjectScopeItem(item) }) { Icon(Icons.Default.DeleteOutline, "Delete scope item") }
                     }
@@ -700,20 +535,20 @@ private fun ProjectHubOverview(
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text("PROJECT HUB", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60, letterSpacing = 0.7.sp)
-                Text(project?.name ?: "Project overview", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
-                Text("Brief, plan and coordinate the selected project.", fontSize = 12.sp, color = CarbonGray70)
+                Text("PROJECT HUB", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.7.sp)
+                Text(project?.name ?: "Project overview", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text("Brief, plan and coordinate the selected project.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         item {
             Surface(
-                color = CarbonGray10,
-                border = BorderStroke(1.dp, CarbonGray20),
-                shape = RoundedCornerShape(2.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onEditProfile)
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = CarbonBlue60)
+                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Project profile", fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -723,16 +558,16 @@ private fun ProjectHubOverview(
                                 project?.projectType?.takeIf(String::isNotBlank),
                                 project?.status?.takeIf(String::isNotBlank)
                             ).joinToString(" • ").ifBlank { "Add project code, type, dates and architect" },
-                            color = CarbonGray70,
-                            fontSize = 11.sp
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.labelSmall
                         )
                     }
-                    Icon(Icons.Default.Edit, contentDescription = "Edit project profile", tint = CarbonGray60)
+                    Icon(Icons.Default.Edit, contentDescription = "Edit project profile", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
         item {
-            Text("CONTINUE PROJECT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp)
+            Text("CONTINUE PROJECT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp)
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -741,10 +576,10 @@ private fun ProjectHubOverview(
             }
         }
         item {
-            Text("AT A GLANCE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGray60, letterSpacing = 0.6.sp)
+            Text("AT A GLANCE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp)
         }
         item {
-            Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(4.dp)) {
+            Surface(color = MaterialTheme.colorScheme.surfaceVariant, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small) {
                 Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceAround) {
                     ProjectMetric("MEASUREMENTS", measurementCount.toString())
                     ProjectMetric("DRAWINGS", drawingCount.toString())
@@ -754,19 +589,19 @@ private fun ProjectHubOverview(
         }
         item {
             Surface(
-                color = CarbonGray10,
-                border = BorderStroke(1.dp, CarbonGray20),
-                shape = RoundedCornerShape(2.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenMore)
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.MoreHoriz, contentDescription = null, tint = CarbonBlue60)
+                    Icon(Icons.Default.MoreHoriz, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text("All project tools", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text("Drawings, site reports, team and rate books", color = CarbonGray70, fontSize = 11.sp)
+                        Text("Drawings, site reports and project team", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                     }
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = CarbonGray60)
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -776,8 +611,8 @@ private fun ProjectHubOverview(
 @Composable
 private fun ProjectMetric(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
-        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = CarbonGray60)
+        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -790,15 +625,15 @@ private fun ProjectHubActionCard(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = CarbonWhite,
-        border = BorderStroke(1.dp, CarbonGray20),
-        shape = RoundedCornerShape(2.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shape = MaterialTheme.shapes.small,
         modifier = modifier.clickable(onClick = onClick)
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-            Icon(icon, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(22.dp))
-            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = CarbonGray100)
-            Text(supportingText, fontSize = 10.sp, color = CarbonGray70)
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+            Text(title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+            Text(supportingText, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -812,19 +647,19 @@ fun ProjectTasksTab(viewModel: SiteViewModel, tasks: List<ProjectTaskEntity>) {
     Box(Modifier.fillMaxSize()) {
         if (tasks.isEmpty()) {
             Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.TaskAlt, null, Modifier.size(40.dp), tint = CarbonGray50)
+                Icon(Icons.Default.TaskAlt, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
                 Text("No project tasks", fontWeight = FontWeight.Bold)
-                Text("Add site actions, decisions, or follow-ups.", color = CarbonGray70, fontSize = 12.sp)
+                Text("Add site actions, decisions, or follow-ups.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
             }
         } else LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(tasks, key = { it.id }) { task ->
-                Card(colors = CardDefaults.cardColors(containerColor = CarbonWhite), border = BorderStroke(1.dp, CarbonGray20)) {
+                Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                     Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = task.status == "DONE", onCheckedChange = { viewModel.toggleProjectTask(task) })
                         Column(Modifier.weight(1f)) {
-                            Text(task.title, fontWeight = FontWeight.SemiBold, color = CarbonGray100)
-                            if (task.description.isNotBlank()) Text(task.description, fontSize = 12.sp, color = CarbonGray70)
+                            Text(task.title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                            if (task.description.isNotBlank()) Text(task.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         IconButton(onClick = { viewModel.deleteProjectTask(task) }) { Icon(Icons.Default.DeleteOutline, "Delete task") }
                     }
@@ -860,27 +695,27 @@ fun ProjectSelectionsTab(
         Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Specification / Selection List", fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text("Quantity-only procurement schedule", color = CarbonGray70, fontSize = 11.sp)
+                Text("Quantity-only procurement schedule", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
             }
             TextButton(enabled = selectionItems.isNotEmpty(), onClick = {
                 ExportHelper.exportSelectionListAsPurchaseOrder(context, project?.name ?: "Project", selectionItems)
             }) { Icon(Icons.Default.FileDownload, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Export PO") }
         }
-        HorizontalDivider(color = CarbonGray20)
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (selectionItems.isEmpty()) Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.Checklist, null, Modifier.size(40.dp), tint = CarbonGray50)
+                Icon(Icons.Default.Checklist, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp)); Text("No selection items", fontWeight = FontWeight.Bold)
-                Text("Add materials, fixtures, finishes, or equipment.", color = CarbonGray70, fontSize = 12.sp, textAlign = TextAlign.Center)
+                Text("Add materials, fixtures, finishes, or equipment.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center)
             } else LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(selectionItems, key = { it.id }) { item ->
-                    Card(colors = CardDefaults.cardColors(containerColor = CarbonWhite), border = BorderStroke(1.dp, CarbonGray20)) {
+                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
                         Row(Modifier.fillMaxWidth().padding(10.dp), verticalAlignment = Alignment.Top) {
                             Checkbox(checked = item.status == "SELECTED", onCheckedChange = { viewModel.toggleProjectSelectionItem(item) })
                             Column(Modifier.weight(1f)) {
                                 Text(item.itemName, fontWeight = FontWeight.Bold)
-                                Text("${item.quantity} ${item.unit}${item.makeOrBrand.takeIf(String::isNotBlank)?.let { " • $it" } ?: ""}", color = CarbonBlue60, fontSize = 12.sp)
-                                if (item.specification.isNotBlank()) Text(item.specification, fontSize = 12.sp, color = CarbonGray70)
+                                Text("${item.quantity} ${item.unit}${item.makeOrBrand.takeIf(String::isNotBlank)?.let { " • $it" } ?: ""}", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
+                                if (item.specification.isNotBlank()) Text(item.specification, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             IconButton(onClick = { viewModel.deleteProjectSelectionItem(item) }) { Icon(Icons.Default.DeleteOutline, "Delete selection item") }
                         }
@@ -919,24 +754,24 @@ private fun SelectionItemDialog(onDismiss: () -> Unit, onAdd: (String, String, S
 @Composable
 private fun CanonicalMeasurementLauncher(viewModel: SiteViewModel) {
     Box(Modifier.fillMaxSize().padding(16.dp), contentAlignment = Alignment.TopCenter) {
-        Surface(color = CarbonGray10, border = BorderStroke(1.dp, CarbonGray30), shape = RoundedCornerShape(2.dp)) {
+        Surface(color = MaterialTheme.colorScheme.surfaceVariant, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small) {
             Column(
                 Modifier.fillMaxWidth().padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.TableRows, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(28.dp))
-                Text("Measurement Sheet", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = CarbonGray100)
+                Icon(Icons.Default.TableRows, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                Text("Measurement Sheet", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "All project, room, and component shortcuts now use the same spreadsheet-style measurement editor.",
                     textAlign = TextAlign.Center,
                     fontSize = 12.sp,
-                    color = CarbonGray70
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Button(
                     onClick = { viewModel.openCanonicalMeasurement() },
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
-                    shape = RoundedCornerShape(2.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Straighten, contentDescription = null)
@@ -971,15 +806,15 @@ fun ProjectContractorsTab(
     }
 
     Scaffold(
-        containerColor = CarbonWhite,
+        containerColor = MaterialTheme.colorScheme.surface,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddContractorDialog = true },
                 icon = { Icon(Icons.Default.Add, contentDescription = null) },
                 text = { Text("Add Contractor", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
-                containerColor = CarbonBlue60,
-                contentColor = CarbonWhite,
-                shape = RoundedCornerShape(2.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier.testTag("fab_add_contractor")
             )
         }
@@ -1000,9 +835,9 @@ fun ProjectContractorsTab(
                 ) {
                     Text(
                         text = "ASSIGNED CONTRACTORS (${contractors.size})",
-                        fontSize = 11.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = CarbonGray70,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         letterSpacing = 0.8.sp
                     )
                 }
@@ -1014,9 +849,9 @@ fun ProjectContractorsTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 30.dp),
-                        color = CarbonGray10,
-                        shape = RoundedCornerShape(2.dp),
-                        border = BorderStroke(1.dp, CarbonGray30)
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                     ) {
                         Column(
                             modifier = Modifier
@@ -1028,25 +863,25 @@ fun ProjectContractorsTab(
                             Icon(
                                 imageVector = Icons.Default.Engineering,
                                 contentDescription = null,
-                                tint = CarbonGray60,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(36.dp)
                             )
                             Text(
                                 text = "No contractors added yet",
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = CarbonGray100
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Add civil, RCC, masonry, plaster, or finishing contractors to assign them to measurements.",
                                 fontSize = 12.sp,
-                                color = CarbonGray70,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                             Button(
                                 onClick = { showAddContractorDialog = true },
-                                shape = RoundedCornerShape(2.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                                shape = MaterialTheme.shapes.small,
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
                                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
@@ -1061,9 +896,9 @@ fun ProjectContractorsTab(
                     val totalQty = contractorEntries.sumOf { it.quantity }
 
                     Surface(
-                        color = CarbonWhite,
-                        shape = RoundedCornerShape(2.dp),
-                        border = BorderStroke(1.dp, CarbonGray30),
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -1084,13 +919,13 @@ fun ProjectContractorsTab(
                                     Box(
                                         modifier = Modifier
                                             .size(32.dp)
-                                            .background(CarbonBlue10, shape = RoundedCornerShape(2.dp)),
+                                            .background(MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Person,
                                             contentDescription = null,
-                                            tint = CarbonBlue60,
+                                            tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -1099,13 +934,13 @@ fun ProjectContractorsTab(
                                             text = contractor.name,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = CarbonGray100
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         if (contractor.phone.isNotBlank()) {
                                             Text(
                                                 text = "📞 ${contractor.phone}",
-                                                fontSize = 11.sp,
-                                                color = CarbonGray70
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
@@ -1118,13 +953,13 @@ fun ProjectContractorsTab(
                                     Icon(
                                         imageVector = Icons.Default.DeleteOutline,
                                         contentDescription = "Delete Contractor",
-                                        tint = CarbonGray60,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
                             }
 
-                            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1133,9 +968,9 @@ fun ProjectContractorsTab(
                             ) {
                                 Text(
                                     text = "${contractorEntries.size} Recorded Entries • ${"%.2f".format(totalQty)} Total Qty",
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = CarbonGray80
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1154,7 +989,7 @@ fun ProjectContractorsTab(
                                             Icon(
                                                 imageVector = Icons.Default.Phone,
                                                 contentDescription = "Call",
-                                                tint = CarbonBlue60,
+                                                tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(16.dp)
                                             )
                                         }
@@ -1162,12 +997,12 @@ fun ProjectContractorsTab(
 
                                     OutlinedButton(
                                         onClick = { onViewContractorMeasurements(contractor.id) },
-                                        shape = RoundedCornerShape(2.dp),
-                                        border = BorderStroke(1.dp, CarbonBlue60),
+                                        shape = MaterialTheme.shapes.small,
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                         modifier = Modifier.height(28.dp)
                                     ) {
-                                        Text("View M-Book", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60)
+                                        Text("View M-Book", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             }
@@ -1184,11 +1019,11 @@ fun ProjectContractorsTab(
         var phone by remember { mutableStateOf("") }
         var error by remember { mutableStateOf<String?>(null) }
 
-        Dialog(onDismissRequest = { showAddContractorDialog = false }) {
+        BasicAlertDialog(onDismissRequest = { showAddContractorDialog = false }) {
             Surface(
-                shape = RoundedCornerShape(2.dp),
-                color = CarbonWhite,
-                border = BorderStroke(1.dp, CarbonGray30),
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -1201,13 +1036,13 @@ fun ProjectContractorsTab(
                         text = "Add Contractor to Project",
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CarbonGray100
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    HorizontalDivider(color = CarbonGray20)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    Text("ASSIGN EXISTING CONTRACTORS", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray70)
+                    Text("ASSIGN EXISTING CONTRACTORS", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (availableExisting.isEmpty()) {
-                        Text("All registered contractors are already assigned to this site.", fontSize = 12.sp, color = CarbonGray60)
+                        Text("All registered contractors are already assigned to this site.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp),
@@ -1216,9 +1051,9 @@ fun ProjectContractorsTab(
                             items(availableExisting, key = { it.id }) { existing ->
                                 val selected = existing.id in selectedExistingIds
                                 Surface(
-                                    color = if (selected) CarbonBlue10 else CarbonGray10,
-                                    border = BorderStroke(1.dp, if (selected) CarbonBlue60 else CarbonGray30),
-                                    shape = RoundedCornerShape(2.dp),
+                                    color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                                    shape = MaterialTheme.shapes.small,
                                     modifier = Modifier.fillMaxWidth().clickable {
                                         if (selected) selectedExistingIds.remove(existing.id) else selectedExistingIds.add(existing.id)
                                     }
@@ -1229,7 +1064,7 @@ fun ProjectContractorsTab(
                                         })
                                         Column {
                                             Text(existing.name, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            Text(existing.contactNo.ifBlank { existing.phone }, fontSize = 10.sp, color = CarbonGray60)
+                                            Text(existing.contactNo.ifBlank { existing.phone }, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                         }
                                     }
                                 }
@@ -1245,36 +1080,36 @@ fun ProjectContractorsTab(
                             },
                             enabled = selectedExistingIds.isNotEmpty(),
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(2.dp)
+                            shape = MaterialTheme.shapes.small
                         ) {
                             Text("Assign ${selectedExistingIds.size} Selected")
                         }
                     }
 
-                    HorizontalDivider(color = CarbonGray20)
-                    Text("OR CREATE A NEW CONTRACTOR", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonGray70)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Text("OR CREATE A NEW CONTRACTOR", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                     if (error != null) {
-                        Text(text = error ?: "", color = CarbonRed60, fontSize = 11.sp)
+                        Text(text = error ?: "", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
                     }
 
-                    CarbonInputField(
-                        label = "CONTRACTOR / AGENCY NAME *",
+                    OutlinedTextField(
+                        label = { Text("CONTRACTOR / AGENCY NAME *") },
                         value = name,
                         onValueChange = { name = it; error = null },
-                        placeholder = "e.g. Ramesh Civil Works",
-                        keyboardType = KeyboardType.Text,
-                        testTag = "input_contractor_name"
-                    )
+                        placeholder = { Text("e.g. Ramesh Civil Works") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        modifier = Modifier.fillMaxWidth().testTag("input_contractor_name"),
+                        singleLine = true)
 
-                    CarbonInputField(
-                        label = "PHONE / CONTACT NUMBER",
+                    OutlinedTextField(
+                        label = { Text("PHONE / CONTACT NUMBER") },
                         value = phone,
                         onValueChange = { phone = it },
-                        placeholder = "e.g. +91 98765 43210",
-                        keyboardType = KeyboardType.Phone,
-                        testTag = "input_contractor_phone"
-                    )
+                        placeholder = { Text("e.g. +91 98765 43210") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        modifier = Modifier.fillMaxWidth().testTag("input_contractor_phone"),
+                        singleLine = true)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1283,9 +1118,9 @@ fun ProjectContractorsTab(
                         OutlinedButton(
                             onClick = { showAddContractorDialog = false },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(2.dp)
+                            shape = MaterialTheme.shapes.small
                         ) {
-                            Text("Cancel", color = CarbonGray80, fontSize = 12.sp)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
                         }
 
                         Button(
@@ -1303,10 +1138,10 @@ fun ProjectContractorsTab(
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
-                            Text("Save", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = CarbonWhite)
+                            Text("Save", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.surface)
                         }
                     }
                 }
@@ -1328,8 +1163,8 @@ fun ProjectContractorsTab(
                         }
                         contractorToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonRed60),
-                    shape = RoundedCornerShape(2.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text("Delete", fontWeight = FontWeight.Bold)
                 }
@@ -1337,7 +1172,7 @@ fun ProjectContractorsTab(
             dismissButton = {
                 TextButton(onClick = { contractorToDelete = null }) { Text("Cancel") }
             },
-            shape = RoundedCornerShape(2.dp)
+            shape = MaterialTheme.shapes.small
         )
     }
 }
@@ -1401,9 +1236,9 @@ fun ProjectMeasurementBookTab(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 // Quick Export Toolbar
                 Surface(
-                    color = CarbonGray10,
-                    shape = RoundedCornerShape(2.dp),
-                    border = BorderStroke(1.dp, CarbonGray30),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -1417,15 +1252,15 @@ fun ProjectMeasurementBookTab(
                             text = "M-BOOK EXPORT:",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CarbonGray70
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                             // PDF
                             Surface(
-                                color = CarbonRed10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonRed60),
+                                color = MaterialTheme.colorScheme.errorContainer,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                                 modifier = Modifier.clickable {
                                     ExportHelper.printMeasurementSheetPdf(
                                         context = context,
@@ -1439,16 +1274,16 @@ fun ProjectMeasurementBookTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = CarbonRed60, modifier = Modifier.size(12.dp))
-                                    Text("PDF", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonRed60)
+                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
+                                    Text("PDF", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                                 }
                             }
 
                             // Excel XLS
                             Surface(
-                                color = CarbonGreen10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonGreen60),
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
                                 modifier = Modifier.clickable {
                                     ExportHelper.exportAndShareXls(
                                         context = context,
@@ -1462,16 +1297,16 @@ fun ProjectMeasurementBookTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.TableChart, contentDescription = null, tint = CarbonGreen60, modifier = Modifier.size(12.dp))
-                                    Text("Excel XLS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonGreen60)
+                                    Icon(Icons.Default.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
+                                    Text("Excel XLS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                                 }
                             }
 
                             // CSV
                             Surface(
-                                color = CarbonBlue10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonBlue60),
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.clickable {
                                     ExportHelper.exportAndShareCsv(
                                         context = context,
@@ -1485,8 +1320,8 @@ fun ProjectMeasurementBookTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.FileDownload, contentDescription = null, tint = CarbonBlue60, modifier = Modifier.size(12.dp))
-                                    Text("CSV", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60)
+                                    Icon(Icons.Default.FileDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                                    Text("CSV", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -1494,46 +1329,20 @@ fun ProjectMeasurementBookTab(
                 }
 
                 // Search & Filter Row
-                Surface(
-                    color = CarbonGray10,
-                    shape = RoundedCornerShape(2.dp),
-                    border = BorderStroke(1.dp, CarbonGray30),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = CarbonGray60, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        BasicTextField(
-                            value = searchQuery,
-                            onValueChange = { searchQuery = it },
-                            textStyle = TextStyle(fontSize = 13.sp, color = CarbonGray100),
-                            singleLine = true,
-                            cursorBrush = SolidColor(CarbonBlue60),
-                            modifier = Modifier.weight(1f),
-                            decorationBox = { inner ->
-                                Box {
-                                    if (searchQuery.isEmpty()) Text("Filter entries by member, item, floor...", fontSize = 12.sp, color = CarbonGray50)
-                                    inner()
-                                }
-                            }
-                        )
-                        if (searchQuery.isNotEmpty()) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "Clear",
-                                tint = CarbonGray70,
-                                modifier = Modifier
-                                    .size(14.dp)
-                                    .clickable { searchQuery = "" }
-                            )
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search measurements") },
+                    placeholder = { Text("Member, item or floor") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) IconButton(onClick = { searchQuery = "" }) {
+                            Icon(Icons.Default.Close, contentDescription = "Clear search")
                         }
-                    }
-                }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // Filter Chips (Floors & Contractors)
                 LazyRow(
@@ -1545,8 +1354,8 @@ fun ProjectMeasurementBookTab(
                         FilterChip(
                             selected = selectedFloorFilter == null,
                             onClick = { selectedFloorFilter = null },
-                            label = { Text("All Floors", fontSize = 11.sp) },
-                            shape = RoundedCornerShape(2.dp)
+                            label = { Text("All Floors", style = MaterialTheme.typography.labelSmall) },
+                            shape = MaterialTheme.shapes.small
                         )
                     }
 
@@ -1555,8 +1364,8 @@ fun ProjectMeasurementBookTab(
                         FilterChip(
                             selected = selectedFloorFilter == f.id,
                             onClick = { selectedFloorFilter = if (selectedFloorFilter == f.id) null else f.id },
-                            label = { Text(f.name, fontSize = 11.sp) },
-                            shape = RoundedCornerShape(2.dp)
+                            label = { Text(f.name, style = MaterialTheme.typography.labelSmall) },
+                            shape = MaterialTheme.shapes.small
                         )
                     }
 
@@ -1570,9 +1379,9 @@ fun ProjectMeasurementBookTab(
                                     selectedContractorFilter = null
                                     onClearContractorFilter()
                                 },
-                                label = { Text("👷 ${cont?.name ?: "Contractor"}", fontSize = 11.sp) },
+                                label = { Text("👷 ${cont?.name ?: "Contractor"}", style = MaterialTheme.typography.labelSmall) },
                                 trailingIcon = { Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(12.dp)) },
-                                shape = RoundedCornerShape(2.dp)
+                                shape = MaterialTheme.shapes.small
                             )
                         }
                     }
@@ -1589,16 +1398,16 @@ fun ProjectMeasurementBookTab(
             ) {
                 Text(
                     text = "SHOWING ${filteredMeasurements.size} ENTRIES",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = CarbonGray70,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     letterSpacing = 0.8.sp
                 )
                 Text(
                     text = "Total Qty: ${"%.3f".format(totalCalculatedQuantity)}",
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
-                    color = CarbonBlue60
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         }
@@ -1607,9 +1416,9 @@ fun ProjectMeasurementBookTab(
         if (filteredMeasurements.isEmpty()) {
             item {
                 Surface(
-                    color = CarbonGray10,
-                    shape = RoundedCornerShape(2.dp),
-                    border = BorderStroke(1.dp, CarbonGray30),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 20.dp)
@@ -1621,13 +1430,13 @@ fun ProjectMeasurementBookTab(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = CarbonGray60, modifier = Modifier.size(32.dp))
-                        Text("No recorded measurements found", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = CarbonGray100)
-                        Text("Switch to 'Record Measurement' tab to enter dimensions and calculate quantities.", fontSize = 12.sp, color = CarbonGray70, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
+                        Text("No recorded measurements found", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("Switch to 'Record Measurement' tab to enter dimensions and calculate quantities.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         Button(
                             onClick = onNavigateToRecord,
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                         ) {
                             Text("+ Record New Measurement", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
@@ -1640,9 +1449,9 @@ fun ProjectMeasurementBookTab(
                 val formattedDate = remember(m.date) { dateFormat.format(Date(m.date)) }
 
                 Surface(
-                    color = CarbonWhite,
-                    shape = RoundedCornerShape(2.dp),
-                    border = BorderStroke(1.dp, CarbonGray30),
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = MaterialTheme.shapes.small,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -1665,19 +1474,19 @@ fun ProjectMeasurementBookTab(
                                     text = m.itemName,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = CarbonGray100
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
 
                                 Surface(
-                                    color = CarbonBlue10,
-                                    shape = RoundedCornerShape(2.dp),
-                                    border = BorderStroke(1.dp, CarbonBlue60)
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                    shape = MaterialTheme.shapes.small,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                                 ) {
                                     Text(
                                         text = m.unit,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = CarbonBlue60,
+                                        color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                     )
                                 }
@@ -1687,7 +1496,7 @@ fun ProjectMeasurementBookTab(
                                 onClick = { measurementToDelete = m },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = CarbonGray60, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                             }
                         }
 
@@ -1695,15 +1504,15 @@ fun ProjectMeasurementBookTab(
                         Text(
                             text = listOfNotNull(m.floor.ifBlank { null }, m.location.ifBlank { null }, m.description.ifBlank { null }).joinToString(" • "),
                             fontSize = 12.sp,
-                            color = CarbonGray70,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )
 
                         // Dimension Calculation Box
                         Surface(
-                            color = CarbonGray10,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonGray20),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -1723,7 +1532,7 @@ fun ProjectMeasurementBookTab(
                                 Text(
                                     text = dimensionBreakdown,
                                     fontSize = 12.sp,
-                                    color = CarbonGray80,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Medium
                                 )
 
@@ -1731,19 +1540,10 @@ fun ProjectMeasurementBookTab(
                                     text = "= ${"%.3f".format(m.quantity)} ${m.unit}",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = CarbonBlue60
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                             }
                         }
-                        if (m.rateSnapshot != null) {
-                            Text(
-                                text = "Rate ₹ ${"%.2f".format(m.rateSnapshot)} / ${m.unit}  •  Amount ₹ ${"%.2f".format(m.amountSnapshot ?: 0.0)}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color = CarbonGray80
-                            )
-                        }
-
                         // Footer: Contractor tag + Date
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -1753,8 +1553,8 @@ fun ProjectMeasurementBookTab(
                             if (m.contractorName.isNotBlank()) {
                                 Text(
                                     text = "👷 ${m.contractorName}",
-                                    fontSize = 11.sp,
-                                    color = CarbonGray70
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
                                 Spacer(Modifier.width(1.dp))
@@ -1762,7 +1562,7 @@ fun ProjectMeasurementBookTab(
                             Text(
                                 text = formattedDate,
                                 fontSize = 10.sp,
-                                color = CarbonGray60
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -1783,8 +1583,8 @@ fun ProjectMeasurementBookTab(
                         measurementToDelete?.let { viewModel.deleteMeasurement(it) }
                         measurementToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonRed60),
-                    shape = RoundedCornerShape(2.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = MaterialTheme.shapes.small
                 ) {
                     Text("Archive", fontWeight = FontWeight.Bold)
                 }
@@ -1792,543 +1592,7 @@ fun ProjectMeasurementBookTab(
             dismissButton = {
                 TextButton(onClick = { measurementToDelete = null }) { Text("Cancel") }
             },
-            shape = RoundedCornerShape(2.dp)
+            shape = MaterialTheme.shapes.small
         )
-    }
-}
-
-// ====================================================================
-// TAB 3: RECORD MEASUREMENT (FAST 6-STEP DIMENSION ENTRY)
-// ====================================================================
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ProjectRecordMeasurementTab(
-    viewModel: SiteViewModel,
-    currentProject: ProjectEntity?,
-    floors: List<FloorEntity>,
-    contractors: List<ContractorEntity>,
-    items: List<ItemMasterEntity>,
-    onMeasurementSaved: (MeasurementEntity) -> Unit = {}
-) {
-    val formState by viewModel.formState.collectAsStateWithLifecycle()
-    val selectedFloorId by viewModel.selectedFloorId.collectAsStateWithLifecycle()
-    val selectedItemId by viewModel.selectedItemId.collectAsStateWithLifecycle()
-    val selectedContractorId by viewModel.selectedContractorId.collectAsStateWithLifecycle()
-    val allQualifiedItems by viewModel.allQualifiedItems.collectAsStateWithLifecycle()
-
-    val currentItem = items.firstOrNull { it.id == selectedItemId } ?: items.firstOrNull()
-    val currentFloor = floors.firstOrNull { it.id == selectedFloorId } ?: floors.firstOrNull()
-    val currentContractor = contractors.firstOrNull { it.id == selectedContractorId }
-    val contractorItems = remember(selectedContractorId, allQualifiedItems) {
-        if (selectedContractorId == null || selectedContractorId == 0L) emptyList()
-        else allQualifiedItems.filter { it.contractorId == selectedContractorId }
-    }
-
-    // Multi-floor duplication selection
-    val selectedDuplicationFloors = remember { mutableStateListOf<Long>() }
-    var showAddFloorDialog by remember { mutableStateOf(false) }
-    var workItemMenuExpanded by remember { mutableStateOf(false) }
-    var floorMenuExpanded by remember { mutableStateOf(false) }
-    var contractorMenuExpanded by remember { mutableStateOf(false) }
-
-    val liveQuantity = remember(currentItem, formState) {
-        if (currentItem != null) viewModel.computeQuantity(currentItem.calculationType, formState)
-        else 0.0
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(top = 12.dp, bottom = 32.dp)
-    ) {
-        // Last Saved Feedback Banner
-        if (formState.lastSavedSummary != null) {
-            item {
-                Surface(
-                    color = CarbonGreen10,
-                    shape = RoundedCornerShape(2.dp),
-                    border = BorderStroke(1.dp, CarbonGreen60),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = CarbonGreen60, modifier = Modifier.size(16.dp))
-                        Text(
-                            text = formState.lastSavedSummary ?: "",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CarbonGreen60,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-        }
-
-        // STEP 1: SELECT CONTRACTOR
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                CarbonStepHeader(stepNumber = "1", title = "SELECT CONTRACTOR")
-                ExposedDropdownMenuBox(
-                    expanded = contractorMenuExpanded,
-                    onExpandedChange = { if (contractors.isNotEmpty()) contractorMenuExpanded = !contractorMenuExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = currentContractor?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Contractor") },
-                        placeholder = { Text(if (contractors.isEmpty()) "No contractors assigned" else "Choose contractor first") },
-                        leadingIcon = { Icon(Icons.Default.Engineering, contentDescription = null) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(contractorMenuExpanded) },
-                        shape = RoundedCornerShape(2.dp),
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = contractors.isNotEmpty())
-                            .fillMaxWidth()
-                            .testTag("project_dropdown_contractor")
-                    )
-                    ExposedDropdownMenu(expanded = contractorMenuExpanded, onDismissRequest = { contractorMenuExpanded = false }) {
-                        contractors.forEach { contractor ->
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(contractor.name, fontWeight = FontWeight.SemiBold)
-                                        val count = allQualifiedItems.count { it.contractorId == contractor.id }
-                                        Text("$count qualified items", fontSize = 11.sp, color = CarbonGray70)
-                                    }
-                                },
-                                onClick = {
-                                    viewModel.selectContractor(contractor.id)
-                                    contractorMenuExpanded = false
-                                    workItemMenuExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // STEP 2: SELECT WORK ITEM
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                CarbonStepHeader(stepNumber = "2", title = "SELECT QUALIFIED WORK ITEM")
-
-                ExposedDropdownMenuBox(
-                    expanded = workItemMenuExpanded,
-                    onExpandedChange = { if (contractorItems.isNotEmpty()) workItemMenuExpanded = !workItemMenuExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Work item") },
-                        placeholder = { Text(if (currentContractor == null) "Select contractor first" else if (contractorItems.isEmpty()) "No qualified items" else "Choose qualified item") },
-                        leadingIcon = { Icon(Icons.Default.Construction, contentDescription = null) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(workItemMenuExpanded) },
-                        shape = RoundedCornerShape(2.dp),
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = contractorItems.isNotEmpty())
-                            .fillMaxWidth()
-                            .testTag("project_dropdown_work_item")
-                    )
-                    ExposedDropdownMenu(
-                        expanded = workItemMenuExpanded,
-                        onDismissRequest = { workItemMenuExpanded = false }
-                    ) {
-                        contractorItems.forEach { qualifiedItem ->
-                            val masterItem = items.firstOrNull { it.name.equals(qualifiedItem.itemName, ignoreCase = true) }
-                            DropdownMenuItem(
-                                text = {
-                                    Column {
-                                        Text(qualifiedItem.itemName, fontWeight = FontWeight.SemiBold)
-                                        Text(
-                                            "${qualifiedItem.uom} • ${qualifiedItem.calculationType.displayName}",
-                                            fontSize = 11.sp,
-                                            color = CarbonGray70
-                                        )
-                                    }
-                                },
-                                leadingIcon = if (masterItem?.id == selectedItemId) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, tint = CarbonBlue60) }
-                                } else null,
-                                onClick = {
-                                    masterItem?.let { viewModel.selectItem(it.id) }
-                                    workItemMenuExpanded = false
-                                    val project = currentProject
-                                    val floor = currentFloor
-                                    if (project != null && floor != null) {
-                                        viewModel.startDedicatedMeasurement(
-                                            projectId = project.id,
-                                            contractorId = currentContractor?.id ?: 0L,
-                                            itemName = qualifiedItem.itemName,
-                                            uom = qualifiedItem.uom,
-                                            calcType = qualifiedItem.calculationType,
-                                            floorId = floor.id,
-                                            floorName = floor.name,
-                                            itemId = masterItem?.id
-                                        )
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // STEP 2: SELECT FLOOR LEVEL
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CarbonStepHeader(stepNumber = "3", title = "SELECT FLOOR LEVEL")
-                    Text(
-                        text = "+ Add Floor",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CarbonBlue60,
-                        modifier = Modifier.clickable { showAddFloorDialog = true }
-                    )
-                }
-
-                ExposedDropdownMenuBox(
-                    expanded = floorMenuExpanded,
-                    onExpandedChange = { if (floors.isNotEmpty()) floorMenuExpanded = !floorMenuExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = currentFloor?.name ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Floor / level") },
-                        placeholder = { Text(if (floors.isEmpty()) "No floors available" else "Choose a floor") },
-                        leadingIcon = { Icon(Icons.Default.Layers, contentDescription = null) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(floorMenuExpanded) },
-                        shape = RoundedCornerShape(2.dp),
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = floors.isNotEmpty())
-                            .fillMaxWidth()
-                            .testTag("project_dropdown_floor")
-                    )
-                    ExposedDropdownMenu(
-                        expanded = floorMenuExpanded,
-                        onDismissRequest = { floorMenuExpanded = false }
-                    ) {
-                        floors.forEach { floor ->
-                            DropdownMenuItem(
-                                text = { Text(floor.name, fontWeight = FontWeight.SemiBold) },
-                                leadingIcon = if (floor.id == selectedFloorId) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, tint = CarbonBlue60) }
-                                } else null,
-                                onClick = {
-                                    viewModel.selectFloor(floor.id)
-                                    floorMenuExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // STEP 3: CONTRACTOR
-        if (false) { item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CarbonStepHeader(stepNumber = "3", title = "SELECT CONTRACTOR")
-
-                if (contractors.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("ASSIGN CONTRACTOR (OPTIONAL)", fontSize = 11.sp, color = CarbonGray70, fontWeight = FontWeight.Medium)
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            item {
-                                Surface(
-                                    color = if (selectedContractorId == null) CarbonBlue10 else CarbonGray10,
-                                    shape = RoundedCornerShape(2.dp),
-                                    border = BorderStroke(1.dp, if (selectedContractorId == null) CarbonBlue60 else CarbonGray30),
-                                    modifier = Modifier.clickable { viewModel.selectContractor(0L) }
-                                ) {
-                                    Text("General / Direct", fontSize = 11.sp, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                                }
-                            }
-                            items(contractors) { c ->
-                                val isSelected = c.id == selectedContractorId
-                                Surface(
-                                    color = if (isSelected) CarbonBlue10 else CarbonGray10,
-                                    shape = RoundedCornerShape(2.dp),
-                                    border = BorderStroke(1.dp, if (isSelected) CarbonBlue60 else CarbonGray30),
-                                    modifier = Modifier.clickable { viewModel.selectContractor(c.id) }
-                                ) {
-                                    Text(
-                                        text = "👷 ${c.name}",
-                                        fontSize = 11.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) CarbonBlue60 else CarbonGray100,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        }
-
-        // Legacy inline entry controls
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                CarbonStepHeader(stepNumber = "4", title = "ENTER MEASUREMENTS & DIMENSIONS")
-
-                // Numbers (Nos)
-                CarbonInputField(
-                    label = "NUMBERS / MULTIPLIER (NOS)",
-                    value = formState.nos,
-                    onValueChange = { viewModel.updateFormNos(it) },
-                    placeholder = "1",
-                    keyboardType = KeyboardType.Decimal,
-                    testTag = "input_dim_nos"
-                )
-
-                // 3-Column Dimensions: Length x Width x Height
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    CarbonDimensionBox(
-                        label = "LENGTH (L)",
-                        value = formState.length,
-                        onValueChange = { viewModel.updateFormLength(it) },
-                        placeholder = "0.00",
-                        unit = "m",
-                        keyboardType = KeyboardType.Decimal,
-                        modifier = Modifier.weight(1f),
-                        testTag = "input_dim_length"
-                    )
-
-                    CarbonDimensionBox(
-                        label = "WIDTH (W)",
-                        value = formState.width,
-                        onValueChange = { viewModel.updateFormWidth(it) },
-                        placeholder = "0.00",
-                        unit = "m",
-                        keyboardType = KeyboardType.Decimal,
-                        modifier = Modifier.weight(1f),
-                        testTag = "input_dim_width"
-                    )
-
-                    CarbonDimensionBox(
-                        label = "HEIGHT (H)",
-                        value = formState.height,
-                        onValueChange = { viewModel.updateFormHeight(it) },
-                        placeholder = "0.00",
-                        unit = "m",
-                        keyboardType = KeyboardType.Decimal,
-                        modifier = Modifier.weight(1f),
-                        testTag = "input_dim_height"
-                    )
-                }
-
-                // Deduction field
-                CarbonDimensionBox(
-                    label = "DEDUCTION / OPENING VOIDS (-)",
-                    value = formState.deduction,
-                    onValueChange = { viewModel.updateFormDeduction(it) },
-                    placeholder = "0.00",
-                    unit = currentItem?.unit ?: "m³",
-                    keyboardType = KeyboardType.Decimal,
-                    modifier = Modifier.fillMaxWidth(),
-                    testTag = "input_dim_deduction"
-                )
-            }
-        }
-
-        // STEP 5: LIVE CALCULATED QUANTITY TILE
-        item {
-            Surface(
-                color = CarbonBlue10,
-                shape = RoundedCornerShape(2.dp),
-                border = BorderStroke(1.dp, CarbonBlue60),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "CALCULATED QUANTITY:",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CarbonBlue60
-                        )
-                        Text(
-                            text = "${"%.3f".format(liveQuantity)} ${currentItem?.unit ?: ""}",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            color = CarbonBlue60
-                        )
-                    }
-
-                    // Equation breakdown
-                    val l = formState.length.toDoubleOrNull() ?: 0.0
-                    val w = formState.width.toDoubleOrNull() ?: 0.0
-                    val h = formState.height.toDoubleOrNull() ?: 0.0
-                    val n = formState.nos.toDoubleOrNull() ?: 1.0
-                    val ded = formState.deduction.toDoubleOrNull() ?: 0.0
-
-                    val formulaText = buildString {
-                        append("${n.toInt()} nos")
-                        if (l > 0) append(" × ${l}m")
-                        if (w > 0) append(" × ${w}m")
-                        if (h > 0) append(" × ${h}m")
-                        if (ded > 0) append(" - ${ded} ded")
-                        append(" = ${"%.3f".format(liveQuantity)} ${currentItem?.unit ?: ""}")
-                    }
-
-                    Text(
-                        text = formulaText,
-                        fontSize = 11.sp,
-                        color = CarbonGray80,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        }
-
-        // STEP 6: DUPLICATE TO OTHER FLOORS
-        if (floors.size > 1) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    CarbonStepHeader(stepNumber = "5", title = "DUPLICATE ENTRY TO OTHER FLOORS")
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        items(floors.filter { it.id != selectedFloorId }) { f ->
-                            val isChecked = selectedDuplicationFloors.contains(f.id)
-                            FilterChip(
-                                selected = isChecked,
-                                onClick = {
-                                    if (isChecked) selectedDuplicationFloors.remove(f.id)
-                                    else selectedDuplicationFloors.add(f.id)
-                                },
-                                label = { Text(f.name, fontSize = 11.sp) },
-                                leadingIcon = if (isChecked) {
-                                    { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(12.dp)) }
-                                } else null,
-                                shape = RoundedCornerShape(2.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // ACTION BUTTONS
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    onClick = {
-                        if (selectedDuplicationFloors.isNotEmpty()) {
-                            viewModel.saveMeasurementWithFloorDuplication(selectedDuplicationFloors.toList()) {
-                                selectedDuplicationFloors.clear()
-                            }
-                        } else {
-                            viewModel.saveMeasurementRow { saved ->
-                                onMeasurementSaved(saved)
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp)
-                        .testTag("btn_save_measurement"),
-                    shape = RoundedCornerShape(2.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
-                ) {
-                    Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        text = if (selectedDuplicationFloors.isNotEmpty())
-                            "SAVE & DUPLICATE ACROSS ${selectedDuplicationFloors.size + 1} FLOORS"
-                        else
-                            "SAVE MEASUREMENT RECORD",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
-                        letterSpacing = 0.5.sp,
-                        color = CarbonWhite
-                    )
-                }
-            }
-        }
-    }
-
-    // Add Floor Dialog
-    if (showAddFloorDialog) {
-        var floorName by remember { mutableStateOf("") }
-        Dialog(onDismissRequest = { showAddFloorDialog = false }) {
-            Surface(
-                shape = RoundedCornerShape(2.dp),
-                color = CarbonWhite,
-                border = BorderStroke(1.dp, CarbonGray30),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text("Add Floor Level", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    CarbonInputField(
-                        label = "FLOOR LEVEL NAME",
-                        value = floorName,
-                        onValueChange = { floorName = it },
-                        placeholder = "e.g. 3rd Floor, Basement 1, Podium",
-                        keyboardType = KeyboardType.Text
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = { showAddFloorDialog = false },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(2.dp)
-                        ) {
-                            Text("Cancel")
-                        }
-                        Button(
-                            onClick = {
-                                if (floorName.isNotBlank() && currentProject != null) {
-                                    viewModel.addFloor(floorName.trim())
-                                    showAddFloorDialog = false
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
-                        ) {
-                            Text("Add Floor", color = CarbonWhite)
-                        }
-                    }
-                }
-            }
-        }
     }
 }

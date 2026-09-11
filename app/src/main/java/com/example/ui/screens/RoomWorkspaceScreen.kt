@@ -152,7 +152,7 @@ fun RoomWorkspaceScreen(
                         selected = selectedTypeFilter == null,
                         onClick = { selectedTypeFilter = null },
                         label = { Text("All (${components.size})", fontWeight = if (selectedTypeFilter == null) FontWeight.Bold else FontWeight.Normal) },
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MaterialTheme.shapes.medium
                     )
 
                     ComponentType.values().forEach { type ->
@@ -162,7 +162,7 @@ fun RoomWorkspaceScreen(
                                 selected = selectedTypeFilter == type,
                                 onClick = { selectedTypeFilter = if (selectedTypeFilter == type) null else type },
                                 label = { Text("${type.displayName} ($count)") },
-                                shape = RoundedCornerShape(12.dp)
+                                shape = MaterialTheme.shapes.medium
                             )
                         }
                     }
@@ -181,7 +181,7 @@ fun RoomWorkspaceScreen(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                             ),
-                            shape = RoundedCornerShape(20.dp)
+                            shape = MaterialTheme.shapes.large
                         ) {
                             Column(
                                 modifier = Modifier.fillMaxWidth().padding(24.dp),
@@ -210,7 +210,7 @@ fun RoomWorkspaceScreen(
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     OutlinedButton(
                                         onClick = { showQuickSetup4WallsDialog = true },
-                                        shape = RoundedCornerShape(12.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
                                         Icon(Icons.Default.CropFree, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(4.dp))
@@ -218,7 +218,7 @@ fun RoomWorkspaceScreen(
                                     }
                                     Button(
                                         onClick = { showAddComponentDialog = true },
-                                        shape = RoundedCornerShape(12.dp)
+                                        shape = MaterialTheme.shapes.medium
                                     ) {
                                         Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(4.dp))
@@ -328,7 +328,7 @@ fun RoomWorkspaceScreen(
                     }
 
                     item {
-                        Text("Quick Names:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Quick Names:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(4.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -337,7 +337,7 @@ fun RoomWorkspaceScreen(
                             currentSuggestions.forEach { s ->
                                 SuggestionChip(
                                     onClick = { compName = s.substringBefore(" (") },
-                                    label = { Text(s, fontSize = 11.sp) }
+                                    label = { Text(s, style = MaterialTheme.typography.labelSmall) }
                                 )
                             }
                         }
@@ -578,7 +578,7 @@ fun RoomWorkspaceScreen(
                     ) {
                         items(items) { item ->
                             Surface(
-                                shape = RoundedCornerShape(8.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -594,7 +594,7 @@ fun RoomWorkspaceScreen(
                                 ) {
                                     Column {
                                         Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text("${item.unit} • ${item.calculationType.displayName}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text("${item.unit} • ${item.calculationType.displayName}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                     Icon(Icons.Default.AddCircleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 }
@@ -624,7 +624,7 @@ fun ComponentCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(16.dp)
+        shape = MaterialTheme.shapes.large
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Header
@@ -635,7 +635,7 @@ fun ComponentCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.primaryContainer,
                         modifier = Modifier.size(38.dp)
                     ) {
@@ -739,7 +739,7 @@ fun ComponentCard(
             ) {
                 if (workItems.isEmpty()) {
                     Surface(
-                        shape = RoundedCornerShape(8.dp),
+                        shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         modifier = Modifier.clickable { onConnectWorkClick() }
                     ) {
@@ -770,12 +770,12 @@ fun ComponentCard(
                             icon = {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                             },
-                            shape = RoundedCornerShape(10.dp)
+                            shape = MaterialTheme.shapes.medium
                         )
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(10.dp),
+                        shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                         modifier = Modifier.clickable { onConnectWorkClick() }
                     ) {

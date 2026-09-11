@@ -6,17 +6,13 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.withTransaction
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.data.local.dao.*
 import com.example.data.local.entity.*
 import com.example.domain.WorkCatalog
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
-const val DATABASE_SCHEMA_VERSION = 21
+const val DATABASE_SCHEMA_VERSION = 22
 
 @Database(
     entities = [
@@ -47,9 +43,6 @@ const val DATABASE_SCHEMA_VERSION = 21
         ContractorEntity::class,
         ContractorQualifiedItemEntity::class,
         ProjectContractorCrossRef::class,
-        ContractorRateBookEntity::class,
-        ContractorRateBookItemEntity::class,
-        ProjectRateBookAssignmentEntity::class,
         ItemMasterEntity::class,
         WorkItemAliasEntity::class,
         MeasurementSheetEntity::class,
@@ -81,7 +74,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun measurementDao(): MeasurementDao
     abstract fun measurementSheetDao(): MeasurementSheetDao
     abstract fun measurementReviewEventDao(): MeasurementReviewEventDao
-    abstract fun rateBookDao(): RateBookDao
 
     companion object {
         @Volatile
@@ -94,17 +86,14 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         installSheetLockTriggers(db)
                         installDocumentControlTriggers(db)
                         installPortalAuditTriggers(db)
-                        // Seed predefined items & structure
-                        CoroutineScope(Dispatchers.IO).launch {
-                            getDatabase(context).seedPredefinedData()
-                        }
+                        installReferenceCatalog(db)
                     }
 
                     override fun onOpen(db: SupportSQLiteDatabase) {
@@ -449,8 +438,35 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        private fun installPwdCatalog(db: SupportSQLiteDatabase) {
-            PREDEFINED_ITEMS.filter { it.sourceName.isNotBlank() }.forEach { item ->
+        /**
+         * Final quantity-only cutover. Commercial tables and measurement
+         * snapshots introduced by schema 14 are removed while every field
+         * needed to reproduce the measured quantity is copied unchanged.
+         */
+        val MIGRATION_21_22 = object : Migration(21, 22) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `project_rate_book_assignments`")
+                db.execSQL("DROP TABLE IF EXISTS `contractor_rate_book_items`")
+                db.execSQL("DROP TABLE IF EXISTS `contractor_rate_books`")
+
+                db.execSQL("CREATE TABLE `measurements_quantity_only` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `sheetId` INTEGER NOT NULL, `projectId` INTEGER NOT NULL, `floorId` INTEGER, `roomId` INTEGER, `componentId` INTEGER, `componentWorkItemId` INTEGER, `contractorId` INTEGER NOT NULL, `contractorName` TEXT NOT NULL, `itemId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `unit` TEXT NOT NULL, `calculationType` TEXT NOT NULL, `formulaCode` TEXT NOT NULL, `formulaVersion` INTEGER NOT NULL, `description` TEXT NOT NULL, `length` REAL NOT NULL, `width` REAL NOT NULL, `height` REAL NOT NULL, `nos` REAL NOT NULL, `deduction` REAL NOT NULL, `quantity` REAL NOT NULL, `floor` TEXT NOT NULL, `location` TEXT NOT NULL, `remarks` TEXT NOT NULL, `photoUri` TEXT, `date` INTEGER NOT NULL, FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION, FOREIGN KEY(`floorId`) REFERENCES `floors`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, FOREIGN KEY(`roomId`) REFERENCES `rooms`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, FOREIGN KEY(`componentId`) REFERENCES `components`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, FOREIGN KEY(`componentWorkItemId`) REFERENCES `component_work_items`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL, FOREIGN KEY(`contractorId`) REFERENCES `contractors`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION, FOREIGN KEY(`itemId`) REFERENCES `item_master`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION, FOREIGN KEY(`sheetId`) REFERENCES `measurement_sheets`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("INSERT INTO `measurements_quantity_only` (`id`,`sheetId`,`projectId`,`floorId`,`roomId`,`componentId`,`componentWorkItemId`,`contractorId`,`contractorName`,`itemId`,`itemName`,`unit`,`calculationType`,`formulaCode`,`formulaVersion`,`description`,`length`,`width`,`height`,`nos`,`deduction`,`quantity`,`floor`,`location`,`remarks`,`photoUri`,`date`) SELECT `id`,`sheetId`,`projectId`,`floorId`,`roomId`,`componentId`,`componentWorkItemId`,`contractorId`,`contractorName`,`itemId`,`itemName`,`unit`,`calculationType`,`formulaCode`,`formulaVersion`,`description`,`length`,`width`,`height`,`nos`,`deduction`,`quantity`,`floor`,`location`,`remarks`,`photoUri`,`date` FROM `measurements`")
+                db.execSQL("DROP TABLE `measurements`")
+                db.execSQL("ALTER TABLE `measurements_quantity_only` RENAME TO `measurements`")
+                listOf("sheetId", "projectId", "floorId", "roomId", "componentId", "componentWorkItemId", "contractorId", "itemId").forEach { column ->
+                    db.execSQL("CREATE INDEX `index_measurements_$column` ON `measurements` (`$column`)")
+                }
+                installSheetLockTriggers(db)
+            }
+        }
+
+        internal fun installReferenceCatalog(db: SupportSQLiteDatabase) = installCatalog(db, PREDEFINED_ITEMS)
+
+        private fun installPwdCatalog(db: SupportSQLiteDatabase) =
+            installCatalog(db, PREDEFINED_ITEMS.filter { it.sourceName.isNotBlank() })
+
+        private fun installCatalog(db: SupportSQLiteDatabase, items: List<ItemMasterEntity>) {
+            items.forEach { item ->
                 val workType = item.workType.ifBlank { WorkCatalog.classify("Civil", item.name) }
                 val values = ContentValues().apply {
                     put("itemCode", WorkCatalog.codeFor(workType, item.name))
@@ -488,253 +504,4 @@ abstract class AppDatabase : RoomDatabase() {
         }
     }
 
-    suspend fun seedPredefinedData() {
-        val preparedItems = PREDEFINED_ITEMS.map {
-            val workType = if (it.workType.isNotBlank() && it.sourceName.isNotBlank()) it.workType else WorkCatalog.classify("Civil", it.name)
-            it.copy(workType = workType, itemCode = WorkCatalog.codeFor(workType, it.name))
-        }
-        val isNewDatabase = itemMasterDao().getCount() == 0
-        // Add newly bundled standards to existing databases without replacing user-edited items.
-        itemMasterDao().insertAll(if (isNewDatabase) preparedItems else preparedItems.filter { it.sourceName.isNotBlank() })
-        if (isNewDatabase) {
-            
-            // 1. Seed Clients
-            val clientId1 = clientDao().insertClient(
-                ClientEntity(
-                    name = "Laxmi Developers & Builders",
-                    address = "Suite 401, Apex Commercial Hub, MG Road",
-                    contactNo = "+91 98450 12345"
-                )
-            )
-            val clientId2 = clientDao().insertClient(
-                ClientEntity(
-                    name = "Prestige Estates Corp",
-                    address = "Tower 2, Prestige Technology Park, Outer Ring Rd",
-                    contactNo = "+91 98800 67890"
-                )
-            )
-
-            // 2. Seed Contractors with Qualified Items
-            val contId1 = contractorDao().insertContractor(
-                ContractorEntity(
-                    name = "Sharma Civil Works",
-                    address = "Plot 18, Industrial Estate Phase 1",
-                    contactNo = "+91 98765 43210",
-                    phone = "+91 98765 43210"
-                )
-            )
-            // Sharma's qualified items
-            contractorDao().insertQualifiedItems(
-                listOf(
-                    ContractorQualifiedItemEntity(contractorId = contId1, itemName = "BrickWork 230mm", uom = "m²", calculationType = CalculationType.AREA),
-                    ContractorQualifiedItemEntity(contractorId = contId1, itemName = "BrickWork 115mm", uom = "m²", calculationType = CalculationType.AREA),
-                    ContractorQualifiedItemEntity(contractorId = contId1, itemName = "Plaster 12mm", uom = "m²", calculationType = CalculationType.WALL_PLASTER),
-                    ContractorQualifiedItemEntity(contractorId = contId1, itemName = "Slab Concrete", uom = "m³", calculationType = CalculationType.VOLUME),
-                    ContractorQualifiedItemEntity(contractorId = contId1, itemName = "Beam Concrete", uom = "m³", calculationType = CalculationType.VOLUME)
-                )
-            )
-
-            val contId2 = contractorDao().insertContractor(
-                ContractorEntity(
-                    name = "Verma Plaster & Painting",
-                    address = "Shop 12, Main Market Road",
-                    contactNo = "+91 98123 45678",
-                    phone = "+91 98123 45678"
-                )
-            )
-            // Verma's qualified items
-            contractorDao().insertQualifiedItems(
-                listOf(
-                    ContractorQualifiedItemEntity(contractorId = contId2, itemName = "Plaster 12mm", uom = "m²", calculationType = CalculationType.WALL_PLASTER),
-                    ContractorQualifiedItemEntity(contractorId = contId2, itemName = "Plaster 20mm (External)", uom = "m²", calculationType = CalculationType.WALL_PLASTER),
-                    ContractorQualifiedItemEntity(contractorId = contId2, itemName = "Putty", uom = "m²", calculationType = CalculationType.AREA),
-                    ContractorQualifiedItemEntity(contractorId = contId2, itemName = "Painting", uom = "m²", calculationType = CalculationType.AREA)
-                )
-            )
-
-            // 3. Seed Project linked to Client & Contractors
-            val projId = projectDao().insertProject(
-                ProjectEntity(
-                    name = "ABC Residence",
-                    client = "Laxmi Developers & Builders",
-                    clientId = clientId1,
-                    siteLocation = "Plot 42, Green Avenue, Sector 15"
-                )
-            )
-
-            // Link contractors to project
-            contractorDao().insertProjectContractorRefs(
-                listOf(
-                    ProjectContractorCrossRef(projectId = projId, contractorId = contId1),
-                    ProjectContractorCrossRef(projectId = projId, contractorId = contId2)
-                )
-            )
-
-            // Seed Floors: Ground Floor (lvl0), First Floor (lvl1), Second Floor (lvl2)
-            val gfId = floorDao().insertFloor(FloorEntity(projectId = projId, name = "Level 0 (Ground Floor)", orderIndex = 0))
-            val ffId = floorDao().insertFloor(FloorEntity(projectId = projId, name = "Level 1 (First Floor)", orderIndex = 1))
-            val sfId = floorDao().insertFloor(FloorEntity(projectId = projId, name = "Level 2 (Second Floor)", orderIndex = 2))
-
-            // Seed sample Brickwork measurements on Level 0 for Sharma Civil Works
-            insertSeedMeasurement(
-                MeasurementEntity(
-                    projectId = projId,
-                    floorId = gfId,
-                    contractorId = contId1,
-                    contractorName = "Sharma Civil Works",
-                    itemId = 2,
-                    itemName = "BrickWork 230mm",
-                    unit = "m²",
-                    calculationType = CalculationType.AREA,
-                    description = "External Perimeter Wall Grid A-D",
-                    length = 12.50,
-                    height = 3.00,
-                    nos = 1.0,
-                    deduction = 0.0,
-                    quantity = 37.50,
-                    floor = "Level 0 (Ground Floor)",
-                    location = "Grid A-D Exterior",
-                    remarks = "230mm Red Clay Brick masonry"
-                )
-            )
-            insertSeedMeasurement(
-                MeasurementEntity(
-                    projectId = projId,
-                    floorId = gfId,
-                    contractorId = contId1,
-                    contractorName = "Sharma Civil Works",
-                    itemId = 2,
-                    itemName = "BrickWork 230mm",
-                    unit = "m²",
-                    calculationType = CalculationType.AREA,
-                    description = "Living Room Partition Wall",
-                    length = 5.20,
-                    height = 3.00,
-                    nos = 1.0,
-                    deduction = 0.0,
-                    quantity = 15.60,
-                    floor = "Level 0 (Ground Floor)",
-                    location = "Living Hall",
-                    remarks = "Partition wall"
-                )
-            )
-            insertSeedMeasurement(
-                MeasurementEntity(
-                    projectId = projId,
-                    floorId = gfId,
-                    contractorId = contId1,
-                    contractorName = "Sharma Civil Works",
-                    itemId = 2,
-                    itemName = "BrickWork 230mm",
-                    unit = "m²",
-                    calculationType = CalculationType.AREA,
-                    description = "Kitchen Rear Wall",
-                    length = 4.80,
-                    height = 3.00,
-                    nos = 1.0,
-                    deduction = 0.0,
-                    quantity = 14.40,
-                    floor = "Level 0 (Ground Floor)",
-                    location = "Kitchen Area",
-                    remarks = "Rear boundary"
-                )
-            )
-
-            // Seed Rooms in First Floor
-            val rBed1 = roomDao().insertRoom(RoomEntity(projectId = projId, floorId = ffId, name = "Bedroom 1", orderIndex = 0))
-            val rBed2 = roomDao().insertRoom(RoomEntity(projectId = projId, floorId = ffId, name = "Bedroom 2", orderIndex = 1))
-            val rLiving = roomDao().insertRoom(RoomEntity(projectId = projId, floorId = ffId, name = "Living", orderIndex = 2))
-            val rKitchen = roomDao().insertRoom(RoomEntity(projectId = projId, floorId = ffId, name = "Kitchen", orderIndex = 3))
-            val rToilet1 = roomDao().insertRoom(RoomEntity(projectId = projId, floorId = ffId, name = "Toilet 1", orderIndex = 4))
-
-            // Seed Components in Bedroom 1
-            val cNorthWall = componentDao().insertComponent(
-                ComponentEntity(
-                    projectId = projId,
-                    floorId = ffId,
-                    roomId = rBed1,
-                    name = "North Wall",
-                    type = ComponentType.WALL,
-                    length = 4.50,
-                    height = 3.00,
-                    thickness = 0.23
-                )
-            )
-            val cSouthWall = componentDao().insertComponent(
-                ComponentEntity(
-                    projectId = projId,
-                    floorId = ffId,
-                    roomId = rBed1,
-                    name = "South Wall",
-                    type = ComponentType.WALL,
-                    length = 4.50,
-                    height = 3.00,
-                    thickness = 0.23
-                )
-            )
-            val cFloor = componentDao().insertComponent(
-                ComponentEntity(
-                    projectId = projId,
-                    floorId = ffId,
-                    roomId = rBed1,
-                    name = "Bedroom Floor",
-                    type = ComponentType.FLOOR,
-                    length = 4.50,
-                    width = 3.80
-                )
-            )
-            val cCeiling = componentDao().insertComponent(
-                ComponentEntity(
-                    projectId = projId,
-                    floorId = ffId,
-                    roomId = rBed1,
-                    name = "Ceiling",
-                    type = ComponentType.CEILING,
-                    length = 4.50,
-                    width = 3.80
-                )
-            )
-
-            // Connect Work Items to North Wall
-            componentWorkItemDao().insertWorkItems(
-                listOf(
-                    ComponentWorkItemEntity(componentId = cNorthWall, itemId = 1, itemName = "Brickwork", unit = "m³", calculationType = CalculationType.VOLUME),
-                    ComponentWorkItemEntity(componentId = cNorthWall, itemId = 4, itemName = "Plaster", unit = "m²", calculationType = CalculationType.WALL_PLASTER),
-                    ComponentWorkItemEntity(componentId = cNorthWall, itemId = 5, itemName = "Putty", unit = "m²", calculationType = CalculationType.AREA),
-                    ComponentWorkItemEntity(componentId = cNorthWall, itemId = 8, itemName = "Painting", unit = "m²", calculationType = CalculationType.AREA),
-
-                    // South wall
-                    ComponentWorkItemEntity(componentId = cSouthWall, itemId = 1, itemName = "Brickwork", unit = "m³", calculationType = CalculationType.VOLUME),
-                    ComponentWorkItemEntity(componentId = cSouthWall, itemId = 4, itemName = "Plaster", unit = "m²", calculationType = CalculationType.WALL_PLASTER),
-                    ComponentWorkItemEntity(componentId = cSouthWall, itemId = 5, itemName = "Putty", unit = "m²", calculationType = CalculationType.AREA),
-                    ComponentWorkItemEntity(componentId = cSouthWall, itemId = 8, itemName = "Painting", unit = "m²", calculationType = CalculationType.AREA),
-
-                    // Floor
-                    ComponentWorkItemEntity(componentId = cFloor, itemId = 9, itemName = "Waterproofing", unit = "m²", calculationType = CalculationType.AREA),
-                    ComponentWorkItemEntity(componentId = cFloor, itemId = 6, itemName = "Flooring", unit = "m²", calculationType = CalculationType.AREA)
-                )
-            )
-        }
-    }
-
-    private suspend fun insertSeedMeasurement(measurement: MeasurementEntity): Long = withTransaction {
-        val sheetId = measurementSheetDao().insert(
-            MeasurementSheetEntity(
-                sheetCode = "MB-SEED-${measurement.date}-${java.util.UUID.randomUUID().toString().take(8).uppercase()}",
-                projectId = measurement.projectId,
-                floorId = measurement.floorId,
-                floorNameSnapshot = measurement.floor,
-                contractorId = measurement.contractorId,
-                contractorNameSnapshot = measurement.contractorName,
-                itemId = measurement.itemId,
-                itemNameSnapshot = measurement.itemName,
-                uomSnapshot = measurement.unit,
-                formulaCode = measurement.calculationType.name,
-                formulaVersion = 1,
-                createdAt = measurement.date,
-                updatedAt = measurement.date
-            )
-        )
-        measurementDao().insertMeasurement(measurement.copy(sheetId = sheetId, formulaCode = measurement.calculationType.name, formulaVersion = 1))
-    }
 }

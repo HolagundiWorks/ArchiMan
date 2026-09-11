@@ -1,6 +1,6 @@
 # ArchiMan documentation
 
-This directory contains only maintained documentation for the current ArchiMan schema-21 product and its approved roadmap.
+This directory contains only maintained documentation for the current ArchiMan schema-22 product and its approved roadmap.
 
 ## Product and architecture
 

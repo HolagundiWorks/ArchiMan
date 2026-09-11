@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
@@ -22,8 +21,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
@@ -51,7 +48,6 @@ import com.example.domain.MeasurementRowStatus
 import com.example.domain.MeasurementRowValidation
 import com.example.domain.MeasurementRowValidationInput
 import com.example.domain.MeasurementRowValidator
-import com.example.ui.theme.*
 import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 import kotlinx.coroutines.Dispatchers
@@ -224,62 +220,40 @@ fun DedicatedMeasurementScreen(
         rows.sumOf { it.calculateQuantity(calcType) }
     }
     Scaffold(
-        containerColor = CarbonWhite,
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CarbonGray100)
-                    .statusBarsPadding()
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Top Action Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text("Record Measurement")
+                            Text(
+                                currentProject?.name ?: "Project",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    },
+                    navigationIcon = {
                         IconButton(
                             onClick = onNavigateBack,
                             modifier = Modifier.testTag("btn_back_from_dedicated_measure")
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = CarbonWhite
+                                contentDescription = "Back"
                             )
                         }
-                        Text(
-                            text = "Record Measurement",
-                            color = CarbonWhite,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
                     }
-
-                    // Project Tag
-                    Surface(
-                        color = CarbonBlue80,
-                        shape = RoundedCornerShape(2.dp)
-                    ) {
-                        Text(
-                            text = currentProject?.name ?: "Project",
-                            color = CarbonWhite,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-                }
+                )
 
                 // DEDICATED HEADER STRIP: Contractor | Item | Level
                 Surface(
-                    color = CarbonGray90,
+                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -290,7 +264,7 @@ fun DedicatedMeasurementScreen(
                     ) {
                         Text(
                             text = "${currentContractor?.name ?: "Contractor"} | ${itemName.ifBlank { "Item" }} | ${floorName.ifBlank { "Level" }}",
-                            color = CarbonWhite,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp,
                             maxLines = 1,
@@ -305,7 +279,7 @@ fun DedicatedMeasurementScreen(
                         ) {
                             Text(
                                 text = "ENTRY UNITS",
-                                color = CarbonGray40,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 10.sp,
                                 letterSpacing = 0.5.sp
@@ -319,14 +293,14 @@ fun DedicatedMeasurementScreen(
                                     onSelect = ::changeUnitSystem
                                 )
                                 Surface(
-                                    color = CarbonGray80,
-                                    shape = RoundedCornerShape(2.dp),
-                                    border = BorderStroke(1.dp, CarbonGray70)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    shape = MaterialTheme.shapes.small,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant)
                                 ) {
                                     Text(
                                         text = displayUom,
-                                        color = CarbonGray20,
-                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.outlineVariant,
+                                        style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
@@ -340,7 +314,7 @@ fun DedicatedMeasurementScreen(
         bottomBar = {
             // Live Totals and Save Strip
             Surface(
-                color = CarbonGray100,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -356,7 +330,7 @@ fun DedicatedMeasurementScreen(
                             text = "TOTAL QUANTITY",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CarbonGray40,
+                            color = MaterialTheme.colorScheme.outline,
                             letterSpacing = 0.5.sp
                         )
                         Row(
@@ -367,13 +341,13 @@ fun DedicatedMeasurementScreen(
                                 text = String.format(Locale.getDefault(), "%.2f", totalQuantity),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Black,
-                                color = CarbonWhite
+                                color = MaterialTheme.colorScheme.surface
                             )
                             Text(
                                 text = displayUom,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = CarbonCyan30
+                                color = MaterialTheme.colorScheme.secondaryContainer
                             )
                         }
                     }
@@ -389,20 +363,20 @@ fun DedicatedMeasurementScreen(
                                 },
                                 modifier = Modifier.size(38.dp)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo last row operation", tint = CarbonWhite, modifier = Modifier.size(19.dp))
+                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo last row operation", tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(19.dp))
                             }
                         }
                         OutlinedButton(
                             onClick = {
                                 rows.add(MeasurementEntryRow(nosText = "1", deductionText = "0"))
                             },
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonGray60),
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = CarbonWhite, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("+ Line", color = CarbonWhite, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("+ Line", color = MaterialTheme.colorScheme.surface, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
@@ -467,8 +441,8 @@ fun DedicatedMeasurementScreen(
                                     showSuccessDialog = true
                                 }
                             },
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                             modifier = Modifier.testTag("btn_save_dedicated_measurements")
                         ) {
@@ -478,7 +452,7 @@ fun DedicatedMeasurementScreen(
                                 text = if (isSaving) "Saving..." else "Save M-Book",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp,
-                                color = CarbonWhite
+                                color = MaterialTheme.colorScheme.surface
                             )
                         }
                     }
@@ -495,8 +469,8 @@ fun DedicatedMeasurementScreen(
         ) {
             saveError?.let { message ->
                 item {
-                    Surface(color = CarbonRed10, border = BorderStroke(1.dp, CarbonRed60), shape = RoundedCornerShape(2.dp), modifier = Modifier.fillMaxWidth()) {
-                        Text(message, color = CarbonRed60, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(10.dp))
+                    Surface(color = MaterialTheme.colorScheme.errorContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.error), shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) {
+                        Text(message, color = MaterialTheme.colorScheme.error, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(10.dp))
                     }
                 }
             }
@@ -504,9 +478,9 @@ fun DedicatedMeasurementScreen(
             if (isPlastering) {
                 item {
                     Surface(
-                        color = CarbonBlue10,
-                        shape = RoundedCornerShape(2.dp),
-                        border = BorderStroke(1.dp, CarbonBlue60),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -525,25 +499,25 @@ fun DedicatedMeasurementScreen(
                                     Icon(
                                         imageVector = Icons.Default.AutoFixHigh,
                                         contentDescription = null,
-                                        tint = CarbonBlue60,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Text(
                                         text = "Plastering Linked to Brickwork",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 13.sp,
-                                        color = CarbonBlue80
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer
                                     )
                                 }
 
                                 if (availableBrickworkData.isNotEmpty()) {
                                     Surface(
-                                        color = CarbonBlue60,
-                                        shape = RoundedCornerShape(2.dp)
+                                        color = MaterialTheme.colorScheme.primary,
+                                        shape = MaterialTheme.shapes.small
                                     ) {
                                         Text(
                                             text = "${availableBrickworkData.size} Brickwork rows found on $floorName",
-                                            color = CarbonWhite,
+                                            color = MaterialTheme.colorScheme.surface,
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Bold,
                                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -555,7 +529,7 @@ fun DedicatedMeasurementScreen(
                             Text(
                                 text = "Plaster surface measurements correspond to brick masonry walls on this floor. Would you like to import brickwork dimensions?",
                                 fontSize = 12.sp,
-                                color = CarbonGray90
+                                color = MaterialTheme.colorScheme.onSurface
                             )
 
                             Row(
@@ -591,8 +565,8 @@ fun DedicatedMeasurementScreen(
                                             }
                                         }
                                     },
-                                    shape = RoundedCornerShape(2.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
+                                    shape = MaterialTheme.shapes.small,
+                                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     modifier = Modifier.testTag("btn_import_brickwork_data")
                                 ) {
@@ -607,11 +581,11 @@ fun DedicatedMeasurementScreen(
                                             // Manual entry without import
                                             showImportBrickworkPrompt = false
                                         },
-                                        shape = RoundedCornerShape(2.dp),
-                                        border = BorderStroke(1.dp, CarbonBlue60),
+                                        shape = MaterialTheme.shapes.small,
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                                     ) {
-                                        Text("Manual Entry", fontSize = 12.sp, color = CarbonBlue60)
+                                        Text("Manual Entry", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             }
@@ -619,9 +593,9 @@ fun DedicatedMeasurementScreen(
                             if (importStatusMessage != null) {
                                 Text(
                                     text = importStatusMessage ?: "",
-                                    fontSize = 11.sp,
+                                    style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = CarbonGreen80
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
                                 )
                             }
                         }
@@ -641,7 +615,7 @@ fun DedicatedMeasurementScreen(
                             text = "MEASUREMENT TABLE (${rows.size} ROWS)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CarbonGray80,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             letterSpacing = 0.5.sp
                         )
                         TextButton(
@@ -659,9 +633,9 @@ fun DedicatedMeasurementScreen(
 
                     if (selectedRowIds.isNotEmpty()) {
                         Surface(
-                            color = CarbonBlue10,
-                            border = BorderStroke(1.dp, CarbonBlue20),
-                            shape = RoundedCornerShape(2.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primaryContainer),
+                            shape = MaterialTheme.shapes.small,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Row(
@@ -688,7 +662,7 @@ fun DedicatedMeasurementScreen(
                                         duplicateCopies = 1
                                     },
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                                    shape = RoundedCornerShape(2.dp)
+                                    shape = MaterialTheme.shapes.small
                                 ) {
                                     Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(Modifier.width(4.dp))
@@ -750,13 +724,13 @@ fun DedicatedMeasurementScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 6.dp),
-                    shape = RoundedCornerShape(2.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonGray10),
-                    border = BorderStroke(1.dp, CarbonGray30)
+                    shape = MaterialTheme.shapes.small,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = CarbonGray90, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Add measurement row", color = CarbonGray90, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text("Add measurement row", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -767,7 +741,7 @@ fun DedicatedMeasurementScreen(
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
             icon = {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = CarbonGreen60, modifier = Modifier.size(40.dp))
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(40.dp))
             },
             title = {
                 Text("Measurements Recorded", fontWeight = FontWeight.Bold, fontSize = 17.sp)
@@ -784,10 +758,10 @@ fun DedicatedMeasurementScreen(
                         showSuccessDialog = false
                         onNavigateToBook()
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
-                    shape = RoundedCornerShape(2.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Text("View Measurement Book", color = CarbonWhite)
+                    Text("View Measurement Book", color = MaterialTheme.colorScheme.surface)
                 }
             },
             dismissButton = {
@@ -796,13 +770,13 @@ fun DedicatedMeasurementScreen(
                         showSuccessDialog = false
                         onNavigateBack()
                     },
-                    shape = RoundedCornerShape(2.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Text("Project Hub", color = CarbonGray100)
+                    Text("Project Hub", color = MaterialTheme.colorScheme.onSurface)
                 }
             },
-            containerColor = CarbonWhite,
-            shape = RoundedCornerShape(4.dp)
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.small
         )
     }
 }
@@ -857,32 +831,22 @@ private fun MeasurementEntryRow.validation(type: CalculationType): MeasurementRo
 )
 
 @Composable
+@OptIn(ExperimentalMaterial3Api::class)
 private fun UnitSystemToggle(
     selected: MeasurementUnitSystem,
     onSelect: (MeasurementUnitSystem) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .border(1.dp, CarbonGray60, RoundedCornerShape(2.dp))
-            .testTag("unit_system_toggle"),
-        verticalAlignment = Alignment.CenterVertically
+    SingleChoiceSegmentedButtonRow(
+        modifier = Modifier.testTag("unit_system_toggle")
     ) {
-        MeasurementUnitSystem.entries.forEach { system ->
-            val active = system == selected
-            Box(
-                modifier = Modifier
-                    .background(if (active) CarbonBlue60 else CarbonGray90)
-                    .clickable { onSelect(system) }
-                    .testTag("unit_system_${system.name.lowercase()}")
-                    .padding(horizontal = 8.dp, vertical = 5.dp),
-                contentAlignment = Alignment.Center
+        MeasurementUnitSystem.entries.forEachIndexed { index, system ->
+            SegmentedButton(
+                selected = system == selected,
+                onClick = { onSelect(system) },
+                shape = SegmentedButtonDefaults.itemShape(index, MeasurementUnitSystem.entries.size),
+                modifier = Modifier.testTag("unit_system_${system.name.lowercase()}")
             ) {
-                Text(
-                    text = if (system == MeasurementUnitSystem.METRIC) "Metric" else "Imperial",
-                    color = CarbonWhite,
-                    fontSize = 10.sp,
-                    fontWeight = if (active) FontWeight.Bold else FontWeight.Medium
-                )
+                Text(if (system == MeasurementUnitSystem.METRIC) "Metric" else "Imperial")
             }
         }
     }
@@ -918,13 +882,13 @@ fun MeasurementRowCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("measurement_row_$index"),
-        shape = RoundedCornerShape(2.dp),
-        color = if (selected) CarbonBlue10 else CarbonWhite,
+        shape = MaterialTheme.shapes.small,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         border = BorderStroke(2.dp, when {
-            selected -> CarbonBlue60
-            validation.status == MeasurementRowStatus.READY -> CarbonGreen60
-            validation.status == MeasurementRowStatus.INCOMPLETE -> CarbonRed60
-            else -> CarbonGray30
+            selected -> MaterialTheme.colorScheme.primary
+            validation.status == MeasurementRowStatus.READY -> MaterialTheme.colorScheme.tertiary
+            validation.status == MeasurementRowStatus.INCOMPLETE -> MaterialTheme.colorScheme.error
+            else -> MaterialTheme.colorScheme.outlineVariant
         }),
     ) {
         Row(
@@ -940,8 +904,8 @@ fun MeasurementRowCard(
                 modifier = Modifier.size(34.dp)
             )
             Column(modifier = Modifier.width(126.dp)) {
-                Text("$index. $itemName", fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                Text(itemUom, fontSize = 9.sp, color = CarbonGray60)
+                Text("$index. $itemName", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(itemUom, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             OutlinedTextField(
                 value = description,
@@ -954,8 +918,8 @@ fun MeasurementRowCard(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }),
-                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp),
-                shape = RoundedCornerShape(2.dp),
+                textStyle = MaterialTheme.typography.labelSmall,
+                shape = MaterialTheme.shapes.small,
                 modifier = Modifier
                     .width(170.dp)
                     .testTag("input_row_member_$index")
@@ -1010,8 +974,8 @@ fun MeasurementRowCard(
                 modifier = Modifier.width(76.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Qty", fontSize = 9.sp, color = CarbonGray60)
-                Text(String.format(Locale.getDefault(), "%.2f", rowQty), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = CarbonGreen80)
+                Text("Qty", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(String.format(Locale.getDefault(), "%.2f", rowQty), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onTertiaryContainer)
                 Text(
                     when (validation.status) {
                         MeasurementRowStatus.READY -> "Ready"
@@ -1020,9 +984,9 @@ fun MeasurementRowCard(
                     },
                     fontSize = 8.sp,
                     color = when (validation.status) {
-                        MeasurementRowStatus.READY -> CarbonGreen60
-                        MeasurementRowStatus.INCOMPLETE -> CarbonRed60
-                        MeasurementRowStatus.EMPTY -> CarbonGray60
+                        MeasurementRowStatus.READY -> MaterialTheme.colorScheme.tertiary
+                        MeasurementRowStatus.INCOMPLETE -> MaterialTheme.colorScheme.error
+                        MeasurementRowStatus.EMPTY -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
             }
@@ -1030,23 +994,23 @@ fun MeasurementRowCard(
                 Icon(
                     if (row.photoUri == null) Icons.Default.AddAPhoto else Icons.Default.Photo,
                     contentDescription = if (row.photoUri == null) "Add optional photo" else "Replace photo",
-                    tint = if (row.photoUri == null) CarbonGray70 else CarbonGreen60,
+                    tint = if (row.photoUri == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(17.dp)
                 )
             }
             if (row.photoUri != null) {
                 IconButton(onClick = onRemovePhoto, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Remove photo", tint = CarbonRed60, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Close, contentDescription = "Remove photo", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
                 }
             }
             IconButton(onClick = onDuplicate, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.ContentCopy, contentDescription = "Duplicate row", tint = CarbonBlue60, modifier = Modifier.size(17.dp))
+                Icon(Icons.Default.ContentCopy, contentDescription = "Duplicate row", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(17.dp))
             }
             IconButton(onClick = onAddNextLine, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Add, contentDescription = "Add row below", tint = CarbonGreen60, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, contentDescription = "Add row below", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete row", tint = CarbonRed60, modifier = Modifier.size(17.dp))
+                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete row", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(17.dp))
             }
         }
     }
@@ -1067,7 +1031,7 @@ private fun CompactNumberCell(
             if (next.isEmpty() || next.matches(Regex("\\d*\\.?\\d*"))) onValueChange(next)
         },
         label = { Text(label, fontSize = 9.sp) },
-        placeholder = { Text("0", fontSize = 11.sp) },
+        placeholder = { Text("0", style = MaterialTheme.typography.labelSmall) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = imeAction),
         keyboardActions = KeyboardActions(
             onNext = { focusManager.moveFocus(FocusDirection.Next) },
@@ -1075,8 +1039,8 @@ private fun CompactNumberCell(
         ),
         singleLine = true,
         textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center),
-        shape = RoundedCornerShape(2.dp),
+        shape = MaterialTheme.shapes.small,
         modifier = Modifier.width(82.dp).testTag(tag),
-        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = CarbonBlue60, unfocusedBorderColor = CarbonGray40)
+        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outline)
     )
 }

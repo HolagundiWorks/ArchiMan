@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -8,24 +10,21 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.ClientEntity
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,18 +52,34 @@ fun ClientsScreen(
     }
 
     Scaffold(
-        containerColor = CarbonWhite,
+        topBar = {
+            Column {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text("Clients")
+                            Text("${clients.size} registered", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                )
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search clients") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("input_search_clients"),
+                    singleLine = true
+                )
+            }
+        },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddDialog = true },
-                containerColor = CarbonBlue60,
-                contentColor = CarbonWhite,
-                shape = RoundedCornerShape(4.dp),
                 modifier = Modifier.testTag("fab_add_client")
             ) {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Default.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
-                Text("Add Client", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Add client")
             }
         }
     ) { paddingValues ->
@@ -73,54 +88,6 @@ fun ClientsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Header Section
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(CarbonWhite)
-                    .drawBehind {
-                        drawLine(
-                            color = CarbonGray20,
-                            start = Offset(0f, size.height),
-                            end = Offset(size.width, size.height),
-                            strokeWidth = 1.dp.toPx()
-                        )
-                    }
-                    .padding(horizontal = 16.dp, vertical = 14.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "Clients Directory",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CarbonGray100
-                        )
-                        Text(
-                            text = "${clients.size} Registered Client${if (clients.size != 1) "s" else ""}",
-                            fontSize = 12.sp,
-                            color = CarbonGray70,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // Search Bar
-                CarbonSearchField(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    placeholder = "Search clients...",
-                    testTag = "input_search_clients"
-                )
-            }
-
             // Client List
             if (filteredClients.isEmpty()) {
                 Box(
@@ -136,25 +103,25 @@ fun ClientsScreen(
                         Icon(
                             imageVector = Icons.Default.CorporateFare,
                             contentDescription = null,
-                            tint = CarbonGray40,
+                            tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(54.dp)
                         )
                         Text(
                             text = if (searchQuery.isBlank()) "No clients created yet" else "No matching clients found",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = CarbonGray80
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "Clients must be registered prior to creating new site projects.",
                             fontSize = 12.sp,
-                            color = CarbonGray60,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         Button(
                             onClick = { showAddDialog = true },
-                            shape = RoundedCornerShape(2.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60),
+                            shape = MaterialTheme.shapes.small,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_empty_add_client")
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -217,22 +184,22 @@ fun ClientsScreen(
                         clientToDelete?.let { viewModel.deleteClient(it) }
                         clientToDelete = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = CarbonRed60),
-                    shape = RoundedCornerShape(2.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Text("Delete", color = CarbonWhite)
+                    Text("Delete", color = MaterialTheme.colorScheme.surface)
                 }
             },
             dismissButton = {
                 OutlinedButton(
                     onClick = { clientToDelete = null },
-                    shape = RoundedCornerShape(2.dp)
+                    shape = MaterialTheme.shapes.small
                 ) {
-                    Text("Cancel", color = CarbonGray100)
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurface)
                 }
             },
-            containerColor = CarbonWhite,
-            shape = RoundedCornerShape(4.dp)
+            containerColor = MaterialTheme.colorScheme.surface,
+            shape = MaterialTheme.shapes.small
         )
     }
 }
@@ -248,9 +215,9 @@ fun ClientCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("client_card_${client.id}"),
-        shape = RoundedCornerShape(2.dp),
-        colors = CardDefaults.cardColors(containerColor = CarbonWhite),
-        border = BorderStroke(1.dp, CarbonGray30),
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
@@ -272,13 +239,13 @@ fun ClientCard(
                     Box(
                         modifier = Modifier
                             .size(38.dp)
-                            .background(CarbonBlue10, shape = RoundedCornerShape(2.dp)),
+                            .background(MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.small),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Business,
                             contentDescription = null,
-                            tint = CarbonBlue60,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -287,28 +254,28 @@ fun ClientCard(
                             text = client.name,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CarbonGray100
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = "${client.clientType} • ${if (projectCount > 0) "$projectCount project(s)" else "No projects"}",
-                            fontSize = 11.sp,
+                            style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = if (projectCount > 0) CarbonBlue60 else CarbonGray60
+                            color = if (projectCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Client", tint = CarbonGray70, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Client", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                     IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Client", tint = CarbonRed60, modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Client", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
-            HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
             // Address
             Row(
@@ -318,13 +285,13 @@ fun ClientCard(
                 Icon(
                     imageVector = Icons.Default.LocationOn,
                     contentDescription = null,
-                    tint = CarbonGray60,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp).padding(top = 2.dp)
                 )
                 Text(
                     text = client.address.ifBlank { "No address specified" },
                     fontSize = 12.sp,
-                    color = CarbonGray80
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
@@ -336,14 +303,14 @@ fun ClientCard(
                 Icon(
                     imageVector = Icons.Default.Phone,
                     contentDescription = null,
-                    tint = CarbonGray60,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
                 )
                 Text(
                     text = listOf(client.contactPerson, client.contactNo, client.email).filter(String::isNotBlank).joinToString(" • ").ifBlank { "No contact details provided" },
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = CarbonGray90
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
@@ -367,11 +334,11 @@ fun ClientFormDialog(
     var notes by remember { mutableStateOf(initialClient?.notes ?: "") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(2.dp),
-            color = CarbonWhite,
-            border = BorderStroke(1.dp, CarbonGray30),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -391,114 +358,114 @@ fun ClientFormDialog(
                         text = if (initialClient != null) "Edit Client Details" else "Add New Client",
                         fontSize = 17.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CarbonGray100
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = CarbonGray70)
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
-                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
                 if (errorMessage != null) {
                     Surface(
-                        color = CarbonRed10,
-                        shape = RoundedCornerShape(2.dp),
-                        border = BorderStroke(1.dp, CarbonRed60),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = errorMessage ?: "",
-                            color = CarbonRed60,
+                            color = MaterialTheme.colorScheme.error,
                             fontSize = 12.sp,
                             modifier = Modifier.padding(8.dp)
                         )
                     }
                 }
 
-                CarbonInputField(
-                    label = "CLIENT NAME *",
+                OutlinedTextField(
+                    label = { Text("CLIENT NAME *") },
                     value = name,
                     onValueChange = {
                         name = it
                         errorMessage = null
                     },
-                    placeholder = "e.g. Laxmi Developers Ltd.",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_client_name"
-                )
+                    placeholder = { Text("e.g. Laxmi Developers Ltd.") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_name"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "CLIENT TYPE",
+                OutlinedTextField(
+                    label = { Text("CLIENT TYPE") },
                     value = clientType,
                     onValueChange = { clientType = it },
-                    placeholder = "Individual, Company, Trust, Government...",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_client_type"
-                )
+                    placeholder = { Text("Individual, Company, Trust, Government...") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_type"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "CONTACT PERSON",
+                OutlinedTextField(
+                    label = { Text("CONTACT PERSON") },
                     value = contactPerson,
                     onValueChange = { contactPerson = it },
-                    placeholder = "Primary contact name",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_client_contact_person"
-                )
+                    placeholder = { Text("Primary contact name") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_contact_person"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "CLIENT ADDRESS",
+                OutlinedTextField(
+                    label = { Text("CLIENT ADDRESS") },
                     value = address,
                     onValueChange = { address = it },
-                    placeholder = "e.g. Suite 401, Apex Hub, MG Road",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_client_address"
-                )
+                    placeholder = { Text("e.g. Suite 401, Apex Hub, MG Road") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_address"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "CORRESPONDENCE ADDRESS",
+                OutlinedTextField(
+                    label = { Text("CORRESPONDENCE ADDRESS") },
                     value = correspondenceAddress,
                     onValueChange = { correspondenceAddress = it },
-                    placeholder = "Leave blank when same as client address",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_client_correspondence_address"
-                )
+                    placeholder = { Text("Leave blank when same as client address") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_correspondence_address"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "CONTACT NO / PHONE *",
+                OutlinedTextField(
+                    label = { Text("CONTACT NO / PHONE *") },
                     value = contactNo,
                     onValueChange = { contactNo = it },
-                    placeholder = "e.g. +91 98450 12345",
-                    keyboardType = KeyboardType.Phone,
-                    testTag = "input_client_contact"
-                )
+                    placeholder = { Text("e.g. +91 98450 12345") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_contact"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "EMAIL",
+                OutlinedTextField(
+                    label = { Text("EMAIL") },
                     value = email,
                     onValueChange = { email = it },
-                    placeholder = "client@example.com",
-                    keyboardType = KeyboardType.Email,
-                    testTag = "input_client_email"
-                )
+                    placeholder = { Text("client@example.com") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_email"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "PREFERRED COMMUNICATION",
+                OutlinedTextField(
+                    label = { Text("PREFERRED COMMUNICATION") },
                     value = preferredCommunication,
                     onValueChange = { preferredCommunication = it },
-                    placeholder = "Phone, email, WhatsApp, letter...",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_client_preferred_communication"
-                )
+                    placeholder = { Text("Phone, email, WhatsApp, letter...") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_preferred_communication"),
+                    singleLine = true)
 
-                CarbonInputField(
-                    label = "NOTES",
+                OutlinedTextField(
+                    label = { Text("NOTES") },
                     value = notes,
                     onValueChange = { notes = it },
-                    placeholder = "Relationship or communication notes",
-                    keyboardType = KeyboardType.Text,
-                    testTag = "input_client_notes"
-                )
+                    placeholder = { Text("Relationship or communication notes") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                    modifier = Modifier.fillMaxWidth().testTag("input_client_notes"),
+                    singleLine = true)
 
                 Spacer(Modifier.height(4.dp))
 
@@ -509,10 +476,10 @@ fun ClientFormDialog(
                     OutlinedButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(2.dp),
-                        border = BorderStroke(1.dp, CarbonGray40)
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
-                        Text("Cancel", color = CarbonGray100, fontSize = 12.sp)
+                        Text("Cancel", color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                     }
 
                     Button(
@@ -538,14 +505,14 @@ fun ClientFormDialog(
                         modifier = Modifier
                             .weight(1f)
                             .testTag("btn_save_client"),
-                        shape = RoundedCornerShape(2.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                        shape = MaterialTheme.shapes.small,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                     ) {
                         Text(
                             if (initialClient != null) "Update Client" else "Save Client",
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp,
-                            color = CarbonWhite
+                            color = MaterialTheme.colorScheme.surface
                         )
                     }
                 }

@@ -33,8 +33,7 @@ enum class ProjectSection {
     DRAWINGS,
     REPORTS,
     CONTROLS,
-    CONTRACTORS,
-    RATE_BOOKS
+    CONTRACTORS
 }
 
 enum class DirectorySection(val label: String) {

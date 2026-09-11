@@ -19,7 +19,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.local.entity.*
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -66,10 +65,10 @@ fun ProjectReportsScreen(
 private fun OperationPageSelector(labels: List<String>, selected: Int, onSelect: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         labels.forEachIndexed { index, label ->
-            FilterChip(selected = selected == index, onClick = { onSelect(index) }, label = { Text(label, fontSize = 11.sp) })
+            FilterChip(selected = selected == index, onClick = { onSelect(index) }, label = { Text(label, style = MaterialTheme.typography.labelSmall) })
         }
     }
-    HorizontalDivider(color = CarbonGray20)
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @Composable
@@ -81,18 +80,18 @@ private fun ProjectScheduleTab(viewModel: SiteViewModel, schedules: List<Project
             items(schedules, key = { it.id }) { item ->
                 OperationCard {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { viewModel.toggleProjectSchedule(item) }) { Icon(if (item.status == "DONE") Icons.Default.CheckCircle else Icons.Default.Event, "Change status", tint = if (item.status == "DONE") CarbonGreen60 else CarbonBlue60) }
+                        IconButton(onClick = { viewModel.toggleProjectSchedule(item) }) { Icon(if (item.status == "DONE") Icons.Default.CheckCircle else Icons.Default.Event, "Change status", tint = if (item.status == "DONE") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary) }
                         Column(Modifier.weight(1f)) {
                             Text(item.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text(formatDateTime(item.scheduledAt) + if (item.location.isBlank()) "" else " • ${item.location}", color = CarbonGray70, fontSize = 10.sp)
-                            if (item.notes.isNotBlank()) Text(item.notes, color = CarbonGray70, fontSize = 11.sp, maxLines = 2)
+                            Text(formatDateTime(item.scheduledAt) + if (item.location.isBlank()) "" else " • ${item.location}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                            if (item.notes.isNotBlank()) Text(item.notes, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 2)
                         }
                         IconButton(onClick = { viewModel.deleteProjectSchedule(item) }) { Icon(Icons.Default.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = RoundedCornerShape(2.dp)) { Icon(Icons.Default.Add, "Add schedule") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add schedule") }
     }
     if (add) ScheduleDialog(onDismiss = { add = false }) { title, at, location, notes -> viewModel.addProjectSchedule(title, at, location, notes); add = false }
 }
@@ -108,17 +107,17 @@ private fun MeetingMinutesTab(viewModel: SiteViewModel, minutes: List<MeetingMin
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(item.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text(formatDateTime(item.meetingAt) + if (item.location.isBlank()) "" else " • ${item.location}", color = CarbonBlue60, fontSize = 10.sp)
-                            if (item.attendees.isNotBlank()) Text("Attendees: ${item.attendees}", color = CarbonGray70, fontSize = 10.sp)
-                            if (item.decisions.isNotBlank()) Text("Decisions: ${item.decisions}", fontSize = 11.sp, maxLines = 2)
-                            if (item.actionItems.isNotBlank()) Text("Actions: ${item.actionItems}", color = CarbonGray70, fontSize = 11.sp, maxLines = 2)
+                            Text(formatDateTime(item.meetingAt) + if (item.location.isBlank()) "" else " • ${item.location}", color = MaterialTheme.colorScheme.primary, fontSize = 10.sp)
+                            if (item.attendees.isNotBlank()) Text("Attendees: ${item.attendees}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                            if (item.decisions.isNotBlank()) Text("Decisions: ${item.decisions}", style = MaterialTheme.typography.labelSmall, maxLines = 2)
+                            if (item.actionItems.isNotBlank()) Text("Actions: ${item.actionItems}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 2)
                         }
                         IconButton(onClick = { viewModel.deleteMeetingMinutes(item) }) { Icon(Icons.Default.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = RoundedCornerShape(2.dp)) { Icon(Icons.Default.Add, "Add minutes") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add minutes") }
     }
     if (add) MinutesDialog(onDismiss = { add = false }) { title, location, attendees, discussion, decisions, actions ->
         viewModel.addMeetingMinutes(title, System.currentTimeMillis(), location, attendees, discussion, decisions, actions); add = false
@@ -138,24 +137,24 @@ private fun SiteInspectionTab(viewModel: SiteViewModel, inspections: List<SiteIn
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(item.location, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text("${formatDateTime(item.inspectionAt)} • ${item.severity} • ${item.status}", color = severityColor(item.severity), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            Text(item.observation, fontSize = 11.sp)
-                            if (item.correctiveAction.isNotBlank()) Text("Corrective action: ${item.correctiveAction}", color = CarbonGray70, fontSize = 10.sp)
-                            if (item.photoUri != null) Text("Photo attached", color = CarbonBlue60, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            Text(item.observation, style = MaterialTheme.typography.labelSmall)
+                            if (item.correctiveAction.isNotBlank()) Text("Corrective action: ${item.correctiveAction}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
+                            if (item.photoUri != null) Text("Photo attached", color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                         }
                         IconButton(onClick = { viewModel.deleteSiteInspection(item) }) { Icon(Icons.Default.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = RoundedCornerShape(2.dp)) { Icon(Icons.Default.Add, "Add inspection") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add inspection") }
     }
     if (add) InspectionDialog(onDismiss = { add = false }) { location, inspector, observation, severity, corrective, photo ->
         viewModel.addSiteInspection(location, inspector, observation, severity, corrective, photo); add = false
     }
 }
 
-@Composable private fun OperationCard(content: @Composable () -> Unit) { Surface(color = CarbonWhite, border = BorderStroke(1.dp, CarbonGray20), shape = RoundedCornerShape(2.dp), modifier = Modifier.fillMaxWidth()) { Box(Modifier.padding(8.dp)) { content() } } }
-@Composable private fun OperationEmpty(title: String, supporting: String) { Column(Modifier.fillMaxSize().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(Icons.Default.FolderOpen, null, tint = CarbonGray50, modifier = Modifier.size(40.dp)); Spacer(Modifier.height(8.dp)); Text(title, fontWeight = FontWeight.Bold); Text(supporting, color = CarbonGray70, fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center) } }
+@Composable private fun OperationCard(content: @Composable () -> Unit) { Surface(color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) { Box(Modifier.padding(8.dp)) { content() } } }
+@Composable private fun OperationEmpty(title: String, supporting: String) { Column(Modifier.fillMaxSize().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(Icons.Default.FolderOpen, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp)); Spacer(Modifier.height(8.dp)); Text(title, fontWeight = FontWeight.Bold); Text(supporting, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center) } }
 
 @Composable
 private fun ScheduleDialog(onDismiss: () -> Unit, onSave: (String, Long, String, String) -> Unit) {
@@ -189,4 +188,5 @@ private fun InspectionDialog(onDismiss: () -> Unit, onSave: (String, String, Str
 @Composable private fun FormField(value: String, onValue: (String) -> Unit, label: String, modifier: Modifier = Modifier.fillMaxWidth(), singleLine: Boolean = true) { OutlinedTextField(value, onValue, label = { Text(label) }, modifier = modifier, singleLine = singleLine, minLines = if (singleLine) 1 else 2) }
 
 private fun formatDateTime(value: Long) = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date(value))
-private fun severityColor(value: String) = when (value) { "CRITICAL" -> CarbonRed60; "ATTENTION" -> CarbonOrange40; else -> CarbonBlue60 }
+@Composable
+private fun severityColor(value: String) = when (value) { "CRITICAL" -> MaterialTheme.colorScheme.error; "ATTENTION" -> MaterialTheme.colorScheme.secondary; else -> MaterialTheme.colorScheme.primary }

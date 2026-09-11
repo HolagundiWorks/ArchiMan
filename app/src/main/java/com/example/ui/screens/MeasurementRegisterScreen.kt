@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -29,12 +31,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.MeasurementEntity
-import com.example.ui.theme.*
 import com.example.ui.navigation.AppScreen
 import com.example.ui.viewmodel.SiteViewModel
 import com.example.util.ExportHelper
@@ -74,9 +74,9 @@ fun MeasurementRegisterScreen(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = SleekBgLight,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            // Sleek Header
+            // Material 3 screen header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -93,7 +93,7 @@ fun MeasurementRegisterScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(SleekOutline)
+                            .background(MaterialTheme.colorScheme.outline)
                             .clickable { viewModel.navigateTo(AppScreen.HOME) }
                             .testTag("btn_back_home"),
                         contentAlignment = Alignment.Center
@@ -101,7 +101,7 @@ fun MeasurementRegisterScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = SleekTextPrimary,
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -110,13 +110,13 @@ fun MeasurementRegisterScreen(
                             text = "Measurement Register",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
-                            color = SleekTextPrimary,
+                            color = MaterialTheme.colorScheme.onSurface,
                             letterSpacing = (-0.5).sp
                         )
                         Text(
                             text = "${filteredMeasurements.size} measurement entries",
                             fontSize = 12.sp,
-                            color = SleekPrimaryBlue,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
@@ -127,7 +127,7 @@ fun MeasurementRegisterScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(SleekOutline)
+                            .background(MaterialTheme.colorScheme.outline)
                             .clickable {
                                 ExportHelper.exportAndShareCsv(
                                     context = context,
@@ -138,13 +138,13 @@ fun MeasurementRegisterScreen(
                             .testTag("btn_export_csv"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share CSV", tint = SleekTextPrimary, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Share, contentDescription = "Share CSV", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     }
                     Box(
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
-                            .background(SleekOutline)
+                            .background(MaterialTheme.colorScheme.outline)
                             .clickable {
                                 ExportHelper.printMeasurementSheetPdf(
                                     context = context,
@@ -155,7 +155,7 @@ fun MeasurementRegisterScreen(
                             .testTag("btn_print_register"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = "Print PDF", tint = SleekTextPrimary, modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Print, contentDescription = "Print PDF", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -163,7 +163,7 @@ fun MeasurementRegisterScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { viewModel.openCanonicalMeasurement() },
-                containerColor = SleekPrimaryBlue,
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
                 shape = CircleShape,
                 modifier = Modifier.testTag("fab_new_measurement")
@@ -183,23 +183,23 @@ fun MeasurementRegisterScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text("Search item, floor, location, contractor...", fontSize = 13.sp, color = SleekTextTertiary) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = SleekTextSecondary) },
+                placeholder = { Text("Search item, floor, location, contractor...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = SleekTextSecondary)
+                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().testTag("input_search_register"),
                 singleLine = true,
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedContainerColor = SleekSurfaceLight,
-                    focusedContainerColor = SleekSurfaceLight,
-                    unfocusedBorderColor = SleekOutline,
-                    focusedBorderColor = SleekPrimaryBlue
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary
                 )
             )
 
@@ -212,16 +212,16 @@ fun MeasurementRegisterScreen(
             ) {
                 val isAllSelected = filterContractorId == null
                 Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (isAllSelected) SleekPrimaryBlue else SleekSurfaceVariant,
-                    border = if (isAllSelected) null else BorderStroke(1.dp, SleekOutlineVariant),
+                    shape = MaterialTheme.shapes.large,
+                    color = if (isAllSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    border = if (isAllSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.clickable { filterContractorId = null }
                 ) {
                     Text(
                         text = "All Contractors",
                         fontSize = 12.sp,
                         fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isAllSelected) Color.White else SleekTextPrimary,
+                        color = if (isAllSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
@@ -229,9 +229,9 @@ fun MeasurementRegisterScreen(
                 contractors.forEach { c ->
                     val isSelected = filterContractorId == c.id
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = if (isSelected) SleekPrimaryBlue else SleekSurfaceVariant,
-                        border = if (isSelected) null else BorderStroke(1.dp, SleekOutlineVariant),
+                        shape = MaterialTheme.shapes.large,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier
                             .clickable { filterContractorId = c.id }
                             .testTag("filter_chip_contractor_${c.id}")
@@ -240,7 +240,7 @@ fun MeasurementRegisterScreen(
                             text = c.name,
                             fontSize = 12.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = if (isSelected) Color.White else SleekTextPrimary,
+                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                         )
                     }
@@ -263,25 +263,25 @@ fun MeasurementRegisterScreen(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape)
-                                .background(SleekSurfaceVariant),
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SquareFoot,
                                 contentDescription = null,
-                                tint = SleekTextTertiary,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(32.dp)
                             )
                         }
                         Text(
                             text = "No measurements found",
                             fontWeight = FontWeight.SemiBold,
-                            color = SleekTextSecondary
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Button(
                             onClick = { viewModel.openCanonicalMeasurement() },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SleekPrimaryBlue),
+                            shape = MaterialTheme.shapes.large,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_empty_add")
                         ) {
                             Text("+ Add First Measurement")
@@ -319,9 +319,9 @@ fun MeasurementRegisterScreen(
 
     // Fullscreen Photo Viewer Dialog
     if (selectedPhotoUrl != null) {
-        Dialog(onDismissRequest = { selectedPhotoUrl = null }) {
+        BasicAlertDialog(onDismissRequest = { selectedPhotoUrl = null }) {
             Surface(
-                shape = RoundedCornerShape(16.dp),
+                shape = MaterialTheme.shapes.large,
                 color = Color.Black,
                 modifier = Modifier.fillMaxWidth().height(400.dp)
             ) {
@@ -368,10 +368,10 @@ fun MeasurementCard(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .testTag("measurement_row_${measurement.id}"),
-        shape = RoundedCornerShape(16.dp),
-        color = SleekSurfaceLight,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = 1.dp,
-        border = BorderStroke(1.dp, SleekOutline)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Row(
             modifier = Modifier
@@ -382,9 +382,9 @@ fun MeasurementCard(
         ) {
             // Date Badge
             Surface(
-                color = SleekSurfaceVariant,
-                shape = RoundedCornerShape(10.dp),
-                border = BorderStroke(1.dp, SleekOutlineVariant),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                shape = MaterialTheme.shapes.medium,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.width(48.dp)
             ) {
                 Column(
@@ -393,9 +393,9 @@ fun MeasurementCard(
                 ) {
                     Text(
                         text = dateFormat.format(Date(measurement.date)),
-                        fontSize = 11.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = SleekTextSecondary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -407,12 +407,12 @@ fun MeasurementCard(
                         text = measurement.itemName,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
-                        color = SleekTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "• ${measurement.contractorName}",
                         fontSize = 12.sp,
-                        color = SleekTextSecondary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -420,16 +420,16 @@ fun MeasurementCard(
 
                 Text(
                     text = dimString,
-                    fontSize = 11.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
-                    color = SleekTextSecondary
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 if (locationStr.isNotBlank() || measurement.remarks.isNotBlank()) {
                     Text(
                         text = listOf(locationStr, measurement.remarks).filter { it.isNotBlank() }.joinToString(" • "),
-                        fontSize = 11.sp,
-                        color = SleekTextTertiary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -442,7 +442,7 @@ fun MeasurementCard(
                     text = "${String.format(Locale.getDefault(), "%.2f", measurement.quantity)} ${measurement.unit}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
-                    color = SleekPrimaryBlue
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -455,7 +455,7 @@ fun MeasurementCard(
                     Icon(
                         imageVector = Icons.Default.PhotoCamera,
                         contentDescription = "Photo attached",
-                        tint = SleekPrimaryBlue,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -496,11 +496,11 @@ fun EditMeasurementDialog(
     }
     val roundedQty = Math.round(calcQty * 100.0) / 100.0
 
-    Dialog(onDismissRequest = onDismiss) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = SleekSurfaceLight,
-            border = BorderStroke(1.dp, SleekOutline),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
         ) {
             Column(
@@ -518,17 +518,17 @@ fun EditMeasurementDialog(
                         text = "Edit Measurement",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = SleekTextPrimary
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = SleekTextSecondary)
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
                 Text(
                     text = "${measurement.itemName} • ${measurement.contractorName}",
                     fontSize = 13.sp,
-                    color = SleekPrimaryBlue,
+                    color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold
                 )
 
@@ -541,7 +541,7 @@ fun EditMeasurementDialog(
                             label = { Text("Length") },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             singleLine = true
                         )
                     }
@@ -552,7 +552,7 @@ fun EditMeasurementDialog(
                             label = { Text("Width") },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             singleLine = true
                         )
                     }
@@ -563,7 +563,7 @@ fun EditMeasurementDialog(
                             label = { Text("Height") },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = MaterialTheme.shapes.medium,
                             singleLine = true
                         )
                     }
@@ -573,7 +573,7 @@ fun EditMeasurementDialog(
                         label = { Text("Nos") },
                         modifier = Modifier.width(65.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
                 }
@@ -585,22 +585,22 @@ fun EditMeasurementDialog(
                         label = { Text("Deduction (m²)") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
                 }
 
                 // Live total preview
                 Surface(
-                    color = SleekPrimaryContainer,
-                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    shape = MaterialTheme.shapes.large,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Quantity: $roundedQty ${measurement.unit}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = SleekOnPrimaryContainer)
+                        Text("Quantity: $roundedQty ${measurement.unit}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
 
@@ -610,7 +610,7 @@ fun EditMeasurementDialog(
                         onValueChange = { floor = it },
                         label = { Text("Floor") },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
                     OutlinedTextField(
@@ -618,7 +618,7 @@ fun EditMeasurementDialog(
                         onValueChange = { location = it },
                         label = { Text("Location") },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
                 }
@@ -628,7 +628,7 @@ fun EditMeasurementDialog(
                     onValueChange = { remarks = it },
                     label = { Text("Remarks") },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.medium,
                     singleLine = true
                 )
 
@@ -652,7 +652,7 @@ fun EditMeasurementDialog(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(20.dp)
+                            shape = MaterialTheme.shapes.large
                         ) { Text("Cancel") }
                         Button(
                             onClick = {
@@ -670,8 +670,8 @@ fun EditMeasurementDialog(
                                     )
                                 )
                             },
-                            shape = RoundedCornerShape(20.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SleekPrimaryBlue),
+                            shape = MaterialTheme.shapes.large,
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_save_edit_measurement")
                         ) {
                             Text("Save")

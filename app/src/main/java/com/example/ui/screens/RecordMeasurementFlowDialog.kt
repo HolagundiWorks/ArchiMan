@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.example.ui.screens
 
 import androidx.compose.foundation.BorderStroke
@@ -14,19 +16,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.local.entity.CalculationType
 import com.example.data.local.entity.ContractorEntity
 import com.example.data.local.entity.ContractorQualifiedItemEntity
 import com.example.data.local.entity.FloorEntity
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
 import com.example.domain.WorkCatalog
 
@@ -59,11 +57,11 @@ fun RecordMeasurementFlowDialog(
         } else emptyList()
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    BasicAlertDialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(4.dp),
-            color = CarbonWhite,
-            border = BorderStroke(1.dp, CarbonGray30),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp)
@@ -85,7 +83,7 @@ fun RecordMeasurementFlowDialog(
                             text = "Record Measurement",
                             fontSize = 17.sp,
                             fontWeight = FontWeight.Bold,
-                            color = CarbonGray100
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = when (currentStep) {
@@ -94,12 +92,12 @@ fun RecordMeasurementFlowDialog(
                                 RecordFlowStep.SELECT_FLOOR -> "Step 3 of 3: Select Floor / Level"
                             },
                             fontSize = 12.sp,
-                            color = CarbonBlue60,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Medium
                         )
                     }
                     IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = CarbonGray70)
+                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -112,15 +110,15 @@ fun RecordMeasurementFlowDialog(
                         modifier = Modifier
                             .weight(1f)
                             .height(4.dp)
-                            .background(CarbonBlue60, shape = RoundedCornerShape(2.dp))
+                            .background(MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.small)
                     )
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .height(4.dp)
                             .background(
-                                if (currentStep != RecordFlowStep.SELECT_CONTRACTOR) CarbonBlue60 else CarbonGray30,
-                                shape = RoundedCornerShape(2.dp)
+                                if (currentStep != RecordFlowStep.SELECT_CONTRACTOR) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                shape = MaterialTheme.shapes.small
                             )
                     )
                     Box(
@@ -128,13 +126,13 @@ fun RecordMeasurementFlowDialog(
                             .weight(1f)
                             .height(4.dp)
                             .background(
-                                if (currentStep == RecordFlowStep.SELECT_FLOOR) CarbonBlue60 else CarbonGray30,
-                                shape = RoundedCornerShape(2.dp)
+                                if (currentStep == RecordFlowStep.SELECT_FLOOR) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                shape = MaterialTheme.shapes.small
                             )
                     )
                 }
 
-                HorizontalDivider(color = CarbonGray20, thickness = 1.dp)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp)
 
                 // Selected chips summary if past step 1
                 if (selectedContractor != null || selectedQualifiedItem != null) {
@@ -144,14 +142,14 @@ fun RecordMeasurementFlowDialog(
                     ) {
                         if (selectedContractor != null) {
                             Surface(
-                                color = CarbonCyan10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonCyan30)
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondaryContainer)
                             ) {
                                 Text(
                                     text = "Contractor: ${selectedContractor!!.name}",
-                                    fontSize = 11.sp,
-                                    color = CarbonCyan80,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -159,14 +157,14 @@ fun RecordMeasurementFlowDialog(
                         }
                         if (selectedQualifiedItem != null) {
                             Surface(
-                                color = CarbonYellow10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonYellow30)
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
                             ) {
                                 Text(
                                     text = "Item: ${selectedQualifiedItem!!.itemName}",
-                                    fontSize = 11.sp,
-                                    color = CarbonGray100,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
@@ -182,20 +180,20 @@ fun RecordMeasurementFlowDialog(
                             text = "Choose Contractor executing the work:",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = CarbonGray90
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         if (contractors.isEmpty()) {
                             Surface(
-                                color = CarbonGray10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonGray30),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = "No contractors available. Please register contractors first from the Contractors tab.",
                                     fontSize = 12.sp,
-                                    color = CarbonGray70,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(12.dp)
                                 )
                             }
@@ -209,11 +207,11 @@ fun RecordMeasurementFlowDialog(
                                 items(contractors, key = { it.id }) { contractor ->
                                     val itemCount = allQualifiedItems.count { it.contractorId == contractor.id }
                                     Surface(
-                                        color = if (selectedContractor?.id == contractor.id) CarbonBlue10 else CarbonWhite,
-                                        shape = RoundedCornerShape(2.dp),
+                                        color = if (selectedContractor?.id == contractor.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                        shape = MaterialTheme.shapes.small,
                                         border = BorderStroke(
                                             1.dp,
-                                            if (selectedContractor?.id == contractor.id) CarbonBlue60 else CarbonGray30
+                                            if (selectedContractor?.id == contractor.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -237,7 +235,7 @@ fun RecordMeasurementFlowDialog(
                                                 Icon(
                                                     imageVector = Icons.Default.Engineering,
                                                     contentDescription = null,
-                                                    tint = CarbonBlue60,
+                                                    tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                                 Column {
@@ -245,19 +243,19 @@ fun RecordMeasurementFlowDialog(
                                                         text = contractor.name,
                                                         fontWeight = FontWeight.Bold,
                                                         fontSize = 13.sp,
-                                                        color = CarbonGray100
+                                                        color = MaterialTheme.colorScheme.onSurface
                                                     )
                                                     Text(
                                                         text = "$itemCount Qualified Items • ${contractor.contactNo.ifBlank { contractor.phone }}",
-                                                        fontSize = 11.sp,
-                                                        color = CarbonGray60
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             }
                                             Icon(
                                                 imageVector = Icons.Default.ChevronRight,
                                                 contentDescription = null,
-                                                tint = CarbonGray60,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -273,21 +271,21 @@ fun RecordMeasurementFlowDialog(
                             text = "Select item from ${selectedContractor?.name}'s qualified trades:",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = CarbonGray90
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         if (availableContractorItems.isEmpty()) {
                             Surface(
-                                color = CarbonYellow10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonYellow30),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(
                                         text = "This contractor has no qualified items registered yet.",
                                         fontSize = 12.sp,
-                                        color = CarbonGray90
+                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Button(
                                         onClick = {
@@ -300,8 +298,8 @@ fun RecordMeasurementFlowDialog(
                                             )
                                             currentStep = RecordFlowStep.SELECT_FLOOR
                                         },
-                                        shape = RoundedCornerShape(2.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = CarbonBlue60)
+                                        shape = MaterialTheme.shapes.small,
+                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                                     ) {
                                         Text("Use General Item", fontSize = 12.sp)
                                     }
@@ -321,9 +319,9 @@ fun RecordMeasurementFlowDialog(
                                     item(key = "work_type_$workType") {
                                         val expanded = expandedWorkType == workType
                                         Surface(
-                                            color = CarbonGray10,
-                                            shape = RoundedCornerShape(2.dp),
-                                            border = BorderStroke(1.dp, CarbonGray30),
+                                            color = MaterialTheme.colorScheme.surfaceVariant,
+                                            shape = MaterialTheme.shapes.small,
+                                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                             modifier = Modifier.fillMaxWidth().clickable {
                                                 expandedWorkType = if (expanded) null else workType
                                             }
@@ -334,13 +332,13 @@ fun RecordMeasurementFlowDialog(
                                                 horizontalArrangement = Arrangement.SpaceBetween
                                             ) {
                                                 Column {
-                                                    Text(workType, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = CarbonGray100)
-                                                    Text("${workItems.size} work item${if (workItems.size == 1) "" else "s"}", fontSize = 10.sp, color = CarbonGray60)
+                                                    Text(workType, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
+                                                    Text("${workItems.size} work item${if (workItems.size == 1) "" else "s"}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                 }
                                                 Icon(
                                                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                                     contentDescription = if (expanded) "Collapse work type" else "Expand work type",
-                                                    tint = CarbonBlue60
+                                                    tint = MaterialTheme.colorScheme.primary
                                                 )
                                             }
                                         }
@@ -348,11 +346,11 @@ fun RecordMeasurementFlowDialog(
                                     if (expandedWorkType == workType) items(workItems, key = { "qualified_${it.id}" }) { item ->
                                         val isPlaster = item.itemName.contains("plaster", ignoreCase = true)
                                     Surface(
-                                        color = if (selectedQualifiedItem?.id == item.id) CarbonBlue10 else CarbonWhite,
-                                        shape = RoundedCornerShape(2.dp),
+                                        color = if (selectedQualifiedItem?.id == item.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                        shape = MaterialTheme.shapes.small,
                                         border = BorderStroke(
                                             1.dp,
-                                            if (selectedQualifiedItem?.id == item.id) CarbonBlue60 else CarbonGray30
+                                            if (selectedQualifiedItem?.id == item.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -375,7 +373,7 @@ fun RecordMeasurementFlowDialog(
                                                 Icon(
                                                     imageVector = if (isPlaster) Icons.Default.FormatPaint else Icons.Default.SquareFoot,
                                                     contentDescription = null,
-                                                    tint = CarbonBlue60,
+                                                    tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                                 Column {
@@ -387,25 +385,25 @@ fun RecordMeasurementFlowDialog(
                                                             text = item.itemName,
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 13.sp,
-                                                            color = CarbonGray100
+                                                            color = MaterialTheme.colorScheme.onSurface
                                                         )
                                                         if (isPlaster) {
-                                                            Surface(color = CarbonCyan10, shape = RoundedCornerShape(2.dp)) {
-                                                                Text("Linked to Brickwork", fontSize = 9.sp, color = CarbonCyan80, modifier = Modifier.padding(2.dp))
+                                                            Surface(color = MaterialTheme.colorScheme.secondaryContainer, shape = MaterialTheme.shapes.small) {
+                                                                Text("Linked to Brickwork", fontSize = 9.sp, color = MaterialTheme.colorScheme.onSecondaryContainer, modifier = Modifier.padding(2.dp))
                                                             }
                                                         }
                                                     }
                                                     Text(
                                                         text = "Formula: ${item.calculationType.displayName} • Unit: ${item.uom}",
-                                                        fontSize = 11.sp,
-                                                        color = CarbonGray60
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                                     )
                                                 }
                                             }
                                             Icon(
                                                 imageVector = Icons.Default.ChevronRight,
                                                 contentDescription = null,
-                                                tint = CarbonGray60,
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -422,20 +420,20 @@ fun RecordMeasurementFlowDialog(
                             text = "Select Floor / Level to record measurements for:",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = CarbonGray90
+                            color = MaterialTheme.colorScheme.onSurface
                         )
 
                         if (floors.isEmpty()) {
                             Surface(
-                                color = CarbonGray10,
-                                shape = RoundedCornerShape(2.dp),
-                                border = BorderStroke(1.dp, CarbonGray30),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = MaterialTheme.shapes.small,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Text(
                                     text = "No floors defined for this project. Level 0 (Ground Floor) will be used.",
                                     fontSize = 12.sp,
-                                    color = CarbonGray70,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(12.dp)
                                 )
                             }
@@ -448,11 +446,11 @@ fun RecordMeasurementFlowDialog(
                             ) {
                                 items(floors, key = { it.id }) { floor ->
                                     Surface(
-                                        color = if (selectedFloor?.id == floor.id) CarbonBlue10 else CarbonWhite,
-                                        shape = RoundedCornerShape(2.dp),
+                                        color = if (selectedFloor?.id == floor.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+                                        shape = MaterialTheme.shapes.small,
                                         border = BorderStroke(
                                             1.dp,
-                                            if (selectedFloor?.id == floor.id) CarbonBlue60 else CarbonGray30
+                                            if (selectedFloor?.id == floor.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
                                         ),
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -484,25 +482,25 @@ fun RecordMeasurementFlowDialog(
                                                 Icon(
                                                     imageVector = Icons.Default.Layers,
                                                     contentDescription = null,
-                                                    tint = CarbonBlue60,
+                                                    tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)
                                                 )
                                                 Text(
                                                     text = floor.name,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 13.sp,
-                                                    color = CarbonGray100
+                                                    color = MaterialTheme.colorScheme.onSurface
                                                 )
                                             }
                                             Row(
                                                 verticalAlignment = Alignment.CenterVertically,
                                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                                             ) {
-                                                Text("Open Screen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = CarbonBlue60)
+                                                Text("Open Screen", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                                 Icon(
                                                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                                                     contentDescription = null,
-                                                    tint = CarbonBlue60,
+                                                    tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(16.dp)
                                                 )
                                             }
@@ -529,18 +527,18 @@ fun RecordMeasurementFlowDialog(
                                     else -> RecordFlowStep.SELECT_CONTRACTOR
                                 }
                             },
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonGray40)
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
-                            Text("Back", color = CarbonGray100, fontSize = 12.sp)
+                            Text("Back", color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                         }
                     } else {
                         OutlinedButton(
                             onClick = onDismiss,
-                            shape = RoundedCornerShape(2.dp),
-                            border = BorderStroke(1.dp, CarbonGray40)
+                            shape = MaterialTheme.shapes.small,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
-                            Text("Cancel", color = CarbonGray100, fontSize = 12.sp)
+                            Text("Cancel", color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp)
                         }
                     }
                 }

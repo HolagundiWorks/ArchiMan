@@ -1,8 +1,8 @@
 # ArchiMan Implementation Roadmap
 
-> ArchiMan is an Architectural Consultancy Management App with a field-first Measurement Book. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`. A statutory approval/compliance matrix and jurisdiction profiles are not part of the product.
+> ArchiMan is a field-first, quantity-only Measurement Book application. Rates, valuation, billing and accounting are outside the product boundary. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`.
 
-Current implementation baseline: Room schema 21, branded and audited 9 September 2026.
+Current implementation baseline: Room schema 22, pure Material 3 UI, audited 11 September 2026.
 
 ## Phase 0 - Scope lock and safety
 
@@ -15,21 +15,21 @@ Status: Completed.
 
 Exit criteria: product boundary documented and current app builds.
 
-## Phase 1 - Remove billing and uncontrolled commercial functionality
+## Phase 1 - Remove all commercial functionality
 
 Status: Completed.
 
-- Remove ad hoc/default rate and amount entry from measurement screens; later approved contractor rate books remain a controlled exception.
+- Remove every rate-book, rate and amount entry or display path.
 - Remove rate from contractor qualification creation and display.
 - Remove amount totals from project, register, reports, and work-item screens.
 - Remove Bills routes and entry points.
-- Remove billing and rate endpoints from the LAN portal.
+- Remove commercial endpoints from the LAN portal.
 - Stop writing rate, amount, and bill references for new measurements.
 - Rename reporting copy to measurement-only terminology.
 
-Compatibility rule: legacy database columns may remain temporarily but must be ignored and written as zero/null until the migration phase.
+Compatibility rule: older databases are accepted only through explicit, preserving migrations. Schema 22 contains no commercial tables or measurement columns.
 
-Exit criteria: no billing, invoice, payment, retention or accounting workflow is visible; rates originate only from an explicitly assigned contractor rate book.
+Exit criteria: no rate, valuation, billing, invoice, payment, retention or accounting workflow is visible or writable.
 
 ## Phase 2 - Canonical measurement workflow
 
@@ -63,18 +63,20 @@ Exit criteria: one canonical work catalog with no unresolved duplicate candidate
 
 ## Phase 4 - Measurement sheet domain and safe schema migration
 
-Status: Completed through schema version 21 locally. The schema-21 APK has passed automated migration coverage and an in-place device startup check; a production backup/restore drill remains open.
+Status: Completed through schema version 22 locally and installed as an in-place device upgrade. The schema-22 migration removes the obsolete commercial schema while preserving every quantity and measurement-context field; a production backup/restore drill remains open.
 
 - [x] Split measurement sheet headers from linked measurement rows while retaining compatibility snapshots.
 - [x] Introduce immutable formula code, formula version, UOM, item, contractor, floor, and date snapshots.
-- [x] Remove contractor rate and bill tables.
+- [x] Remove contractor rate and bill tables, including the schema-14 rate-book structures through preserving migration 21 -> 22.
 - [x] Remove rate, amount, bill ID, and default-rate columns through explicit migration 4 -> 5.
 - [x] Remove destructive migration fallback.
 - [x] Add automated migration preservation verification.
 - [x] Split measurement sheet headers from rows through preserving migration 8 -> 9.
 - [x] Add migration backup and rollback guidance for managed deployments.
 
-Exit criteria: measurement schema without billing tables, controlled rate-book snapshots, and passing supported migration tests.
+Compatibility note: migrations 3 -> 22 can still read older databases. Migration 21 -> 22 explicitly copies all measurement identifiers, dimensions, deductions, quantities, snapshots, remarks, evidence links and dates before removing the three rate-book tables and three commercial measurement columns.
+
+Exit criteria: quantity-only measurement behavior, preserved legacy data and passing supported migration tests.
 
 ## Phase 5 - Review, approval, and audit
 
@@ -112,7 +114,7 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 
 ## Phase 5A - Project onboarding and controls
 
-Status: Core registers implemented through schema 21; template administration and formal sign-off documents remain open.
+Status: Core registers implemented through schema 22; template administration and formal sign-off documents remain open.
 
 - [x] Project-type onboarding questionnaire with stable question codes and template version snapshots.
 - [x] Persisted answers, clarifications and completion progress.
@@ -130,9 +132,10 @@ Status: Core registers implemented through schema 21; template administration an
 - [x] Add project Tasks and a persisted Specification / Selection List.
 - [x] Export a project selection list as a quantity-only purchase order without rates or billing fields.
 - [x] Add the first curated Karnataka PWD SR Buildings 2023-24 work/specification catalogue slice with source provenance; catalogue masters contain no rates.
-- [x] Approve the rate-book scope extension: contractor-owned versioned books, PWD item import, project assignment, and immutable measurement rate snapshots.
-- [x] Deliver the first project Rates workspace, including contractor selection, multiple named/versioned books, PWD item import, rate entry, and project assignment.
-- [x] Show rate and calculated amount snapshots in the M-Book and CSV export without introducing bills or payment workflows.
+- [x] Retire the former contractor rate-book scope extension and remove its project workspace.
+- [x] Remove automatic rate assignment and calculated amount snapshots from all new measurement writes.
+- [x] Remove rate and amount display/export, then remove their obsolete schema fields through the preserving 21→22 measurement migration.
+- [x] Remove fictional demo clients, contractors, projects and measurement rows from clean-install seeding; retain only reference work-catalogue masters.
 - [x] Define the canonical portfolio → project → planning/setup → measurement hierarchy and remove duplicate Record/M-Book destinations from the project Overview.
 - [x] Move application destinations out of the all-purpose ViewModel into a dedicated navigation package.
 - [x] Keep Archi Launcher, Pomodoro and calculator outside ArchiMan as a separate application boundary.
@@ -140,28 +143,28 @@ Status: Core registers implemented through schema 21; template administration an
 - [x] Retain material selection and quantity-only purchase-order export under Project Planning.
 - [ ] Build a previewed, user-confirmed import from `/sdcard/Vishwakarma/os-bundle.json`; do not maintain two live project databases.
 - [ ] Add PDF/CSV exports for meeting minutes and inspection reports before retiring standalone Vishwakarma apps.
-- [ ] Split the all-purpose ViewModel, repository, entities and DAOs into measurement, catalogue, project and rate-book feature boundaries.
+- [ ] Split the all-purpose ViewModel, repository, entities and DAOs into measurement, catalogue and project feature boundaries.
 - [x] Phased migration plan documented.
 - [x] Remove commercial values from contractor qualification UI.
 - [x] Remove commercial values from the canonical measurement selection and row-entry UI.
 - [x] Remove commercial values from legacy entry and register UI.
 - [x] Remove commercial navigation and APIs.
-- [x] Stop commercial writes from the canonical row editor (legacy columns receive zero during compatibility period).
+- [x] Stop commercial writes from the canonical row editor and remove the obsolete commercial columns in schema 22.
 - [x] Centralize quantity formulas and add formula tests.
 - [x] Metric/Imperial field-entry toggle with atomic row, deduction, quantity, UOM, import, Undo, and draft conversion.
 - [x] Route all active measurement entry points through the canonical editor.
+- [x] Delete the dormant legacy project-tab measurement form and its duplicate ViewModel save workflow so only the canonical editor remains in source.
 - [x] Preserve the selected work-item ID through canonical editor sessions and reject orphan measurement saves.
 - [x] Build and migration-test the schema-18 milestone locally.
 - [x] Add schema 19 with preserving practice/client profile and project site-data expansion.
 - [x] Migrate the shared design foundation to Material 3 color, typography, shape, text-field, divider, dropdown and auto-mirrored icon APIs.
-- [ ] Replace remaining legacy source-level color aliases with semantic Material 3 roles and add verified dark/adaptive layouts.
-- [x] Install schema 15 on a USB device and verify preserved data, PWD catalogue rows, rate-book and project-operations tables, and clean startup.
+- [x] Replace the parallel custom design system with direct Material 3 theme roles and components.
+- [ ] Add verified dark/adaptive screenshot coverage.
+- [x] Install schema 15 on a USB device and verify preserved data, PWD catalogue rows, project-operations tables, and clean startup.
 - [x] Install schema 19 as an in-place USB upgrade and confirm the 18→19 migration and clean app-process startup.
 - [ ] Complete field-data reconciliation and hands-on verification of expanded profiles, Brief & Scope, site data and navigation.
 - [ ] Complete hands-on field interaction smoke testing for entry, photos, duplication, drafts, and review transitions.
 - [ ] Expand the curated PWD SR starter catalogue into a complete, edition-controlled official dataset after source-by-source validation.
-- [ ] Add rate-book clone/revision, publish/retire lifecycle, effective-date controls, and an assignment history screen.
-- [ ] Add an impact preview before changing a project's applicable rate book; historical measurement snapshots must remain unchanged.
 - [x] Add schema-16 drawing register, immutable revision, transmittal and markup-metadata foundation.
 - [ ] Complete controlled drawing-file intake, managed storage, revision issue workflow and transmittal export.
 - [ ] Integrate a native DWG viewer behind a replaceable engine boundary; add non-destructive annotation and calibrated measurement overlays.

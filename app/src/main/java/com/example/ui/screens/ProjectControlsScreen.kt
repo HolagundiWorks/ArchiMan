@@ -17,7 +17,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.data.local.entity.*
-import com.example.ui.theme.*
 import com.example.ui.viewmodel.SiteViewModel
 import java.util.Locale
 
@@ -89,15 +88,15 @@ private fun OnboardingRegister(viewModel: SiteViewModel, project: ProjectEntity?
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Text("${project?.projectType ?: "Project"} onboarding", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Text("Template v1 · $completed of ${questions.size} answered", style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+            Text("Template v1 · $completed of ${questions.size} answered", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             LinearProgressIndicator(progress = { if (questions.isEmpty()) 0f else completed.toFloat() / questions.size }, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
         }
         items(questions, key = { it.code }) { question ->
             var answer by remember(question.code, answers[question.code]?.answer) { mutableStateOf(answers[question.code]?.answer.orEmpty()) }
             var clarification by remember(question.code, answers[question.code]?.clarification) { mutableStateOf(answers[question.code]?.clarification.orEmpty()) }
-            Surface(border = BorderStroke(1.dp, CarbonGray20), color = CarbonWhite, shape = MaterialTheme.shapes.medium) {
+            Surface(border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium) {
                 Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(question.section.uppercase(), style = MaterialTheme.typography.labelSmall, color = CarbonBlue60)
+                    Text(question.section.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                     Text(question.label, fontWeight = FontWeight.SemiBold)
                     OutlinedTextField(answer, { answer = it }, label = { Text(if (question.required) "Response*" else "Response") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                     OutlinedTextField(clarification, { clarification = it }, label = { Text("Clarification / follow-up") }, modifier = Modifier.fillMaxWidth())
@@ -143,7 +142,7 @@ private fun BacklogRegister(viewModel: SiteViewModel, backlog: List<ProjectBackl
 @Composable
 private fun RegisterHeader(title: String, subtitle: String, openCount: Int, onAdd: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) { Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text("$openCount open · $subtitle", style = MaterialTheme.typography.bodySmall, color = CarbonGray70) }
+        Column(Modifier.weight(1f)) { Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text("$openCount open · $subtitle", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         FilledTonalButton(onClick = onAdd) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(4.dp)); Text("Add") }
     }
 }
@@ -151,7 +150,7 @@ private fun RegisterHeader(title: String, subtitle: String, openCount: Int, onAd
 @Composable
 private fun RegisterList(emptyText: String, isEmpty: Boolean, content: androidx.compose.foundation.lazy.LazyListScope.() -> Unit) {
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (isEmpty) item { Text(emptyText, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), color = CarbonGray70) }
+        if (isEmpty) item { Text(emptyText, modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         content()
         item { Spacer(Modifier.height(20.dp)) }
     }
@@ -159,11 +158,11 @@ private fun RegisterList(emptyText: String, isEmpty: Boolean, content: androidx.
 
 @Composable
 private fun RegisterCard(title: String, meta: String, description: String, onToggle: () -> Unit, toggleLabel: String, onDelete: () -> Unit) {
-    Surface(border = BorderStroke(1.dp, CarbonGray20), color = CarbonWhite, shape = MaterialTheme.shapes.medium) {
+    Surface(border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, fontWeight = FontWeight.SemiBold)
-            Text(meta, style = MaterialTheme.typography.labelSmall, color = CarbonBlue60)
-            if (description.isNotBlank()) Text(description, style = MaterialTheme.typography.bodySmall, color = CarbonGray70)
+            Text(meta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            if (description.isNotBlank()) Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onToggle) { Text(toggleLabel) }
                 IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, "Delete") }
