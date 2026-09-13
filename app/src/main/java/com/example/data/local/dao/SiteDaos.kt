@@ -357,6 +357,11 @@ interface PortalAccessDao {
 interface ProjectTaskDao {
     @Query("SELECT * FROM project_tasks WHERE projectId=:projectId ORDER BY status, createdAt DESC")
     fun getByProject(projectId: Long): Flow<List<ProjectTaskEntity>>
+
+    /** Company-wide, for the monitoring dashboard — every project's tasks, not just one. */
+    @Query("SELECT * FROM project_tasks ORDER BY status, createdAt DESC")
+    fun getAllTasks(): Flow<List<ProjectTaskEntity>>
+
     @Insert suspend fun insert(task: ProjectTaskEntity): Long
     @Update suspend fun update(task: ProjectTaskEntity)
     @Delete suspend fun delete(task: ProjectTaskEntity)
@@ -375,6 +380,11 @@ interface ProjectSelectionItemDao {
 interface ProjectScheduleDao {
     @Query("SELECT * FROM project_schedules WHERE projectId=:projectId ORDER BY scheduledAt ASC")
     fun getByProject(projectId: Long): Flow<List<ProjectScheduleEntity>>
+
+    /** Company-wide, for the monitoring dashboard. */
+    @Query("SELECT * FROM project_schedules ORDER BY scheduledAt ASC")
+    fun getAllSchedules(): Flow<List<ProjectScheduleEntity>>
+
     @Insert suspend fun insert(item: ProjectScheduleEntity): Long
     @Update suspend fun update(item: ProjectScheduleEntity)
     @Delete suspend fun delete(item: ProjectScheduleEntity)
@@ -411,6 +421,16 @@ interface SiteControlDao {
     @Query("SELECT * FROM site_issue_events WHERE siteIssueId=:issueId ORDER BY occurredAt, id")
     fun observeIssueEvents(issueId: Long): Flow<List<SiteIssueEventEntity>>
 
+    /** Company-wide, for the monitoring dashboard. */
+    @Query("SELECT * FROM daily_site_reports ORDER BY reportDate DESC")
+    fun observeAllDailyReports(): Flow<List<DailySiteReportEntity>>
+
+    @Query("SELECT * FROM project_decisions ORDER BY CASE status WHEN 'DECIDED' THEN 1 ELSE 0 END, dueAt IS NULL, dueAt, createdAt DESC")
+    fun observeAllDecisions(): Flow<List<ProjectDecisionEntity>>
+
+    @Query("SELECT * FROM site_issues ORDER BY CASE status WHEN 'CLOSED' THEN 1 ELSE 0 END, dueAt IS NULL, dueAt, createdAt DESC")
+    fun observeAllIssues(): Flow<List<SiteIssueEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertDailyReport(item: DailySiteReportEntity): Long
     @Delete suspend fun deleteDailyReport(item: DailySiteReportEntity)
     @Insert suspend fun insertDecision(item: ProjectDecisionEntity): Long
@@ -427,6 +447,10 @@ interface CoordinationDao {
 
     @Query("SELECT * FROM coordination_items WHERE projectId=:projectId AND archivedAt IS NULL ORDER BY CASE status WHEN 'CLOSED' THEN 1 ELSE 0 END, dueAt IS NULL, dueAt, createdAt DESC")
     fun getItems(projectId: Long): Flow<List<CoordinationItemEntity>>
+
+    /** Company-wide, for the monitoring dashboard. */
+    @Query("SELECT * FROM coordination_items WHERE archivedAt IS NULL ORDER BY CASE status WHEN 'CLOSED' THEN 1 ELSE 0 END, dueAt IS NULL, dueAt, createdAt DESC")
+    fun getAllItems(): Flow<List<CoordinationItemEntity>>
 
     @Query("SELECT * FROM coordination_items WHERE id=:id LIMIT 1")
     suspend fun getItemById(id: Long): CoordinationItemEntity?
@@ -445,6 +469,10 @@ interface CoordinationDao {
 interface DrawingDao {
     @Query("SELECT * FROM project_drawings WHERE projectId=:projectId AND archivedAt IS NULL ORDER BY discipline, drawingNumber")
     fun getDrawings(projectId: Long): Flow<List<ProjectDrawingEntity>>
+
+    /** Company-wide, for the monitoring dashboard. */
+    @Query("SELECT * FROM project_drawings WHERE archivedAt IS NULL ORDER BY discipline, drawingNumber")
+    fun getAllDrawings(): Flow<List<ProjectDrawingEntity>>
 
     @Query("SELECT * FROM drawing_revisions WHERE projectId=:projectId ORDER BY createdAt DESC, id DESC")
     fun getRevisions(projectId: Long): Flow<List<DrawingRevisionEntity>>

@@ -23,6 +23,15 @@ class SiteRepository(private val database: AppDatabase) {
     val localUsers: Flow<List<LocalUserEntity>> = database.portalAccessDao().observeUsers()
     val portalAuditEvents: Flow<List<PortalAuditEventEntity>> = database.portalAccessDao().observeAuditEvents()
 
+    // Company-wide streams (every project, not one) — feed the monitoring dashboard.
+    val allProjectTasks: Flow<List<ProjectTaskEntity>> = database.projectTaskDao().getAllTasks()
+    val allProjectSchedules: Flow<List<ProjectScheduleEntity>> = database.projectScheduleDao().getAllSchedules()
+    val allDailyReports: Flow<List<DailySiteReportEntity>> = database.siteControlDao().observeAllDailyReports()
+    val allDecisions: Flow<List<ProjectDecisionEntity>> = database.siteControlDao().observeAllDecisions()
+    val allSiteIssues: Flow<List<SiteIssueEntity>> = database.siteControlDao().observeAllIssues()
+    val allCoordinationItems: Flow<List<CoordinationItemEntity>> = database.coordinationDao().getAllItems()
+    val allDrawings: Flow<List<ProjectDrawingEntity>> = database.drawingDao().getAllDrawings()
+
     suspend fun upsertCompanyProfile(profile: CompanyProfileEntity) = database.companyProfileDao().upsert(profile)
 
     suspend fun createLocalUser(username: String, displayName: String, password: CharArray, role: String): Long {

@@ -13,7 +13,8 @@ enum class AppScreen(val title: String) {
     PROJECTS("Projects"),
     CLIENTS("Clients"),
     CONTRACTORS("Contractors"),
-    MASTER_DATA("PWD SR Work Catalogue")
+    MASTER_DATA("PWD SR Work Catalogue"),
+    COMPANY_DASHBOARD("Company Dashboard")
 }
 
 /** Top-level portfolio directories. Project-specific features live below a selected project. */
