@@ -49,21 +49,22 @@ Sources: [Fieldwire Android product listing](https://play.google.com/store/apps/
 ### Portfolio navigation
 
 ```text
-Projects | Directory | Work List | More
+Projects | Contacts | Library | Practice
 ```
 
-- Directory contains Clients and Contractors as two views of one shared contact directory.
-- Work List is promoted because PWD SR items, UOMs and formulae are shared master data used throughout measurement entry.
-- Practice contains company profile and the local Wi-Fi workspace; exports remain within the owning project workflow.
+- Contacts (internally the Directory tab) contains Clients and Contractors as two views of one shared contact directory.
+- Library (Work List) is promoted because PWD SR items, UOMs and formulae are shared master data used throughout measurement entry.
+- Practice contains company profile, portable `.archimandb` exports and the local Wi-Fi workspace; measurement exports remain within M-Book.
 
 ### Selected-project navigation
 
 ```text
-Project | Work | Record | M-Book
+Project | Work | Record | M-Book | More
 ```
 
 - Record remains the prominent field action.
 - Work and M-Book remain one tap away during measurement work.
+- More groups Brief, Planning and the specialist project registers (coordination, drawings, site reports, decisions, snags/NCRs) so they don't compete with the four persistent actions.
 - The project header back action returns to the portfolio; a duplicate Home tab is unnecessary.
 
 ### Project home sections
@@ -75,11 +76,11 @@ Overview | Brief | Planning | More
 - Overview provides identity, current status, next steps and small operational counts.
 - Brief contains consultancy type, design phase, client requirements and agreed scope.
 - Planning contains tasks, schedule and material/specification selections.
-- More contains drawings, site reports and project team tools.
+- More contains drawings, site reports, coordination, decisions, snag/NCR closure and project team tools.
 
 ## Deliberately not copied
 
-- Cloud-only assumptions, subscription limits and always-online authentication.
+- Cloud-only assumptions, subscription limits and always-online authentication — ArchiMan is local-only with no cloud account of any kind.
 - Rates, valuation, billing, accounting, procurement pricing or contract-finance navigation.
 - A configurable tool launcher before roles and permissions exist; premature customization makes support and training harder.
 - Automatic statutory compliance conclusions.
@@ -87,11 +88,11 @@ Overview | Brief | Planning | More
 
 ## Implemented structural result
 
-- Portfolio navigation is now Projects, Directory, Work List and More.
-- Project navigation is now Project, Work, Record and M-Book.
-- The project workspace is now Overview, Brief, Planning and More.
-- Clients and Contractors are consolidated under Directory.
-- Drawings, site reports and project team tools are grouped under project More.
+- Portfolio navigation is Projects, Contacts, Library and Practice.
+- Project navigation is Project, Work, Record, M-Book and More.
+- The project workspace is Overview, Brief, Planning and More.
+- Clients and Contractors are consolidated under Contacts.
+- Drawings, site reports, coordination, decisions, snags/NCRs and project team tools are grouped under project More.
 
 ## Next structural steps
 
