@@ -268,8 +268,6 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
                 }
                 if (supabaseState.projectUrl.isNotBlank()) OutlinedButton(onClick = viewModel::clearSupabaseConnection) { Text("Clear") }
             }
-            HorizontalDivider()
-            AormsIdentitySection(viewModel)
             Button(
                 enabled = practiceName.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),

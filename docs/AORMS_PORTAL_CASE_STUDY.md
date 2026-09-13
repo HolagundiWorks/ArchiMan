@@ -56,23 +56,10 @@ An item may be returned from correction or verification, but closure requires a 
 - AORMS-specific business logic that would duplicate ArchiMan's project, M-Book, drawing or coordination records.
 - Automatic cloud synchronization or silent transfer of company data.
 
-## Adopted: AORMS-backed sign-in
-
-ArchiMan is office-only software: every person who opens the phone app, or the
-LAN browser portal, signs in with their real AORMS account. Sign-in delegates
-to AORMS's Product License API (`POST /platform/v1/verify-login`, documented
-in `backend/src/licensing-platform/routes/v1.ts`) rather than ArchiMan holding
-any password itself. ArchiMan is registered in AORMS as product `ARCHIMAN`
-(`backend/src/scripts/seedArchiManProduct.ts`) with its own product API key.
-Every launch re-verifies live — there is no offline or cached session, by
-deliberate choice, so a revoked AORMS account loses access immediately. The
-LAN portal's own local accounts (`LocalUserEntity`) remain only for people
-without an AORMS seat (e.g. a contractor); an AORMS email takes priority.
-
 ## Ordered remaining gaps
 
 1. Programme dependencies, baselines and progress updates linked to project tasks.
-2. ~~Project-specific user assignments and responsibility-aware authorization~~ — sign-in is now AORMS-account-based; per-project responsibility assignment beyond company role remains open.
+2. Project-specific user assignments and responsibility-aware authorization.
 3. Field-by-field browser editing, including snag/NCR transition and verification actions.
 4. Lessons-learned and close-out registers feeding versioned practice templates.
 5. Controlled drawing/document intake, transmittal export and as-built handover packaging.

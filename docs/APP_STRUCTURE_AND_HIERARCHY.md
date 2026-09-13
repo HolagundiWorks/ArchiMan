@@ -2,8 +2,6 @@
 
 The Android app is the offline field client and authoritative local server. The authenticated Carbon-based web portal is the primary office ERP surface for portfolio administration, planning, registers, coordination, review and high-volume entry. Both surfaces use the same phone database; there is no browser-side replica.
 
-ArchiMan is office-only: opening the phone app, or the LAN browser portal, requires a real AORMS account. Every launch verifies live against AORMS's Product License API (`POST /platform/v1/verify-login`, `com.example.aorms.AormsIdentityClient`) — there is no offline or cached session. An administrator enters the office's AORMS server URL and product API key once, under Practice, before anyone can sign in. The LAN portal accepts either an AORMS email (checked the same way, over the phone's own connection) or a phone-created local portal account for people without an AORMS seat.
-
 > Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 24, reviewed 13 September 2026.
 
 ## User-facing hierarchy
@@ -46,7 +44,7 @@ Portfolio
 ├── Library
 │   └── PWD SR → Work Type → Work Item → UOM / Formula
 └── Practice
-    ├── Company / Practice Profile, Logo, Profile Transfer, Encrypted Company Database, Supabase Connection and AORMS Identity Server
+    ├── Company / Practice Profile, Logo, Profile Transfer, Encrypted Company Database and Supabase Connection
     └── Local Wi-Fi Workspace / User Access / Support Diagnostics
 ```
 

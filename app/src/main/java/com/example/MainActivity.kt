@@ -30,7 +30,6 @@ import com.example.ui.navigation.AppScreen
 import com.example.ui.navigation.HomeTab
 import com.example.ui.navigation.ProjectSection
 import com.example.ui.viewmodel.SiteViewModel
-import com.example.aorms.AormsSessionStatus
 
 class MainActivity : ComponentActivity() {
     private val viewModel: SiteViewModel by viewModels()
@@ -53,33 +52,19 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainAppNavigation(viewModel: SiteViewModel) {
-    val aormsSessionState by viewModel.aormsSessionState.collectAsStateWithLifecycle()
-
-    // Office-only gate: nothing below this renders until AORMS has verified
-    // the signed-in account live, on this launch. See AormsSessionManager.
-    if (aormsSessionState.status != AormsSessionStatus.SIGNED_IN) {
-        var showServerSettings by remember { mutableStateOf(false) }
-        if (showServerSettings) {
-            // Reachable pre-sign-in so an administrator can enter the AORMS
-            // server address and product key before anyone can sign in at all.
-            CompanyProfileScreen(viewModel = viewModel, onBack = { showServerSettings = false }, onOpenPortal = {})
-        } else {
-            when (aormsSessionState.status) {
-                AormsSessionStatus.UNREACHABLE -> AormsUnreachableScreen(aormsSessionState, viewModel)
-                else -> AormsLoginScreen(
-                    sessionState = aormsSessionState,
-                    viewModel = viewModel,
-                    onOpenServerSettings = { showServerSettings = true }
-                )
-            }
-        }
-        return
-    }
-
     val currentScreen by viewModel.currentScreen.collectAsStateWithLifecycle()
     val homeTab by viewModel.selectedHomeTab.collectAsStateWithLifecycle()
     val selectedProjectId by viewModel.selectedProjectId.collectAsStateWithLifecycle()
     val projectSection by viewModel.selectedProjectSection.collectAsStateWithLifecycle()
+
+    // Full-screen, forced-landscape monitoring board: owns the entire window
+    // (no bottom navigation, no Scaffold chrome) and restores orientation and
+    // system bars itself on exit. See CompanyDashboardScreen's DisposableEffect.
+    if (currentScreen == AppScreen.COMPANY_DASHBOARD) {
+        BackHandler { viewModel.navigateTo(AppScreen.HOME) }
+        CompanyDashboardScreen(viewModel = viewModel, onExit = { viewModel.navigateTo(AppScreen.HOME) })
+        return
+    }
 
     var showRecordMeasurementWizard by remember { mutableStateOf(false) }
 
@@ -260,6 +245,8 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     )
                     AppScreen.REGISTER -> MeasurementRegisterScreen(viewModel = viewModel)
                     AppScreen.MASTER_DATA -> MasterDataScreen(viewModel = viewModel)
+                    // Handled by the full-screen early return above; never reached here.
+                    AppScreen.COMPANY_DASHBOARD -> Unit
                 }
             }
         }

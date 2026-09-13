@@ -17,8 +17,8 @@ import com.example.ui.navigation.HomeTab
 import com.example.ui.navigation.ProjectSection
 import com.example.portal.LocalPortalServer
 import com.example.cloud.SupabaseConnectionManager
-import com.example.aorms.AormsLoginResult
-import com.example.aorms.AormsSessionManager
+import com.example.domain.CompanyDashboardSnapshot
+import com.example.domain.computeCompanyDashboardSnapshot
 import com.example.company.CompanyDatabaseImportPreview
 import com.example.company.CompanyDatabasePackageManager
 import com.example.portal.PortalProject
@@ -45,8 +45,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     private val supabaseConnectionManager = SupabaseConnectionManager(application)
     private val companyDatabasePackageManager = CompanyDatabasePackageManager(application, database)
     val supabaseConnectionState = supabaseConnectionManager.state
-    private val aormsSessionManager = AormsSessionManager(application)
-    val aormsSessionState = aormsSessionManager.state
 
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
@@ -80,6 +78,38 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val measurementSheets: StateFlow<List<MeasurementSheetEntity>> = repository.getMeasurementSheets()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Company-wide monitoring dashboard: two 5-flow/3-flow stages, then combined,
+    // since kotlinx.coroutines.flow.combine tops out at 5 typed flows per call.
+    private data class DashboardPartA(
+        val projects: List<ProjectEntity>,
+        val coordination: List<CoordinationItemEntity>,
+        val issues: List<SiteIssueEntity>,
+        val decisions: List<ProjectDecisionEntity>,
+        val dailyReports: List<DailySiteReportEntity>
+    )
+    private data class DashboardPartB(
+        val tasks: List<ProjectTaskEntity>,
+        val drawings: List<ProjectDrawingEntity>,
+        val schedules: List<ProjectScheduleEntity>
+    )
+    private val dashboardPartA = combine(
+        repository.allProjects, repository.allCoordinationItems, repository.allSiteIssues,
+        repository.allDecisions, repository.allDailyReports
+    ) { projects, coordination, issues, decisions, dailyReports ->
+        DashboardPartA(projects, coordination, issues, decisions, dailyReports)
+    }
+    private val dashboardPartB = combine(
+        repository.allProjectTasks, repository.allDrawings, repository.allProjectSchedules
+    ) { tasks, drawings, schedules -> DashboardPartB(tasks, drawings, schedules) }
+
+    val companyDashboard: StateFlow<CompanyDashboardSnapshot> = combine(dashboardPartA, dashboardPartB) { a, b ->
+        computeCompanyDashboardSnapshot(
+            projects = a.projects, coordinationItems = a.coordination, siteIssues = a.issues,
+            decisions = a.decisions, dailyReports = a.dailyReports,
+            tasks = b.tasks, drawings = b.drawings, schedules = b.schedules
+        )
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CompanyDashboardSnapshot())
     val companyProfile: StateFlow<CompanyProfileEntity?> = repository.companyProfile
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     val localUsers: StateFlow<List<LocalUserEntity>> = repository.localUsers
@@ -282,10 +312,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     val editingMeasurement: StateFlow<MeasurementEntity?> = _editingMeasurement.asStateFlow()
 
     init {
-        // Office-only app: every launch must reach the AORMS identity server
-        // before the phone's own database is shown. See AormsSessionManager.
-        viewModelScope.launch { aormsSessionManager.reverify() }
-
         // Auto-select initial context
         viewModelScope.launch {
             projects.collect { list ->
@@ -457,50 +483,12 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startLocalPortal() {
-        // An AORMS account can always sign in to the portal, so an active local
-        // user is no longer a hard prerequisite — only enforced when AORMS
-        // itself is not configured for this install.
-        if (aormsSessionManager.serverConfig() == null && localUsers.value.none { it.isActive }) {
-            _portalUserMessage.value = "Create at least one active portal user first."; return
-        }
+        if (localUsers.value.none { it.isActive }) { _portalUserMessage.value = "Create at least one active portal user first."; return }
         localPortalServer.start(
             provider = ::buildPortalSnapshot,
-            authenticate = ::authenticatePortalVisitor,
+            authenticate = repository::authenticateLocalUser,
             mutate = ::applyPortalMutation
         )
-    }
-
-    /**
-     * LAN portal sign-in: an office AORMS account (checked live against the
-     * same AORMS connection the phone itself uses) or a phone-created local
-     * portal account (for people without an AORMS seat, e.g. a contractor).
-     * AORMS is tried first only for email-shaped usernames so a local
-     * username never triggers a network round-trip.
-     */
-    private suspend fun authenticatePortalVisitor(username: String, password: CharArray): PortalPrincipal? {
-        val trimmed = username.trim()
-        if (trimmed.contains('@')) {
-            when (val result = aormsSessionManager.verifyOnly(trimmed, String(password), company = null)) {
-                is AormsLoginResult.Success -> return PortalPrincipal(
-                    // No LocalUserEntity row backs an AORMS-authenticated visitor;
-                    // -1 is a sentinel the audit log stores as a plain, unconstrained value.
-                    userId = -1L,
-                    username = result.identity.email,
-                    displayName = result.identity.name?.ifBlank { null } ?: result.identity.email,
-                    role = when (result.identity.role) {
-                        "OWNER" -> "ADMIN"
-                        "MEMBER" -> "EDITOR"
-                        else -> "VIEWER"
-                    }
-                )
-                is AormsLoginResult.InvalidCredentials -> return null
-                is AormsLoginResult.NotAMember -> return null
-                // Configuration/network trouble: fall through to the local check
-                // rather than locking everyone out of the portal.
-                else -> Unit
-            }
-        }
-        return repository.authenticateLocalUser(trimmed, password)
     }
 
     private suspend fun buildPortalSnapshot(requestedProjectId: Long?): PortalSnapshot {
@@ -717,21 +705,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearSupabaseConnection() = supabaseConnectionManager.clear()
-
-    fun saveAormsServerConfig(baseUrl: String, productApiKey: String) =
-        aormsSessionManager.saveServerConfig(baseUrl, productApiKey)
-
-    fun aormsServerConfig() = aormsSessionManager.serverConfig()
-
-    fun signInToAorms(email: String, password: String, company: String?) {
-        viewModelScope.launch(Dispatchers.IO) { aormsSessionManager.signIn(email, password, company) }
-    }
-
-    fun retryAormsConnection() {
-        viewModelScope.launch(Dispatchers.IO) { aormsSessionManager.reverify() }
-    }
-
-    fun signOutOfAorms() = aormsSessionManager.signOut()
 
     override fun onCleared() {
         localPortalServer.close()
