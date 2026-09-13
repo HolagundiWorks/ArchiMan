@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
@@ -11,8 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -66,7 +66,7 @@ fun ClientsScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search clients") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(CarbonIcons.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("input_search_clients"),
                     singleLine = true
                 )
@@ -77,7 +77,7 @@ fun ClientsScreen(
                 onClick = { showAddDialog = true },
                 modifier = Modifier.testTag("fab_add_client")
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(CarbonIcons.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Add client")
             }
@@ -101,7 +101,7 @@ fun ClientsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.CorporateFare,
+                            imageVector = CarbonIcons.CorporateFare,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(54.dp)
@@ -124,7 +124,7 @@ fun ClientsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_empty_add_client")
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(CarbonIcons.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("Create First Client", fontSize = 13.sp)
                         }
@@ -243,7 +243,7 @@ fun ClientCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Business,
+                            imageVector = CarbonIcons.Business,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
@@ -267,10 +267,10 @@ fun ClientCard(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Client", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        Icon(CarbonIcons.Edit, contentDescription = "Edit Client", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                     IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Client", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Icon(CarbonIcons.DeleteOutline, contentDescription = "Delete Client", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -283,7 +283,7 @@ fun ClientCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.LocationOn,
+                    imageVector = CarbonIcons.LocationOn,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp).padding(top = 2.dp)
@@ -301,7 +301,7 @@ fun ClientCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Phone,
+                    imageVector = CarbonIcons.Phone,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(16.dp)
@@ -361,7 +361,7 @@ fun ClientFormDialog(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(CarbonIcons.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 

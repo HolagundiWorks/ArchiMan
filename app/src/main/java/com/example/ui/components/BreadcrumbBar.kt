@@ -1,14 +1,13 @@
 package com.example.ui.components
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -45,7 +44,7 @@ fun BreadcrumbBar(
             modifier = Modifier.clickable { onHomeClick() }
         ) {
             Icon(
-                Icons.Default.Home,
+                CarbonIcons.Home,
                 contentDescription = "Home",
                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier.padding(6.dp).size(16.dp)
@@ -54,7 +53,7 @@ fun BreadcrumbBar(
 
         items.forEachIndexed { index, item ->
             Icon(
-                Icons.AutoMirrored.Filled.ArrowForwardIos,
+                CarbonIcons.ArrowForwardIos,
                 contentDescription = "separator",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                 modifier = Modifier.padding(horizontal = 6.dp).size(10.dp)

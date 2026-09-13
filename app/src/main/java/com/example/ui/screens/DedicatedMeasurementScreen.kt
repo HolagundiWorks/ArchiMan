@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -13,10 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Undo
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -244,7 +242,7 @@ fun DedicatedMeasurementScreen(
                             modifier = Modifier.testTag("btn_back_from_dedicated_measure")
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                imageVector = CarbonIcons.ArrowBack,
                                 contentDescription = "Back"
                             )
                         }
@@ -363,7 +361,7 @@ fun DedicatedMeasurementScreen(
                                 },
                                 modifier = Modifier.size(38.dp)
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.Undo, contentDescription = "Undo last row operation", tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(19.dp))
+                                Icon(CarbonIcons.Undo, contentDescription = "Undo last row operation", tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(19.dp))
                             }
                         }
                         OutlinedButton(
@@ -374,7 +372,7 @@ fun DedicatedMeasurementScreen(
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurfaceVariant),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
+                            Icon(CarbonIcons.Add, contentDescription = null, tint = MaterialTheme.colorScheme.surface, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("+ Line", color = MaterialTheme.colorScheme.surface, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
@@ -446,7 +444,7 @@ fun DedicatedMeasurementScreen(
                             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
                             modifier = Modifier.testTag("btn_save_dedicated_measurements")
                         ) {
-                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(CarbonIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text(
                                 text = if (isSaving) "Saving..." else "Save M-Book",
@@ -497,7 +495,7 @@ fun DedicatedMeasurementScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.AutoFixHigh,
+                                        imageVector = CarbonIcons.AutoFixHigh,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
@@ -570,7 +568,7 @@ fun DedicatedMeasurementScreen(
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                     modifier = Modifier.testTag("btn_import_brickwork_data")
                                 ) {
-                                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    Icon(CarbonIcons.Download, contentDescription = null, modifier = Modifier.size(14.dp))
                                     Spacer(Modifier.width(6.dp))
                                     Text("Import Brickwork Data", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                 }
@@ -645,11 +643,11 @@ fun DedicatedMeasurementScreen(
                             ) {
                                 Text("${selectedRowIds.size} selected", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                                 IconButton(onClick = { if (duplicateCopies > 1) duplicateCopies-- }, modifier = Modifier.size(30.dp)) {
-                                    Icon(Icons.Default.Remove, contentDescription = "Fewer copies")
+                                    Icon(CarbonIcons.Remove, contentDescription = "Fewer copies")
                                 }
                                 Text("$duplicateCopies", fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.width(24.dp))
                                 IconButton(onClick = { if (duplicateCopies < 20) duplicateCopies++ }, modifier = Modifier.size(30.dp)) {
-                                    Icon(Icons.Default.Add, contentDescription = "More copies")
+                                    Icon(CarbonIcons.Add, contentDescription = "More copies")
                                 }
                                 Button(
                                     onClick = {
@@ -664,7 +662,7 @@ fun DedicatedMeasurementScreen(
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                                     shape = MaterialTheme.shapes.small
                                 ) {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
+                                    Icon(CarbonIcons.ContentCopy, contentDescription = null, modifier = Modifier.size(15.dp))
                                     Spacer(Modifier.width(4.dp))
                                     Text("Duplicate")
                                 }
@@ -728,7 +726,7 @@ fun DedicatedMeasurementScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
+                    Icon(CarbonIcons.Add, contentDescription = null, tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text("Add measurement row", color = MaterialTheme.colorScheme.onSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
@@ -741,7 +739,7 @@ fun DedicatedMeasurementScreen(
         AlertDialog(
             onDismissRequest = { showSuccessDialog = false },
             icon = {
-                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(40.dp))
+                Icon(CarbonIcons.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(40.dp))
             },
             title = {
                 Text("Measurements Recorded", fontWeight = FontWeight.Bold, fontSize = 17.sp)
@@ -992,7 +990,7 @@ fun MeasurementRowCard(
             }
             IconButton(onClick = onPhotoClick, modifier = Modifier.size(32.dp)) {
                 Icon(
-                    if (row.photoUri == null) Icons.Default.AddAPhoto else Icons.Default.Photo,
+                    if (row.photoUri == null) CarbonIcons.AddAPhoto else CarbonIcons.Photo,
                     contentDescription = if (row.photoUri == null) "Add optional photo" else "Replace photo",
                     tint = if (row.photoUri == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier.size(17.dp)
@@ -1000,17 +998,17 @@ fun MeasurementRowCard(
             }
             if (row.photoUri != null) {
                 IconButton(onClick = onRemovePhoto, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Remove photo", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
+                    Icon(CarbonIcons.Close, contentDescription = "Remove photo", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(14.dp))
                 }
             }
             IconButton(onClick = onDuplicate, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.ContentCopy, contentDescription = "Duplicate row", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(17.dp))
+                Icon(CarbonIcons.ContentCopy, contentDescription = "Duplicate row", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(17.dp))
             }
             IconButton(onClick = onAddNextLine, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.Add, contentDescription = "Add row below", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
+                Icon(CarbonIcons.Add, contentDescription = "Add row below", tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(18.dp))
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete row", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(17.dp))
+                Icon(CarbonIcons.DeleteOutline, contentDescription = "Delete row", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(17.dp))
             }
         }
     }

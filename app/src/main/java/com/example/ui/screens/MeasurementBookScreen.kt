@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,10 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -87,7 +85,7 @@ fun MeasurementBookScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(CarbonIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
@@ -95,7 +93,7 @@ fun MeasurementBookScreen(
                         onClick = { showExportOptionsSheet = true },
                         modifier = Modifier.testTag("btn_mbook_export")
                     ) {
-                        Icon(Icons.Default.IosShare, contentDescription = "Export measurement book")
+                        Icon(CarbonIcons.IosShare, contentDescription = "Export measurement book")
                     }
                 }
             )
@@ -228,7 +226,7 @@ fun MeasurementBookScreen(
                                 modifier = Modifier.padding(28.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+                                Icon(CarbonIcons.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
                                 Spacer(Modifier.height(10.dp))
                                 Text("No measurements in M-Book", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
                                 Spacer(Modifier.height(4.dp))
@@ -251,7 +249,7 @@ fun MeasurementBookScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Layers, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.surface)
+                                        Icon(CarbonIcons.Layers, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.surface)
                                         Spacer(Modifier.width(6.dp))
                                         Text(floorName.uppercase(), fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.surface, letterSpacing = 0.5.sp)
                                     }
@@ -402,7 +400,7 @@ fun MeasurementBookScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        Icon(CarbonIcons.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         Column {
                             Text("PDF Document (.pdf)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                             Text("Standard A4 layout with dimension tables & item subtotals", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -427,7 +425,7 @@ fun MeasurementBookScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
+                        Icon(CarbonIcons.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
                         Column {
                             Text("Excel Spreadsheet (.xls)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                             Text("Formatted Excel workbook with styled headers & quantity formulas", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -452,7 +450,7 @@ fun MeasurementBookScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Icon(CarbonIcons.Description, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Column {
                             Text("CSV Data Sheet (.csv)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                             Text("Universal raw comma-delimited file with UTF-8 BOM", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -477,7 +475,7 @@ fun MeasurementBookScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(CarbonIcons.Print, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         Column {
                             Text("Print Measurement Book", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurface)
                             Text("Open system print dialog for wireless/PDF printing", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -522,7 +520,7 @@ private fun SheetWorkflowPanel(viewModel: SiteViewModel, sheets: List<Measuremen
                     Text("${sheets.size} sheet${if (sheets.size == 1) "" else "s"} • Tap to ${if (expanded) "collapse" else "review"}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    if (expanded) CarbonIcons.ExpandLess else CarbonIcons.ExpandMore,
                     contentDescription = if (expanded) "Collapse review workflow" else "Expand review workflow",
                     tint = MaterialTheme.colorScheme.primary
                 )

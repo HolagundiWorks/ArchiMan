@@ -1,14 +1,13 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -143,7 +142,7 @@ private fun BacklogRegister(viewModel: SiteViewModel, backlog: List<ProjectBackl
 private fun RegisterHeader(title: String, subtitle: String, openCount: Int, onAdd: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) { Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text("$openCount open · $subtitle", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        FilledTonalButton(onClick = onAdd) { Icon(Icons.Default.Add, null); Spacer(Modifier.width(4.dp)); Text("Add") }
+        FilledTonalButton(onClick = onAdd) { Icon(CarbonIcons.Add, null); Spacer(Modifier.width(4.dp)); Text("Add") }
     }
 }
 
@@ -165,7 +164,7 @@ private fun RegisterCard(title: String, meta: String, description: String, onTog
             if (description.isNotBlank()) Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onToggle) { Text(toggleLabel) }
-                IconButton(onClick = onDelete) { Icon(Icons.Default.DeleteOutline, "Delete") }
+                IconButton(onClick = onDelete) { Icon(CarbonIcons.DeleteOutline, "Delete") }
             }
         }
     }

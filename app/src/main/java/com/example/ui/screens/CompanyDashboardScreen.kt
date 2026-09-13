@@ -1,19 +1,11 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import android.content.pm.ActivityInfo
 import android.view.WindowManager
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Assignment
-import androidx.compose.material.icons.automirrored.filled.EventNote
-import androidx.compose.material.icons.filled.Apartment
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Gavel
-import androidx.compose.material.icons.filled.ReportProblem
-import androidx.compose.material.icons.filled.RuleFolder
-import androidx.compose.material.icons.filled.Today
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -65,32 +57,32 @@ fun CompanyDashboardScreen(viewModel: SiteViewModel, onExit: () -> Unit) {
                     )
                     Text(clockFormat.format(now), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                IconButton(onClick = onExit) { Icon(Icons.Default.Close, contentDescription = "Exit dashboard") }
+                IconButton(onClick = onExit) { Icon(CarbonIcons.Close, contentDescription = "Exit dashboard") }
             }
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DashboardTile(Modifier.weight(1f), Icons.Default.Apartment, "Active Projects", snapshot.activeProjects, "of ${snapshot.totalProjects} total")
-                DashboardTile(Modifier.weight(1f), Icons.AutoMirrored.Filled.Assignment, "Open RFIs", snapshot.openRfis, null)
-                DashboardTile(Modifier.weight(1f), Icons.Default.RuleFolder, "Open Submittals", snapshot.openSubmittals, null)
-                DashboardTile(Modifier.weight(1f), Icons.Default.Gavel, "Open Site Instructions", snapshot.openSiteInstructions, null)
+                DashboardTile(Modifier.weight(1f), CarbonIcons.Apartment, "Active Projects", snapshot.activeProjects, "of ${snapshot.totalProjects} total")
+                DashboardTile(Modifier.weight(1f), CarbonIcons.Assignment, "Open RFIs", snapshot.openRfis, null)
+                DashboardTile(Modifier.weight(1f), CarbonIcons.RuleFolder, "Open Submittals", snapshot.openSubmittals, null)
+                DashboardTile(Modifier.weight(1f), CarbonIcons.Gavel, "Open Site Instructions", snapshot.openSiteInstructions, null)
             }
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DashboardTile(
-                    Modifier.weight(1f), Icons.Default.ReportProblem, "Open Snags / NCRs", snapshot.openSiteIssues,
+                    Modifier.weight(1f), CarbonIcons.ReportProblem, "Open Snags / NCRs", snapshot.openSiteIssues,
                     if (snapshot.criticalOpenSiteIssues > 0) "${snapshot.criticalOpenSiteIssues} critical/attention" else "None critical",
                     alert = snapshot.criticalOpenSiteIssues > 0
                 )
                 DashboardTile(
-                    Modifier.weight(1f), Icons.AutoMirrored.Filled.EventNote, "Pending Decisions", snapshot.pendingDecisions,
+                    Modifier.weight(1f), CarbonIcons.EventNote, "Pending Decisions", snapshot.pendingDecisions,
                     if (snapshot.overdueDecisions > 0) "${snapshot.overdueDecisions} overdue" else "None overdue",
                     alert = snapshot.overdueDecisions > 0
                 )
                 DashboardTile(
-                    Modifier.weight(1f), Icons.Default.Warning, "Overdue Tasks", snapshot.overdueTasks, null,
+                    Modifier.weight(1f), CarbonIcons.Warning, "Overdue Tasks", snapshot.overdueTasks, null,
                     alert = snapshot.overdueTasks > 0
                 )
-                DashboardTile(Modifier.weight(1f), Icons.Default.Today, "Today's Site Reports", snapshot.todaysSiteReports, null)
+                DashboardTile(Modifier.weight(1f), CarbonIcons.Today, "Today's Site Reports", snapshot.todaysSiteReports, null)
             }
         }
     }

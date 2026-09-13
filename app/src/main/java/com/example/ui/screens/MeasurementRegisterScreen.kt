@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,9 +16,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -99,7 +98,7 @@ fun MeasurementRegisterScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = CarbonIcons.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
@@ -138,7 +137,7 @@ fun MeasurementRegisterScreen(
                             .testTag("btn_export_csv"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Share, contentDescription = "Share CSV", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                        Icon(CarbonIcons.Share, contentDescription = "Share CSV", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     }
                     Box(
                         modifier = Modifier
@@ -155,7 +154,7 @@ fun MeasurementRegisterScreen(
                             .testTag("btn_print_register"),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Print, contentDescription = "Print PDF", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
+                        Icon(CarbonIcons.Print, contentDescription = "Print PDF", tint = MaterialTheme.colorScheme.onSurface, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -168,7 +167,7 @@ fun MeasurementRegisterScreen(
                 shape = CircleShape,
                 modifier = Modifier.testTag("fab_new_measurement")
             ) {
-                Icon(Icons.Default.Add, contentDescription = "New Measurement")
+                Icon(CarbonIcons.Add, contentDescription = "New Measurement")
             }
         }
     ) { innerPadding ->
@@ -184,11 +183,11 @@ fun MeasurementRegisterScreen(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 placeholder = { Text("Search item, floor, location, contractor...", fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                leadingIcon = { Icon(CarbonIcons.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                 trailingIcon = {
                     if (searchQuery.isNotBlank()) {
                         IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(CarbonIcons.Clear, contentDescription = "Clear", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 },
@@ -267,7 +266,7 @@ fun MeasurementRegisterScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.SquareFoot,
+                                imageVector = CarbonIcons.SquareFoot,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(32.dp)
@@ -339,7 +338,7 @@ fun MeasurementRegisterScreen(
                             .padding(8.dp)
                             .background(Color.Black.copy(alpha = 0.6f), CircleShape)
                     ) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                        Icon(CarbonIcons.Close, contentDescription = "Close", tint = Color.White)
                     }
                 }
             }
@@ -453,7 +452,7 @@ fun MeasurementCard(
                     modifier = Modifier.size(28.dp).testTag("btn_view_photo_${measurement.id}")
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PhotoCamera,
+                        imageVector = CarbonIcons.PhotoCamera,
                         contentDescription = "Photo attached",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(18.dp)
@@ -521,7 +520,7 @@ fun EditMeasurementDialog(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(CarbonIcons.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -644,7 +643,7 @@ fun EditMeasurementDialog(
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Icon(Icons.Default.Archive, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Icon(CarbonIcons.Archive, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("Archive sheet")
                     }

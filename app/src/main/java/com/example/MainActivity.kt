@@ -1,7 +1,10 @@
 package com.example
 
+import com.example.ui.icons.CarbonIcons
+
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -10,9 +13,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,7 +36,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.rgb(16, 18, 20))
+        )
         setContent {
             ArchiManTheme {
                 Surface(
@@ -113,7 +116,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             viewModel.setHomeTab(HomeTab.PROJECTS)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.Apartment, contentDescription = "Projects") },
+                        icon = { Icon(CarbonIcons.Apartment, contentDescription = "Projects") },
                         label = { Text("Projects") },
                         modifier = Modifier.testTag("home_nav_projects").semantics { contentDescription = "Projects" }
                     )
@@ -125,7 +128,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             viewModel.setHomeTab(HomeTab.DIRECTORY)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.ContactPage, contentDescription = "Contacts") },
+                        icon = { Icon(CarbonIcons.ContactPage, contentDescription = "Contacts") },
                         label = { Text("Contacts") },
                         modifier = Modifier.testTag("home_nav_directory").semantics { contentDescription = "Contacts" }
                     )
@@ -137,7 +140,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             viewModel.setHomeTab(HomeTab.WORK_LIBRARY)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.AccountTree, contentDescription = "Work library") },
+                        icon = { Icon(CarbonIcons.AccountTree, contentDescription = "Work library") },
                         label = { Text("Library") },
                         modifier = Modifier.testTag("home_nav_work_library").semantics { contentDescription = "Work library" }
                     )
@@ -149,7 +152,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                             viewModel.setHomeTab(HomeTab.PRACTICE)
                             viewModel.navigateTo(AppScreen.HOME)
                         },
-                        icon = { Icon(Icons.Default.Domain, contentDescription = "Practice") },
+                        icon = { Icon(CarbonIcons.Domain, contentDescription = "Practice") },
                         label = { Text("Practice") },
                         modifier = Modifier.testTag("home_nav_more").semantics { contentDescription = "Practice" }
                     )
@@ -166,7 +169,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     NavigationBarItem(
                         selected = isWorkspaceActive,
                         onClick = { viewModel.setProjectSection(ProjectSection.OVERVIEW); viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) },
-                        icon = { Icon(Icons.Default.Dashboard, contentDescription = "Project") },
+                        icon = { Icon(CarbonIcons.Dashboard, contentDescription = "Project") },
                         label = { Text("Project") },
                         modifier = Modifier.testTag("project_nav_hub").semantics { contentDescription = "Project overview" }
                     )
@@ -175,7 +178,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     NavigationBarItem(
                         selected = isWorkListActive,
                         onClick = { viewModel.navigateTo(AppScreen.MASTER_DATA) },
-                        icon = { Icon(Icons.Default.AccountTree, contentDescription = "Work List") },
+                        icon = { Icon(CarbonIcons.AccountTree, contentDescription = "Work List") },
                         label = { Text("Work") },
                         modifier = Modifier.testTag("project_nav_work_list").semantics { contentDescription = "Work catalogue" }
                     )
@@ -184,7 +187,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     NavigationBarItem(
                         selected = false,
                         onClick = { showRecordMeasurementWizard = true },
-                        icon = { Icon(Icons.Default.AddCircle, contentDescription = "Record measurement") },
+                        icon = { Icon(CarbonIcons.AddCircle, contentDescription = "Record measurement") },
                         label = { Text("Record") },
                         modifier = Modifier.testTag("project_nav_record_measure").semantics { contentDescription = "Record measurement" }
                     )
@@ -193,7 +196,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     NavigationBarItem(
                         selected = isMBookActive,
                         onClick = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) },
-                        icon = { Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "M-Book") },
+                        icon = { Icon(CarbonIcons.MenuBook, contentDescription = "M-Book") },
                         label = { Text("M-Book") },
                         modifier = Modifier.testTag("project_nav_mbook").semantics { contentDescription = "Measurement Book" }
                     )
@@ -202,7 +205,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     NavigationBarItem(
                         selected = isMoreActive,
                         onClick = { viewModel.setProjectSection(ProjectSection.MORE); viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) },
-                        icon = { Icon(Icons.Default.MoreHoriz, contentDescription = "More project tools") },
+                        icon = { Icon(CarbonIcons.MoreHoriz, contentDescription = "More project tools") },
                         label = { Text("More") },
                         modifier = Modifier.testTag("project_nav_more").semantics { contentDescription = "More project tools" }
                     )

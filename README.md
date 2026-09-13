@@ -20,6 +20,8 @@ Requires an Android SDK (see `local.properties`) and JDK 17+.
 - **Company database (`.archimandb`)** — a password-encrypted export of the entire practice database (projects, measurements, portal users, logo, managed photos) for backup or migrating to a new phone. Practice → Company profile & connections.
 - **Company profile (`.archimandb`)** — a lighter export of just the practice identity and logo, for sharing or re-seeding a fresh install without carrying projects over.
 
+A complete fictional company package for acceptance testing, its credentials and the reproducible generator are available under [`demo`](demo/README.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

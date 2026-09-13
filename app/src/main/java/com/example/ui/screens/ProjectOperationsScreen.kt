@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -10,8 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -93,18 +93,18 @@ private fun ProjectScheduleTab(viewModel: SiteViewModel, schedules: List<Project
             items(schedules, key = { it.id }) { item ->
                 OperationCard {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { viewModel.toggleProjectSchedule(item) }) { Icon(if (item.status == "DONE") Icons.Default.CheckCircle else Icons.Default.Event, "Change status", tint = if (item.status == "DONE") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary) }
+                        IconButton(onClick = { viewModel.toggleProjectSchedule(item) }) { Icon(if (item.status == "DONE") CarbonIcons.CheckCircle else CarbonIcons.Event, "Change status", tint = if (item.status == "DONE") MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary) }
                         Column(Modifier.weight(1f)) {
                             Text(item.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text(formatDateTime(item.scheduledAt) + if (item.location.isBlank()) "" else " • ${item.location}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                             if (item.notes.isNotBlank()) Text(item.notes, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 2)
                         }
-                        IconButton(onClick = { viewModel.deleteProjectSchedule(item) }) { Icon(Icons.Default.DeleteOutline, "Delete") }
+                        IconButton(onClick = { viewModel.deleteProjectSchedule(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add schedule") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add schedule") }
     }
     if (add) ScheduleDialog(onDismiss = { add = false }) { title, at, location, notes -> viewModel.addProjectSchedule(title, at, location, notes); add = false }
 }
@@ -125,12 +125,12 @@ private fun MeetingMinutesTab(viewModel: SiteViewModel, minutes: List<MeetingMin
                             if (item.decisions.isNotBlank()) Text("Decisions: ${item.decisions}", style = MaterialTheme.typography.labelSmall, maxLines = 2)
                             if (item.actionItems.isNotBlank()) Text("Actions: ${item.actionItems}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, maxLines = 2)
                         }
-                        IconButton(onClick = { viewModel.deleteMeetingMinutes(item) }) { Icon(Icons.Default.DeleteOutline, "Delete") }
+                        IconButton(onClick = { viewModel.deleteMeetingMinutes(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add minutes") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add minutes") }
     }
     if (add) MinutesDialog(onDismiss = { add = false }) { title, location, attendees, discussion, decisions, actions ->
         viewModel.addMeetingMinutes(title, System.currentTimeMillis(), location, attendees, discussion, decisions, actions); add = false
@@ -146,7 +146,7 @@ private fun SiteInspectionTab(viewModel: SiteViewModel, inspections: List<SiteIn
             items(inspections, key = { it.id }) { item ->
                 OperationCard {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                        IconButton(onClick = { viewModel.closeSiteInspection(item) }) { Icon(if (item.status == "CLOSED") Icons.Default.CheckCircle else Icons.Default.ReportProblem, "Change status", tint = severityColor(item.severity)) }
+                        IconButton(onClick = { viewModel.closeSiteInspection(item) }) { Icon(if (item.status == "CLOSED") CarbonIcons.CheckCircle else CarbonIcons.ReportProblem, "Change status", tint = severityColor(item.severity)) }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text(item.location, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text("${formatDateTime(item.inspectionAt)} • ${item.severity} • ${item.status}", color = severityColor(item.severity), fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -154,12 +154,12 @@ private fun SiteInspectionTab(viewModel: SiteViewModel, inspections: List<SiteIn
                             if (item.correctiveAction.isNotBlank()) Text("Corrective action: ${item.correctiveAction}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                             if (item.photoUri != null) Text("Photo attached", color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                         }
-                        IconButton(onClick = { viewModel.deleteSiteInspection(item) }) { Icon(Icons.Default.DeleteOutline, "Delete") }
+                        IconButton(onClick = { viewModel.deleteSiteInspection(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add inspection") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add inspection") }
     }
     if (add) InspectionDialog(onDismiss = { add = false }) { location, inspector, observation, severity, corrective, photo ->
         viewModel.addSiteInspection(location, inspector, observation, severity, corrective, photo); add = false
@@ -183,12 +183,12 @@ private fun DailyReportsTab(viewModel: SiteViewModel, reports: List<DailySiteRep
                             if (item.delaysOrConstraints.isNotBlank()) Text("Constraints: ${item.delaysOrConstraints}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
                             if (item.photoUri != null) Text("Photo attached", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         }
-                        IconButton(onClick = { viewModel.deleteDailySiteReport(item) }) { Icon(Icons.Default.DeleteOutline, "Delete") }
+                        IconButton(onClick = { viewModel.deleteDailySiteReport(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add daily report") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add daily report") }
     }
     if (add) DailyReportDialog(onDismiss = { add = false }) { work, weather, manpower, materials, delays, safety, next, by, photo ->
         viewModel.addDailySiteReport(work, weather, manpower, materials, delays, safety, next, by, photo); add = false
@@ -206,7 +206,7 @@ private fun SiteIssuesTab(viewModel: SiteViewModel, issues: List<SiteIssueEntity
                 OperationCard {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                         IconButton(onClick = { if (item.status == "READY_FOR_VERIFICATION") closing = item else viewModel.advanceSiteIssue(item) }, enabled = item.status != "CLOSED") {
-                            Icon(if (item.status == "CLOSED") Icons.Default.Verified else Icons.Default.BuildCircle, "Advance status", tint = severityColor(item.severity))
+                            Icon(if (item.status == "CLOSED") CarbonIcons.Verified else CarbonIcons.BuildCircle, "Advance status", tint = severityColor(item.severity))
                         }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                             Text("${item.referenceNumber} · ${item.title}", fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -220,7 +220,7 @@ private fun SiteIssuesTab(viewModel: SiteViewModel, issues: List<SiteIssueEntity
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add site issue") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add site issue") }
     }
     if (add) SiteIssueDialog(onDismiss = { add = false }) { reference, type, title, location, description, severity, assigned, corrective, evidence ->
         viewModel.addSiteIssue(reference, type, title, location, description, severity, assigned, corrective, evidence); add = false
@@ -258,7 +258,7 @@ fun ProjectDecisionsScreen(viewModel: SiteViewModel, decisions: List<ProjectDeci
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(Icons.Default.Add, "Add decision") }
+        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add decision") }
     }
     if (add) DecisionDialog(onDismiss = { add = false }) { ref, title, context, required, impact, requestedFrom, owner -> viewModel.addProjectDecision(ref, title, context, required, impact, requestedFrom, owner); add = false }
     deciding?.let { item ->
@@ -268,7 +268,7 @@ fun ProjectDecisionsScreen(viewModel: SiteViewModel, decisions: List<ProjectDeci
 }
 
 @Composable private fun OperationCard(content: @Composable () -> Unit) { Surface(color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small, modifier = Modifier.fillMaxWidth()) { Box(Modifier.padding(8.dp)) { content() } } }
-@Composable private fun OperationEmpty(title: String, supporting: String) { Column(Modifier.fillMaxSize().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(Icons.Default.FolderOpen, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp)); Spacer(Modifier.height(8.dp)); Text(title, fontWeight = FontWeight.Bold); Text(supporting, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center) } }
+@Composable private fun OperationEmpty(title: String, supporting: String) { Column(Modifier.fillMaxSize().padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { Icon(CarbonIcons.FolderOpen, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp)); Spacer(Modifier.height(8.dp)); Text(title, fontWeight = FontWeight.Bold); Text(supporting, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall, textAlign = androidx.compose.ui.text.style.TextAlign.Center) } }
 
 @Composable
 private fun ScheduleDialog(onDismiss: () -> Unit, onSave: (String, Long, String, String) -> Unit) {
@@ -295,7 +295,7 @@ private fun InspectionDialog(onDismiss: () -> Unit, onSave: (String, String, Str
             photoUri = uri.toString()
         }
     }
-    FormDialog("Site inspection", onDismiss, location.isNotBlank() && observation.isNotBlank(), { onSave(location, inspector, observation, severity, corrective, photoUri) }) { FormField(location, { location = it }, "Location / member"); FormField(inspector, { inspector = it }, "Inspector"); FormField(observation, { observation = it }, "Observation", singleLine = false); Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value, fontSize = 9.sp) }) } }; FormField(corrective, { corrective = it }, "Corrective action", singleLine = false); OutlinedButton(onClick = { photoPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (photoUri == null) "Attach optional photo" else "Photo attached") } }
+    FormDialog("Site inspection", onDismiss, location.isNotBlank() && observation.isNotBlank(), { onSave(location, inspector, observation, severity, corrective, photoUri) }) { FormField(location, { location = it }, "Location / member"); FormField(inspector, { inspector = it }, "Inspector"); FormField(observation, { observation = it }, "Observation", singleLine = false); Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value, fontSize = 9.sp) }) } }; FormField(corrective, { corrective = it }, "Corrective action", singleLine = false); OutlinedButton(onClick = { photoPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (photoUri == null) "Attach optional photo" else "Photo attached") } }
 }
 
 @Composable
@@ -304,7 +304,7 @@ private fun DailyReportDialog(onDismiss: () -> Unit, onSave: (String, String, St
     var work by remember { mutableStateOf("") }; var weather by remember { mutableStateOf("") }; var manpower by remember { mutableStateOf("") }; var materials by remember { mutableStateOf("") }; var delays by remember { mutableStateOf("") }; var safety by remember { mutableStateOf("") }; var next by remember { mutableStateOf("") }; var preparedBy by remember { mutableStateOf("") }; var photo by remember { mutableStateOf<String?>(null) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) { runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }; photo = uri.toString() } }
     FormDialog("Daily site report", onDismiss, work.isNotBlank(), { onSave(work, weather, manpower, materials, delays, safety, next, preparedBy, photo) }) {
-        FormField(work, { work = it }, "Work completed", singleLine = false); FormField(weather, { weather = it }, "Weather"); FormField(manpower, { manpower = it }, "Manpower / trades"); FormField(materials, { materials = it }, "Materials received", singleLine = false); FormField(delays, { delays = it }, "Delays or constraints", singleLine = false); FormField(safety, { safety = it }, "Safety observations", singleLine = false); FormField(next, { next = it }, "Next-day plan", singleLine = false); FormField(preparedBy, { preparedBy = it }, "Prepared by"); OutlinedButton(onClick = { picker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (photo == null) "Attach optional photo" else "Photo attached") }
+        FormField(work, { work = it }, "Work completed", singleLine = false); FormField(weather, { weather = it }, "Weather"); FormField(manpower, { manpower = it }, "Manpower / trades"); FormField(materials, { materials = it }, "Materials received", singleLine = false); FormField(delays, { delays = it }, "Delays or constraints", singleLine = false); FormField(safety, { safety = it }, "Safety observations", singleLine = false); FormField(next, { next = it }, "Next-day plan", singleLine = false); FormField(preparedBy, { preparedBy = it }, "Prepared by"); OutlinedButton(onClick = { picker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (photo == null) "Attach optional photo" else "Photo attached") }
     }
 }
 
@@ -317,7 +317,7 @@ private fun SiteIssueDialog(onDismiss: () -> Unit, onSave: (String, String, Stri
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf("SNAG", "NCR").forEach { value -> FilterChip(selected = type == value, onClick = { type = value }, label = { Text(value) }) } }
         FormField(reference, { reference = it }, "Reference number"); FormField(title, { title = it }, "Title"); FormField(location, { location = it }, "Location"); FormField(description, { description = it }, "Description", singleLine = false)
         Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value, fontSize = 9.sp) }) } }
-        FormField(assigned, { assigned = it }, "Assigned to"); FormField(corrective, { corrective = it }, "Corrective action required", singleLine = false); OutlinedButton(onClick = { picker.launch(arrayOf("image/*", "application/pdf")) }, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.AttachFile, null); Spacer(Modifier.width(6.dp)); Text(if (evidence == null) "Attach optional evidence" else "Evidence attached") }
+        FormField(assigned, { assigned = it }, "Assigned to"); FormField(corrective, { corrective = it }, "Corrective action required", singleLine = false); OutlinedButton(onClick = { picker.launch(arrayOf("image/*", "application/pdf")) }, modifier = Modifier.fillMaxWidth()) { Icon(CarbonIcons.AttachFile, null); Spacer(Modifier.width(6.dp)); Text(if (evidence == null) "Attach optional evidence" else "Evidence attached") }
     }
 }
 

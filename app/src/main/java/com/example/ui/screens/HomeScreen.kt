@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,10 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -63,7 +61,7 @@ private fun PortfolioDirectoryScreen(viewModel: SiteViewModel) {
                     text = { Text(section.label, fontWeight = if (section == selectedSection) FontWeight.Bold else FontWeight.Medium) },
                     icon = {
                         Icon(
-                            if (section == DirectorySection.CLIENTS) Icons.Default.Business else Icons.Default.Engineering,
+                            if (section == DirectorySection.CLIENTS) CarbonIcons.Business else CarbonIcons.Engineering,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp)
                         )
@@ -102,11 +100,11 @@ private fun PortfolioPracticeScreen(onNavigate: (AppScreen) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item { Text("PRACTICE SETUP", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp) }
-            item { PortfolioToolRow("Company profile", "Logo, practice identity and profile backup", Icons.Default.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
+            item { PortfolioToolRow("Company profile", "Logo, practice identity and profile backup", CarbonIcons.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
             item { Text("LOCAL ACCESS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
-            item { PortfolioToolRow("Local Wi-Fi workspace", "Secure browser access with named users and controlled editing", Icons.Default.Wifi) { onNavigate(AppScreen.LOCAL_PORTAL) } }
+            item { PortfolioToolRow("Local Wi-Fi workspace", "Secure browser access with named users and controlled editing", CarbonIcons.Wifi) { onNavigate(AppScreen.LOCAL_PORTAL) } }
             item { Text("MONITORING", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
-            item { PortfolioToolRow("Company dashboard", "Full-screen landscape monitoring board — leave this phone on a desk or wall-mounted", Icons.Default.Dashboard) { onNavigate(AppScreen.COMPANY_DASHBOARD) } }
+            item { PortfolioToolRow("Company dashboard", "Full-screen landscape monitoring board — leave this phone on a desk or wall-mounted", CarbonIcons.Dashboard) { onNavigate(AppScreen.COMPANY_DASHBOARD) } }
         }
     }
 }
@@ -122,7 +120,7 @@ private fun PortfolioToolRow(
         headlineContent = { Text(title) },
         supportingContent = { Text(supportingText) },
         leadingContent = { Icon(icon, contentDescription = null) },
-        trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+        trailingContent = { Icon(CarbonIcons.ChevronRight, contentDescription = null) },
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     )
     HorizontalDivider()
@@ -178,7 +176,7 @@ fun ProjectsTabContent(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search projects, clients or sites") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(CarbonIcons.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("input_search_projects"),
                     singleLine = true
                 )
@@ -189,7 +187,7 @@ fun ProjectsTabContent(
                 onClick = { showCreateProjectDialog = true },
                 modifier = Modifier.testTag("fab_create_project").semantics { contentDescription = "Create a new project" }
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(CarbonIcons.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("New project")
             }
@@ -212,7 +210,7 @@ fun ProjectsTabContent(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Apartment,
+                            imageVector = CarbonIcons.Apartment,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(54.dp)
@@ -359,7 +357,7 @@ fun ProjectCardItem(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Apartment,
+                            imageVector = CarbonIcons.Apartment,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
@@ -380,7 +378,7 @@ fun ProjectCardItem(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.LocationOn,
+                                    imageVector = CarbonIcons.LocationOn,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(13.dp)
@@ -399,7 +397,7 @@ fun ProjectCardItem(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Business,
+                                    imageVector = CarbonIcons.Business,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(13.dp)
@@ -420,7 +418,7 @@ fun ProjectCardItem(
                     modifier = Modifier.size(28.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.DeleteOutline,
+                        imageVector = CarbonIcons.DeleteOutline,
                         contentDescription = "Delete Project",
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(18.dp)
@@ -449,7 +447,7 @@ fun ProjectCardItem(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                imageVector = CarbonIcons.MenuBook,
                                 contentDescription = null,
                                 tint = if (measurementCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(12.dp)
@@ -475,7 +473,7 @@ fun ProjectCardItem(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Engineering,
+                                imageVector = CarbonIcons.Engineering,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(12.dp)
@@ -502,7 +500,7 @@ fun ProjectCardItem(
                         color = MaterialTheme.colorScheme.primary
                     )
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        imageVector = CarbonIcons.ArrowForward,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(14.dp)
@@ -555,7 +553,7 @@ fun CreateProjectWithDetailsDialog(
                             style = MaterialTheme.typography.titleLarge
                         )
                         IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(CarbonIcons.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp, modifier = Modifier.padding(top = 6.dp))
@@ -647,7 +645,7 @@ fun CreateProjectWithDetailsDialog(
                                 ListItem(
                                     headlineContent = { Text("Add a client") },
                                     supportingContent = { Text("A project must be linked to its client.") },
-                                    trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+                                    trailingContent = { Icon(CarbonIcons.ChevronRight, contentDescription = null) },
                                     modifier = Modifier.clickable(onClick = onNavigateToClients)
                                 )
                             }
@@ -681,7 +679,7 @@ fun CreateProjectWithDetailsDialog(
                                                 )
                                             }
                                         }
-                                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Icon(CarbonIcons.ArrowDropDown, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
                                 }
 

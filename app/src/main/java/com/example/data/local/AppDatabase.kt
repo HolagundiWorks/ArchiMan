@@ -99,12 +99,7 @@ abstract class AppDatabase : RoomDatabase() {
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
-                        installSheetLockTriggers(db)
-                        installDocumentControlTriggers(db)
-                        installPortalAuditTriggers(db)
-                        installCoordinationAuditTriggers(db)
-                        installSiteIssueAuditTriggers(db)
-                        installReferenceCatalog(db)
+                        initializeNewDatabase(db)
                     }
 
                     override fun onOpen(db: SupportSQLiteDatabase) {
@@ -513,6 +508,16 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         internal fun installReferenceCatalog(db: SupportSQLiteDatabase) = installCatalog(db, PREDEFINED_ITEMS)
+
+        /** Keeps production creation and generated/test databases on the same catalogue and trigger baseline. */
+        internal fun initializeNewDatabase(db: SupportSQLiteDatabase) {
+            installSheetLockTriggers(db)
+            installDocumentControlTriggers(db)
+            installPortalAuditTriggers(db)
+            installCoordinationAuditTriggers(db)
+            installSiteIssueAuditTriggers(db)
+            installReferenceCatalog(db)
+        }
 
         private fun installPwdCatalog(db: SupportSQLiteDatabase) =
             installCatalog(db, PREDEFINED_ITEMS.filter { it.sourceName.isNotBlank() })

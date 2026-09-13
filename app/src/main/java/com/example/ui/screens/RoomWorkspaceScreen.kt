@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,10 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -95,17 +93,17 @@ fun RoomWorkspaceScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(CarbonIcons.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     if (!isFloorLevel) {
                         IconButton(onClick = { showQuickSetup4WallsDialog = true }) {
-                            Icon(Icons.Default.CropFree, contentDescription = "Quick 4 Walls", tint = MaterialTheme.colorScheme.primary)
+                            Icon(CarbonIcons.CropFree, contentDescription = "Quick 4 Walls", tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     IconButton(onClick = { viewModel.navigateTo(AppScreen.MEASUREMENT_BOOK) }) {
-                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = "Book", tint = MaterialTheme.colorScheme.primary)
+                        Icon(CarbonIcons.MenuBook, contentDescription = "Book", tint = MaterialTheme.colorScheme.primary)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -116,7 +114,7 @@ fun RoomWorkspaceScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddComponentDialog = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                icon = { Icon(CarbonIcons.Add, contentDescription = null) },
                 text = { Text("Add Component") },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -188,7 +186,7 @@ fun RoomWorkspaceScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    Icons.Default.SquareFoot,
+                                    CarbonIcons.SquareFoot,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(48.dp)
@@ -212,7 +210,7 @@ fun RoomWorkspaceScreen(
                                         onClick = { showQuickSetup4WallsDialog = true },
                                         shape = MaterialTheme.shapes.medium
                                     ) {
-                                        Icon(Icons.Default.CropFree, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(CarbonIcons.CropFree, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(4.dp))
                                         Text("Quick 4 Walls")
                                     }
@@ -220,7 +218,7 @@ fun RoomWorkspaceScreen(
                                         onClick = { showAddComponentDialog = true },
                                         shape = MaterialTheme.shapes.medium
                                     ) {
-                                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Icon(CarbonIcons.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(4.dp))
                                         Text("Add Component")
                                     }
@@ -596,7 +594,7 @@ fun RoomWorkspaceScreen(
                                         Text(item.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                         Text("${item.unit} • ${item.calculationType.displayName}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
-                                    Icon(Icons.Default.AddCircleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    Icon(CarbonIcons.AddCircleOutline, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -642,16 +640,16 @@ fun ComponentCard(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = when (component.type) {
-                                    ComponentType.WALL -> Icons.Default.ViewAgenda
-                                    ComponentType.FLOOR -> Icons.Default.GridOn
-                                    ComponentType.CEILING -> Icons.Default.Roofing
-                                    ComponentType.OPENING -> Icons.Default.DoorFront
-                                    ComponentType.BEAM -> Icons.Default.ViewAgenda
-                                    ComponentType.SLAB -> Icons.Default.Layers
-                                    ComponentType.COLUMN -> Icons.Default.Foundation
-                                    ComponentType.WATERPROOFING -> Icons.Default.WaterDrop
-                                    ComponentType.COLUMN_BEAM -> Icons.Default.ViewColumn
-                                    ComponentType.OTHER -> Icons.Default.Category
+                                    ComponentType.WALL -> CarbonIcons.ViewAgenda
+                                    ComponentType.FLOOR -> CarbonIcons.GridOn
+                                    ComponentType.CEILING -> CarbonIcons.Roofing
+                                    ComponentType.OPENING -> CarbonIcons.DoorFront
+                                    ComponentType.BEAM -> CarbonIcons.ViewAgenda
+                                    ComponentType.SLAB -> CarbonIcons.Layers
+                                    ComponentType.COLUMN -> CarbonIcons.Foundation
+                                    ComponentType.WATERPROOFING -> CarbonIcons.WaterDrop
+                                    ComponentType.COLUMN_BEAM -> CarbonIcons.ViewColumn
+                                    ComponentType.OTHER -> CarbonIcons.Category
                                 },
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -683,7 +681,7 @@ fun ComponentCard(
                 var showMenu by remember { mutableStateOf(false) }
                 Box {
                     IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                        Icon(CarbonIcons.MoreVert, contentDescription = "Menu")
                     }
                     DropdownMenu(
                         expanded = showMenu,
@@ -695,7 +693,7 @@ fun ComponentCard(
                                 showMenu = false
                                 onConnectWorkClick()
                             },
-                            leadingIcon = { Icon(Icons.Default.AddLink, contentDescription = null) }
+                            leadingIcon = { Icon(CarbonIcons.AddLink, contentDescription = null) }
                         )
                         DropdownMenuItem(
                             text = { Text("Duplicate Component") },
@@ -703,7 +701,7 @@ fun ComponentCard(
                                 showMenu = false
                                 onDuplicateClick()
                             },
-                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) }
+                            leadingIcon = { Icon(CarbonIcons.ContentCopy, contentDescription = null) }
                         )
                         HorizontalDivider()
                         DropdownMenuItem(
@@ -712,7 +710,7 @@ fun ComponentCard(
                                 showMenu = false
                                 viewModel.deleteComponent(component)
                             },
-                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
+                            leadingIcon = { Icon(CarbonIcons.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
                         )
                     }
                 }
@@ -747,7 +745,7 @@ fun ComponentCard(
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                            Icon(CarbonIcons.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(4.dp))
                             Text("Connect Work (Plaster, Putty...)", fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                         }
@@ -768,7 +766,7 @@ fun ComponentCard(
                                 )
                             },
                             icon = {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                                Icon(CarbonIcons.PlayArrow, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                             },
                             shape = MaterialTheme.shapes.medium
                         )
@@ -783,7 +781,7 @@ fun ComponentCard(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Work", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(CarbonIcons.Add, contentDescription = "Add Work", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }

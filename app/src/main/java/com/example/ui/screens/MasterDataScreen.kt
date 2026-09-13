@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 
@@ -14,8 +16,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -92,7 +92,7 @@ fun MasterDataScreen(
                 onClick = { showAddItemDialog = true },
                 modifier = Modifier.testTag("fab_add_item")
             ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Work Item")
+                Icon(CarbonIcons.Add, contentDescription = "Add Work Item")
             }
         }
     ) { innerPadding ->
@@ -124,7 +124,7 @@ fun MasterDataScreen(
                     )
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         TextButton(onClick = { catalogImporter.launch(arrayOf("application/json", "text/plain")) }) {
-                            Icon(Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(15.dp))
+                            Icon(CarbonIcons.UploadFile, contentDescription = null, modifier = Modifier.size(15.dp))
                             Spacer(Modifier.width(3.dp))
                             Text("Import", style = MaterialTheme.typography.labelSmall)
                         }
@@ -148,7 +148,7 @@ fun MasterDataScreen(
                     Row(Modifier.padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(message, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
                         IconButton(onClick = { importMessage = null }, modifier = Modifier.size(28.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Dismiss", modifier = Modifier.size(14.dp))
+                            Icon(CarbonIcons.Close, contentDescription = "Dismiss", modifier = Modifier.size(14.dp))
                         }
                     }
                 }
@@ -182,7 +182,7 @@ fun MasterDataScreen(
                                     Text(workType, color = MaterialTheme.colorScheme.surface, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     Text("${workItems.size} work item${if (workItems.size == 1) "" else "s"}", color = MaterialTheme.colorScheme.outline, fontSize = 10.sp)
                                 }
-                                Icon(if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.surface)
+                                Icon(if (expanded) CarbonIcons.ExpandLess else CarbonIcons.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.surface)
                             }
                         }
                     }
@@ -268,13 +268,13 @@ fun MasterDataScreen(
                                     onClick = { itemToEdit = item },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+                                    Icon(CarbonIcons.Edit, contentDescription = "Edit", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
                                 }
                                 IconButton(
                                     onClick = { viewModel.deleteItem(item) },
                                     modifier = Modifier.size(32.dp)
                                 ) {
-                                    Icon(Icons.Default.Archive, contentDescription = "Archive", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                    Icon(CarbonIcons.Archive, contentDescription = "Archive", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -532,7 +532,7 @@ private fun ItemMasterEditorDialog(
                                     )
                                 }
                                 if (isSelected) {
-                                    Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    Icon(CarbonIcons.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                 }
                             }
                         }

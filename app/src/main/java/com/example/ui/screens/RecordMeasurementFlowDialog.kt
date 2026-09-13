@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,9 +11,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -97,7 +96,7 @@ fun RecordMeasurementFlowDialog(
                         )
                     }
                     IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                        Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(CarbonIcons.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
 
@@ -233,7 +232,7 @@ fun RecordMeasurementFlowDialog(
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Engineering,
+                                                    imageVector = CarbonIcons.Engineering,
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)
@@ -253,7 +252,7 @@ fun RecordMeasurementFlowDialog(
                                                 }
                                             }
                                             Icon(
-                                                imageVector = Icons.Default.ChevronRight,
+                                                imageVector = CarbonIcons.ChevronRight,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(18.dp)
@@ -336,7 +335,7 @@ fun RecordMeasurementFlowDialog(
                                                     Text("${workItems.size} work item${if (workItems.size == 1) "" else "s"}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                                 }
                                                 Icon(
-                                                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                                    if (expanded) CarbonIcons.ExpandLess else CarbonIcons.ExpandMore,
                                                     contentDescription = if (expanded) "Collapse work type" else "Expand work type",
                                                     tint = MaterialTheme.colorScheme.primary
                                                 )
@@ -371,7 +370,7 @@ fun RecordMeasurementFlowDialog(
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
                                                 Icon(
-                                                    imageVector = if (isPlaster) Icons.Default.FormatPaint else Icons.Default.SquareFoot,
+                                                    imageVector = if (isPlaster) CarbonIcons.FormatPaint else CarbonIcons.SquareFoot,
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)
@@ -401,7 +400,7 @@ fun RecordMeasurementFlowDialog(
                                                 }
                                             }
                                             Icon(
-                                                imageVector = Icons.Default.ChevronRight,
+                                                imageVector = CarbonIcons.ChevronRight,
                                                 contentDescription = null,
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.size(18.dp)
@@ -480,7 +479,7 @@ fun RecordMeasurementFlowDialog(
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
                                                 Icon(
-                                                    imageVector = Icons.Default.Layers,
+                                                    imageVector = CarbonIcons.Layers,
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(20.dp)
@@ -498,7 +497,7 @@ fun RecordMeasurementFlowDialog(
                                             ) {
                                                 Text("Open Screen", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                                 Icon(
-                                                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                                    imageVector = CarbonIcons.ArrowForward,
                                                     contentDescription = null,
                                                     tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(16.dp)

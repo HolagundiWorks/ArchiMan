@@ -1,21 +1,13 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Business
-import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.DeleteOutline
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.UploadFile
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.Wifi
-import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -150,7 +142,7 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
         topBar = {
             TopAppBar(
                 title = { Text("Company profile") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(CarbonIcons.ArrowBack, "Back") } }
             )
         }
     ) { padding ->
@@ -160,22 +152,22 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surfaceVariant, modifier = Modifier.size(96.dp)) {
-                    if (logoUri.isNullOrBlank()) Icon(Icons.Default.Business, "Company logo", modifier = Modifier.padding(24.dp))
+                    if (logoUri.isNullOrBlank()) Icon(CarbonIcons.Business, "Company logo", modifier = Modifier.padding(24.dp))
                     else AsyncImage(model = logoUri, contentDescription = "Company logo", modifier = Modifier.fillMaxSize())
                 }
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     OutlinedButton(onClick = { logoPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Default.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (logoUri == null) "Add logo" else "Change logo")
+                        Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (logoUri == null) "Add logo" else "Change logo")
                     }
                     if (logoUri != null) TextButton(onClick = { logoUri = null }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Default.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Remove")
+                        Icon(CarbonIcons.DeleteOutline, null); Spacer(Modifier.width(6.dp)); Text("Remove")
                     }
                 }
             }
             Text("Practice identity", style = MaterialTheme.typography.titleMedium)
             Text("Used on drawing registers, transmittals, reports and handover documents.", style = MaterialTheme.typography.bodySmall)
             OutlinedButton(onClick = onOpenPortal, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Wifi, null)
+                Icon(CarbonIcons.Wifi, null)
                 Spacer(Modifier.width(8.dp))
                 Text("Local Wi-Fi workspace")
             }
@@ -225,20 +217,20 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(enabled = databasePassword.length >= 12 && databasePassword == databasePasswordConfirmation, onClick = { databaseExporter.launch("ArchiMan-company.archimandb") }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export")
+                    Icon(CarbonIcons.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export")
                 }
                 OutlinedButton(enabled = databasePassword.isNotEmpty(), onClick = { databaseImporter.launch(arrayOf("application/octet-stream", "application/zip", "*/*")) }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Download, null); Spacer(Modifier.width(4.dp)); Text("Import")
+                    Icon(CarbonIcons.Download, null); Spacer(Modifier.width(4.dp)); Text("Import")
                 }
             }
             Text("Profile-only transfer", style = MaterialTheme.typography.titleSmall)
             Text("Portable .archimandb file for only the practice identity and logo. Projects and measurements are not included.", style = MaterialTheme.typography.bodySmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton(enabled = saved != null, onClick = { backupExporter.launch("ArchiMan-company-profile.archimandb") }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export profile")
+                    Icon(CarbonIcons.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export profile")
                 }
                 OutlinedButton(onClick = { backupImporter.launch(arrayOf("application/octet-stream", "application/json", "text/*", "*/*")) }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Download, null); Spacer(Modifier.width(4.dp)); Text("Import profile")
+                    Icon(CarbonIcons.Download, null); Spacer(Modifier.width(4.dp)); Text("Import profile")
                 }
             }
             Button(
@@ -327,7 +319,7 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
         topBar = {
             TopAppBar(
                 title = { Text("Local Wi-Fi workspace") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") } }
+                navigationIcon = { IconButton(onClick = onBack) { Icon(CarbonIcons.ArrowBack, "Back") } }
             )
         }
     ) { padding ->
@@ -335,7 +327,7 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Icon(if (state.isRunning || state.isStarting) Icons.Default.Wifi else Icons.Default.WifiOff, null, modifier = Modifier.size(42.dp))
+            Icon(if (state.isRunning || state.isStarting) CarbonIcons.Wifi else CarbonIcons.WifiOff, null, modifier = Modifier.size(42.dp))
             Text(
                 when {
                     state.isRunning -> "Workspace is available"
@@ -366,7 +358,7 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
                         Text(state.certificateFingerprint, style = MaterialTheme.typography.bodySmall)
                         Text("The workspace stops after one hour. Each browser login lasts up to 30 minutes.", style = MaterialTheme.typography.bodySmall)
                         OutlinedButton(onClick = { clipboard.setText(AnnotatedString("${state.url}\nCertificate SHA-256: ${state.certificateFingerprint}")) }) {
-                            Icon(Icons.Default.ContentCopy, null)
+                            Icon(CarbonIcons.ContentCopy, null)
                             Spacer(Modifier.width(6.dp))
                             Text("Copy connection details")
                         }
@@ -379,7 +371,7 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
                 }
             } else {
                 Button(enabled = users.any { it.isActive } && !state.isStarting, onClick = viewModel::startLocalPortal, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Wifi, null)
+                    Icon(CarbonIcons.Wifi, null)
                     Spacer(Modifier.width(8.dp))
                     Text(if (state.isStarting) "Finding address…" else "Start secure workspace")
                 }

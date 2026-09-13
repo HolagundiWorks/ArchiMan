@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,9 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -69,7 +68,7 @@ fun ProjectsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            imageVector = CarbonIcons.ArrowBack,
                             contentDescription = "Back",
                             tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(20.dp)
@@ -93,14 +92,14 @@ fun ProjectsScreen(
                         .testTag("btn_add_project_top"),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "New Project", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Icon(CarbonIcons.Add, contentDescription = "New Project", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 }
             }
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddProjectDialog = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                icon = { Icon(CarbonIcons.Add, contentDescription = null) },
                 text = { Text("New Project", fontWeight = FontWeight.Bold) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White,
@@ -137,7 +136,7 @@ fun ProjectsScreen(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.Business,
+                                    imageVector = CarbonIcons.Business,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(32.dp)
@@ -256,7 +255,7 @@ fun ProjectsScreen(
                                     onClick = { showAddContractorDialogForProject = project },
                                     modifier = Modifier.testTag("btn_add_contractor_proj_${project.id}")
                                 ) {
-                                    Icon(Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                                    Icon(CarbonIcons.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("Add Contractor", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
@@ -287,7 +286,7 @@ fun ProjectsScreen(
                                             ) {
                                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                                     Icon(
-                                                        imageVector = Icons.Default.Engineering,
+                                                        imageVector = CarbonIcons.Engineering,
                                                         contentDescription = null,
                                                         tint = MaterialTheme.colorScheme.primary,
                                                         modifier = Modifier.size(18.dp)
@@ -314,7 +313,7 @@ fun ProjectsScreen(
                                                     modifier = Modifier.size(28.dp)
                                                 ) {
                                                     Icon(
-                                                        imageVector = Icons.Default.DeleteOutline,
+                                                        imageVector = CarbonIcons.DeleteOutline,
                                                         contentDescription = "Delete contractor",
                                                         tint = MaterialTheme.colorScheme.error,
                                                         modifier = Modifier.size(16.dp)

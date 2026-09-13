@@ -1,15 +1,10 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.AssignmentTurnedIn
-import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,7 +55,7 @@ fun CoordinationScreen(
         snackbarHost = { SnackbarHost(snackbars) },
         floatingActionButton = {
             FloatingActionButton(onClick = { showAdd = true }) {
-                Icon(Icons.Default.Add, if (page == CoordinationPage.TEAM) "Add responsibility" else "Add ${page.label}")
+                Icon(CarbonIcons.Add, if (page == CoordinationPage.TEAM) "Add responsibility" else "Add ${page.label}")
             }
         }
     ) { padding ->
@@ -185,10 +180,10 @@ private fun CoordinationRegister(
                     }
                     if (item.response.isNotBlank()) Text("Latest response: ${item.response}", style = MaterialTheme.typography.bodySmall)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        IconButton(onClick = { onArchive(item) }) { Icon(Icons.Default.Archive, "Archive record") }
+                        IconButton(onClick = { onArchive(item) }) { Icon(CarbonIcons.Archive, "Archive record") }
                         if (CoordinationWorkflow.allowedNextStatuses(item.type, item.status).isNotEmpty()) {
                             TextButton(onClick = { onTransition(item) }) {
-                                Icon(Icons.Default.AssignmentTurnedIn, null)
+                                Icon(CarbonIcons.AssignmentTurnedIn, null)
                                 Spacer(Modifier.width(6.dp))
                                 Text("Update status")
                             }
@@ -218,13 +213,13 @@ private fun ResponsibilityMatrix(consultants: List<ProjectConsultantEntity>, onA
                             if (item.email.isNotBlank() || item.phone.isNotBlank()) Text(listOf(item.email, item.phone).filter(String::isNotBlank).joinToString(" · "))
                         }
                     },
-                    leadingContent = { Icon(Icons.Default.Groups, null) },
+                    leadingContent = { Icon(CarbonIcons.Groups, null) },
                     trailingContent = {
                         Column(horizontalAlignment = Alignment.End) {
                             Badge(containerColor = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer) {
                                 Text(item.raciRole.take(1), modifier = Modifier.padding(horizontal = 5.dp, vertical = 3.dp))
                             }
-                            IconButton(onClick = { onArchive(item) }) { Icon(Icons.Default.Archive, "Archive responsibility") }
+                            IconButton(onClick = { onArchive(item) }) { Icon(CarbonIcons.Archive, "Archive responsibility") }
                         }
                     }
                 )
@@ -236,7 +231,7 @@ private fun ResponsibilityMatrix(consultants: List<ProjectConsultantEntity>, onA
 @Composable
 private fun CoordinationEmpty(title: String, body: String) {
     Column(Modifier.fillMaxSize().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Icon(Icons.Default.AssignmentTurnedIn, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Icon(CarbonIcons.AssignmentTurnedIn, null, modifier = Modifier.size(48.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
         Text(title, style = MaterialTheme.typography.titleMedium)
         Text(body, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -372,7 +367,7 @@ private fun DrawingRevisionPicker(
             onValueChange = {},
             readOnly = true,
             label = { Text("Linked drawing revision (optional)") },
-            leadingIcon = { Icon(Icons.Default.Link, null) },
+            leadingIcon = { Icon(CarbonIcons.Link, null) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable, true)
         )
@@ -408,7 +403,7 @@ private fun CoordinationDetailDialog(
     val canUpdate = CoordinationWorkflow.allowedNextStatuses(item.type, item.status).isNotEmpty()
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.History, null) },
+        icon = { Icon(CarbonIcons.History, null) },
         title = { Text("${item.referenceNumber} · ${item.subject}") },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {

@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -11,12 +13,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.OpenInNew
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Architecture
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,7 +56,7 @@ fun DrawingRegisterScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Architecture, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Icon(CarbonIcons.Architecture, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                 Column(modifier = Modifier.weight(1f)) {
                     Text("Controlled drawing register", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text(
@@ -76,7 +72,7 @@ fun DrawingRegisterScreen(
                     },
                     shape = MaterialTheme.shapes.small
                 ) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                    Icon(CarbonIcons.Add, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("Drawing")
                 }
@@ -95,7 +91,7 @@ fun DrawingRegisterScreen(
         if (drawings.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Layers, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
+                    Icon(CarbonIcons.Layers, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(40.dp))
                     Text("No controlled drawings", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text("Import the first DWG revision to start the register.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -176,7 +172,7 @@ private fun DrawingRegisterCard(
     Surface(color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shape = MaterialTheme.shapes.small) {
         Column(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary)
+                Icon(CarbonIcons.Description, null, tint = MaterialTheme.colorScheme.primary)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(drawing.drawingNumber, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     Text(drawing.title, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
@@ -192,12 +188,12 @@ private fun DrawingRegisterCard(
                         Text("${revision.fileName} · ${formatDate(revision.createdAt)}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     IconButton(onClick = { onOpen(revision) }) {
-                        Icon(Icons.AutoMirrored.Filled.OpenInNew, contentDescription = "Open drawing source")
+                        Icon(CarbonIcons.OpenInNew, contentDescription = "Open drawing source")
                     }
                 }
             }
             OutlinedButton(onClick = onAddRevision, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.small) {
-                Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                Icon(CarbonIcons.Add, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
                 Text("Add immutable revision")
             }

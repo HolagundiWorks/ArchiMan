@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,8 +13,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -73,7 +73,7 @@ fun ContractorsScreen(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("Search contractors or trades") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(CarbonIcons.Search, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag("input_search_contractors"),
                     singleLine = true
                 )
@@ -84,7 +84,7 @@ fun ContractorsScreen(
                 onClick = { showAddDialog = true },
                 modifier = Modifier.testTag("fab_add_contractor")
             ) {
-                Icon(Icons.Default.Add, contentDescription = null)
+                Icon(CarbonIcons.Add, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Add contractor")
             }
@@ -108,7 +108,7 @@ fun ContractorsScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Engineering,
+                            imageVector = CarbonIcons.Engineering,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.outline,
                             modifier = Modifier.size(54.dp)
@@ -131,7 +131,7 @@ fun ContractorsScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                             modifier = Modifier.testTag("btn_empty_add_contractor")
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(CarbonIcons.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
                             Text("Create First Contractor", fontSize = 13.sp)
                         }
@@ -271,7 +271,7 @@ fun ContractorCard(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Engineering,
+                            imageVector = CarbonIcons.Engineering,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(20.dp)
@@ -295,10 +295,10 @@ fun ContractorCard(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     IconButton(onClick = onEdit, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Contractor", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                        Icon(CarbonIcons.Edit, contentDescription = "Edit Contractor", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                     }
                     IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.DeleteOutline, contentDescription = "Delete Contractor", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                        Icon(CarbonIcons.DeleteOutline, contentDescription = "Delete Contractor", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -313,7 +313,7 @@ fun ContractorCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.LocationOn,
+                            imageVector = CarbonIcons.LocationOn,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(15.dp).padding(top = 2.dp)
@@ -333,7 +333,7 @@ fun ContractorCard(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Phone,
+                            imageVector = CarbonIcons.Phone,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(15.dp)
@@ -368,7 +368,7 @@ fun ContractorCard(
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                     modifier = Modifier.height(28.dp)
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
+                    Icon(CarbonIcons.Add, contentDescription = null, modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
                     Text("Add Item", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                 }
@@ -424,7 +424,7 @@ fun ContractorCard(
                                     modifier = Modifier.size(20.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Close,
+                                        imageVector = CarbonIcons.Close,
                                         contentDescription = "Remove item",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(12.dp)
@@ -500,7 +500,7 @@ fun AddContractorDialog(
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         IconButton(onClick = onDismiss, modifier = Modifier.size(24.dp)) {
-                            Icon(Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Icon(CarbonIcons.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant, thickness = 1.dp, modifier = Modifier.padding(top = 8.dp))
@@ -570,7 +570,7 @@ fun AddContractorDialog(
                                 readOnly = true,
                                 label = { Text("Import qualified items") },
                                 placeholder = { Text("Copy from existing contractor") },
-                                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                                leadingIcon = { Icon(CarbonIcons.ContentCopy, contentDescription = null) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(importExpanded) },
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                             )
@@ -676,7 +676,7 @@ fun AddContractorDialog(
                                 onClick = { qualifiedItems.removeAt(idx) },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete item", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                Icon(CarbonIcons.DeleteOutline, contentDescription = "Delete item", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
                             }
                         }
                     }

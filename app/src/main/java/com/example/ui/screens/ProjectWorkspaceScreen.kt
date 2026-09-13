@@ -2,6 +2,8 @@
 
 package com.example.ui.screens
 
+import com.example.ui.icons.CarbonIcons
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.BorderStroke
@@ -17,14 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Assignment
-import androidx.compose.material.icons.automirrored.filled.EventNote
-import androidx.compose.material.icons.automirrored.filled.FactCheck
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.filled.Rule
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -130,12 +124,12 @@ fun ProjectWorkspaceScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = navigateUp, modifier = Modifier.testTag("btn_back_home")) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = if (selectedSection == ProjectSection.OVERVIEW) "Back to projects" else "Back")
+                        Icon(CarbonIcons.ArrowBack, contentDescription = if (selectedSection == ProjectSection.OVERVIEW) "Back to projects" else "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { showSwitchProjectDialog = true }, modifier = Modifier.testTag("btn_switch_project")) {
-                        Icon(Icons.Default.SwapHoriz, contentDescription = "Switch project")
+                        Icon(CarbonIcons.SwapHoriz, contentDescription = "Switch project")
                     }
                 }
             )
@@ -222,7 +216,7 @@ fun ProjectWorkspaceScreen(
                         ListItem(
                             headlineContent = { Text(project.name) },
                             supportingContent = { Text(project.siteLocation) },
-                            trailingContent = { if (project.id == currentProject?.id) Icon(Icons.Default.Check, contentDescription = "Selected") },
+                            trailingContent = { if (project.id == currentProject?.id) Icon(CarbonIcons.Check, contentDescription = "Selected") },
                             modifier = Modifier.clickable {
                                 viewModel.selectProject(project.id)
                                 showSwitchProjectDialog = false
@@ -269,16 +263,16 @@ private fun ProjectMoreMenu(
             Text("Documents, field records and project setup", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item { Text("CORE WORKFLOW", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp) }
-        item { ProjectMoreRow("Project brief & scope", "Requirements, site data, deliverables and responsibilities", Icons.AutoMirrored.Filled.FactCheck) { onSelect(ProjectSection.BRIEF_SCOPE) } }
-        item { ProjectMoreRow("Planning", "Tasks, schedules and material selections", Icons.AutoMirrored.Filled.EventNote) { onSelect(ProjectSection.PLANNING) } }
-        item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", Icons.AutoMirrored.Filled.Rule) { onSelect(ProjectSection.CONTROLS) } }
+        item { ProjectMoreRow("Project brief & scope", "Requirements, site data, deliverables and responsibilities", CarbonIcons.FactCheck) { onSelect(ProjectSection.BRIEF_SCOPE) } }
+        item { ProjectMoreRow("Planning", "Tasks, schedules and material selections", CarbonIcons.EventNote) { onSelect(ProjectSection.PLANNING) } }
+        item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", CarbonIcons.Rule) { onSelect(ProjectSection.CONTROLS) } }
         item { Text("DOCUMENTS & SITE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
-        item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", Icons.Default.Architecture) { onSelect(ProjectSection.DRAWINGS) } }
-        item { ProjectMoreRow("Site reports", "$reportCount daily, snag, NCR, inspection and meeting records", Icons.AutoMirrored.Filled.Assignment) { onSelect(ProjectSection.REPORTS) } }
-        item { ProjectMoreRow("Decisions", "$decisionCount decisions awaiting closure", Icons.Default.Gavel) { onSelect(ProjectSection.DECISIONS) } }
-        item { ProjectMoreRow("Coordination", "$coordinationCount open RFIs, submittals or instructions", Icons.Default.SyncAlt) { onSelect(ProjectSection.COORDINATION) } }
+        item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", CarbonIcons.Architecture) { onSelect(ProjectSection.DRAWINGS) } }
+        item { ProjectMoreRow("Site reports", "$reportCount daily, snag, NCR, inspection and meeting records", CarbonIcons.Assignment) { onSelect(ProjectSection.REPORTS) } }
+        item { ProjectMoreRow("Decisions", "$decisionCount decisions awaiting closure", CarbonIcons.Gavel) { onSelect(ProjectSection.DECISIONS) } }
+        item { ProjectMoreRow("Coordination", "$coordinationCount open RFIs, submittals or instructions", CarbonIcons.SyncAlt) { onSelect(ProjectSection.COORDINATION) } }
         item { Text("PROJECT TEAM", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp)) }
-        item { ProjectMoreRow("Project team", "$contractorCount assigned contractors", Icons.Default.Engineering) { onSelect(ProjectSection.CONTRACTORS) } }
+        item { ProjectMoreRow("Project team", "$contractorCount assigned contractors", CarbonIcons.Engineering) { onSelect(ProjectSection.CONTRACTORS) } }
     }
 }
 
@@ -293,7 +287,7 @@ private fun ProjectMoreRow(
         headlineContent = { Text(title) },
         supportingContent = { Text(supportingText) },
         leadingContent = { Icon(icon, contentDescription = null) },
-        trailingContent = { Icon(Icons.Default.ChevronRight, contentDescription = null) },
+        trailingContent = { Icon(CarbonIcons.ChevronRight, contentDescription = null) },
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
     )
     HorizontalDivider()
@@ -388,7 +382,7 @@ private fun ProjectBriefScopeScreen(
                 OutlinedTextField(constraints, { constraints = it }, label = { Text("Known site / programme constraints") }, supportingText = { Text("Record known information only; this is not an automatic compliance assessment.") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 OutlinedTextField(clarifications, { clarifications = it }, label = { Text("Open clarifications") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
                 OutlinedButton(onClick = { siteDataExpanded = !siteDataExpanded }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(if (siteDataExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore, null)
+                    Icon(if (siteDataExpanded) CarbonIcons.ExpandLess else CarbonIcons.ExpandMore, null)
                     Spacer(Modifier.width(6.dp))
                     Text(if (siteDataExpanded) "Hide site data" else "Add / review site data")
                 }
@@ -450,7 +444,7 @@ private fun ProjectBriefScopeScreen(
                     Text("Scope, deliverables, exclusions and responsibilities", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 FilledTonalButton(onClick = { showAddScope = true }) {
-                    Icon(Icons.Default.Add, null)
+                    Icon(CarbonIcons.Add, null)
                     Spacer(Modifier.width(4.dp))
                     Text("Add")
                 }
@@ -473,7 +467,7 @@ private fun ProjectBriefScopeScreen(
                             if (item.details.isNotBlank()) Text(item.details, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(item.status.replace('_', ' '), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = { viewModel.deleteProjectScopeItem(item) }) { Icon(Icons.Default.DeleteOutline, "Delete scope item") }
+                        IconButton(onClick = { viewModel.deleteProjectScopeItem(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete scope item") }
                     }
                 }
             }
@@ -573,7 +567,7 @@ private fun ProjectHubOverview(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onEditProfile)
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(CarbonIcons.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text("Project profile", fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -587,7 +581,7 @@ private fun ProjectHubOverview(
                             style = MaterialTheme.typography.labelSmall
                         )
                     }
-                    Icon(Icons.Default.Edit, contentDescription = "Edit project profile", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(CarbonIcons.Edit, contentDescription = "Edit project profile", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -596,8 +590,8 @@ private fun ProjectHubOverview(
         }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ProjectHubActionCard("Brief", briefStatus.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) }, Icons.AutoMirrored.Filled.FactCheck, onOpenBrief, Modifier.weight(1f))
-                ProjectHubActionCard("Planning", "$taskCount tasks • $scheduleCount events • $selectionCount selections", Icons.AutoMirrored.Filled.EventNote, onOpenPlanning, Modifier.weight(1f))
+                ProjectHubActionCard("Brief", briefStatus.replace('_', ' ').lowercase().replaceFirstChar { it.titlecase(Locale.getDefault()) }, CarbonIcons.FactCheck, onOpenBrief, Modifier.weight(1f))
+                ProjectHubActionCard("Planning", "$taskCount tasks • $scheduleCount events • $selectionCount selections", CarbonIcons.EventNote, onOpenPlanning, Modifier.weight(1f))
             }
         }
         item {
@@ -620,13 +614,13 @@ private fun ProjectHubOverview(
                 modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenMore)
             ) {
                 Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.MoreHoriz, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(CarbonIcons.MoreHoriz, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(10.dp))
                     Column(Modifier.weight(1f)) {
                         Text("All project tools", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Text("Drawings, site reports and project team", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                     }
-                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(CarbonIcons.ChevronRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -672,7 +666,7 @@ fun ProjectTasksTab(viewModel: SiteViewModel, tasks: List<ProjectTaskEntity>) {
     Box(Modifier.fillMaxSize()) {
         if (tasks.isEmpty()) {
             Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.TaskAlt, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(CarbonIcons.TaskAlt, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
                 Text("No project tasks", fontWeight = FontWeight.Bold)
                 Text("Add site actions, decisions, or follow-ups.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
@@ -686,13 +680,13 @@ fun ProjectTasksTab(viewModel: SiteViewModel, tasks: List<ProjectTaskEntity>) {
                             Text(task.title, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                             if (task.description.isNotBlank()) Text(task.description, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = { viewModel.deleteProjectTask(task) }) { Icon(Icons.Default.DeleteOutline, "Delete task") }
+                        IconButton(onClick = { viewModel.deleteProjectTask(task) }) { Icon(CarbonIcons.DeleteOutline, "Delete task") }
                     }
                 }
             }
         }
         FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
-            Icon(Icons.Default.Add, "Add task")
+            Icon(CarbonIcons.Add, "Add task")
         }
     }
     if (showAdd) {
@@ -724,12 +718,12 @@ fun ProjectSelectionsTab(
             }
             TextButton(enabled = selectionItems.isNotEmpty(), onClick = {
                 ExportHelper.exportSelectionListAsPurchaseOrder(context, project?.name ?: "Project", selectionItems)
-            }) { Icon(Icons.Default.FileDownload, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Export PO") }
+            }) { Icon(CarbonIcons.FileDownload, null, Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Export PO") }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         Box(Modifier.weight(1f).fillMaxWidth()) {
             if (selectionItems.isEmpty()) Column(Modifier.align(Alignment.Center).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(Icons.Default.Checklist, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Icon(CarbonIcons.Checklist, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp)); Text("No selection items", fontWeight = FontWeight.Bold)
                 Text("Add materials, fixtures, finishes, or equipment.", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, textAlign = TextAlign.Center)
             } else LazyColumn(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -742,12 +736,12 @@ fun ProjectSelectionsTab(
                                 Text("${item.quantity} ${item.unit}${item.makeOrBrand.takeIf(String::isNotBlank)?.let { " • $it" } ?: ""}", color = MaterialTheme.colorScheme.primary, fontSize = 12.sp)
                                 if (item.specification.isNotBlank()) Text(item.specification, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            IconButton(onClick = { viewModel.deleteProjectSelectionItem(item) }) { Icon(Icons.Default.DeleteOutline, "Delete selection item") }
+                            IconButton(onClick = { viewModel.deleteProjectSelectionItem(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete selection item") }
                         }
                     }
                 }
             }
-            FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) { Icon(Icons.Default.Add, "Add selection item") }
+            FloatingActionButton(onClick = { showAdd = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)) { Icon(CarbonIcons.Add, "Add selection item") }
         }
     }
     if (showAdd) SelectionItemDialog(onDismiss = { showAdd = false }) { n, s, b, q, u, r ->
@@ -785,7 +779,7 @@ private fun CanonicalMeasurementLauncher(viewModel: SiteViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.TableRows, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                Icon(CarbonIcons.TableRows, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                 Text("Measurement Sheet", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "All project, room, and component shortcuts now use the same spreadsheet-style measurement editor.",
@@ -799,7 +793,7 @@ private fun CanonicalMeasurementLauncher(viewModel: SiteViewModel) {
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Straighten, contentDescription = null)
+                    Icon(CarbonIcons.Straighten, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
                     Text("Open Measurement Sheet", fontWeight = FontWeight.Bold)
                 }
@@ -835,7 +829,7 @@ fun ProjectContractorsTab(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { showAddContractorDialog = true },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                icon = { Icon(CarbonIcons.Add, contentDescription = null) },
                 text = { Text("Add Contractor", fontWeight = FontWeight.Bold, fontSize = 12.sp) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -886,7 +880,7 @@ fun ProjectContractorsTab(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Engineering,
+                                imageVector = CarbonIcons.Engineering,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(36.dp)
@@ -908,7 +902,7 @@ fun ProjectContractorsTab(
                                 shape = MaterialTheme.shapes.small,
                                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                             ) {
-                                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(CarbonIcons.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
                                 Text("Add First Contractor", fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
@@ -948,7 +942,7 @@ fun ProjectContractorsTab(
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.Person,
+                                            imageVector = CarbonIcons.Person,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(18.dp)
@@ -976,7 +970,7 @@ fun ProjectContractorsTab(
                                     modifier = Modifier.size(24.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.DeleteOutline,
+                                        imageVector = CarbonIcons.DeleteOutline,
                                         contentDescription = "Delete Contractor",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.size(16.dp)
@@ -1012,7 +1006,7 @@ fun ProjectContractorsTab(
                                             modifier = Modifier.size(28.dp)
                                         ) {
                                             Icon(
-                                                imageVector = Icons.Default.Phone,
+                                                imageVector = CarbonIcons.Phone,
                                                 contentDescription = "Call",
                                                 tint = MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(16.dp)
@@ -1299,7 +1293,7 @@ fun ProjectMeasurementBookTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
+                                    Icon(CarbonIcons.PictureAsPdf, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
                                     Text("PDF", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.error)
                                 }
                             }
@@ -1322,7 +1316,7 @@ fun ProjectMeasurementBookTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
+                                    Icon(CarbonIcons.TableChart, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(12.dp))
                                     Text("Excel XLS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.tertiary)
                                 }
                             }
@@ -1345,7 +1339,7 @@ fun ProjectMeasurementBookTab(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    Icon(Icons.Default.FileDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
+                                    Icon(CarbonIcons.FileDownload, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(12.dp))
                                     Text("CSV", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                                 }
                             }
@@ -1359,10 +1353,10 @@ fun ProjectMeasurementBookTab(
                     onValueChange = { searchQuery = it },
                     label = { Text("Search measurements") },
                     placeholder = { Text("Member, item or floor") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(CarbonIcons.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear search")
+                            Icon(CarbonIcons.Close, contentDescription = "Clear search")
                         }
                     },
                     singleLine = true,
@@ -1405,7 +1399,7 @@ fun ProjectMeasurementBookTab(
                                     onClearContractorFilter()
                                 },
                                 label = { Text("👷 ${cont?.name ?: "Contractor"}", style = MaterialTheme.typography.labelSmall) },
-                                trailingIcon = { Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(12.dp)) },
+                                trailingIcon = { Icon(CarbonIcons.Close, contentDescription = null, modifier = Modifier.size(12.dp)) },
                                 shape = MaterialTheme.shapes.small
                             )
                         }
@@ -1455,7 +1449,7 @@ fun ProjectMeasurementBookTab(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
+                        Icon(CarbonIcons.MenuBook, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(32.dp))
                         Text("No recorded measurements found", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurface)
                         Text("Switch to 'Record Measurement' tab to enter dimensions and calculate quantities.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                         Button(
@@ -1521,7 +1515,7 @@ fun ProjectMeasurementBookTab(
                                 onClick = { measurementToDelete = m },
                                 modifier = Modifier.size(24.dp)
                             ) {
-                                Icon(Icons.Default.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                                Icon(CarbonIcons.DeleteOutline, contentDescription = "Delete", tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(16.dp))
                             }
                         }
 
