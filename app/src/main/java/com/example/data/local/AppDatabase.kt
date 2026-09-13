@@ -12,7 +12,7 @@ import com.example.data.local.dao.*
 import com.example.data.local.entity.*
 import com.example.domain.WorkCatalog
 
-const val DATABASE_SCHEMA_VERSION = 22
+const val DATABASE_SCHEMA_VERSION = 24
 
 @Database(
     entities = [
@@ -31,6 +31,13 @@ const val DATABASE_SCHEMA_VERSION = 22
         ProjectScheduleEntity::class,
         MeetingMinutesEntity::class,
         SiteInspectionEntity::class,
+        DailySiteReportEntity::class,
+        ProjectDecisionEntity::class,
+        SiteIssueEntity::class,
+        SiteIssueEventEntity::class,
+        ProjectConsultantEntity::class,
+        CoordinationItemEntity::class,
+        CoordinationEventEntity::class,
         ProjectDrawingEntity::class,
         DrawingRevisionEntity::class,
         DrawingTransmittalEntity::class,
@@ -63,6 +70,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun projectScheduleDao(): ProjectScheduleDao
     abstract fun meetingMinutesDao(): MeetingMinutesDao
     abstract fun siteInspectionDao(): SiteInspectionDao
+    abstract fun siteControlDao(): SiteControlDao
+    abstract fun coordinationDao(): CoordinationDao
     abstract fun drawingDao(): DrawingDao
     abstract fun floorDao(): FloorDao
     abstract fun roomDao(): RoomDao
@@ -86,13 +95,15 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
                         installSheetLockTriggers(db)
                         installDocumentControlTriggers(db)
                         installPortalAuditTriggers(db)
+                        installCoordinationAuditTriggers(db)
+                        installSiteIssueAuditTriggers(db)
                         installReferenceCatalog(db)
                     }
 
@@ -100,6 +111,8 @@ abstract class AppDatabase : RoomDatabase() {
                         super.onOpen(db)
                         installPwdCatalog(db)
                         installPortalAuditTriggers(db)
+                        installCoordinationAuditTriggers(db)
+                        installSiteIssueAuditTriggers(db)
                     }
                 }).build()
                 INSTANCE = instance
@@ -460,6 +473,45 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_22_23 = object : Migration(22, 23) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE `project_consultants` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `name` TEXT NOT NULL, `organisation` TEXT NOT NULL, `discipline` TEXT NOT NULL, `email` TEXT NOT NULL, `phone` TEXT NOT NULL, `phase` TEXT NOT NULL, `responsibility` TEXT NOT NULL, `raciRole` TEXT NOT NULL, `status` TEXT NOT NULL, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX `index_project_consultants_projectId` ON `project_consultants` (`projectId`)")
+                db.execSQL("CREATE UNIQUE INDEX `index_project_consultants_projectId_name_discipline` ON `project_consultants` (`projectId`, `name`, `discipline`)")
+                db.execSQL("CREATE TABLE `coordination_items` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `type` TEXT NOT NULL, `referenceNumber` TEXT NOT NULL, `subject` TEXT NOT NULL, `discipline` TEXT NOT NULL, `location` TEXT NOT NULL, `raisedBy` TEXT NOT NULL, `assignedTo` TEXT NOT NULL, `questionOrRequirement` TEXT NOT NULL, `response` TEXT NOT NULL, `status` TEXT NOT NULL, `priority` TEXT NOT NULL, `dueAt` INTEGER, `linkedDrawingRevisionId` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `closedAt` INTEGER, `archivedAt` INTEGER)")
+                db.execSQL("CREATE INDEX `index_coordination_items_projectId` ON `coordination_items` (`projectId`)")
+                db.execSQL("CREATE INDEX `index_coordination_items_type` ON `coordination_items` (`type`)")
+                db.execSQL("CREATE INDEX `index_coordination_items_status` ON `coordination_items` (`status`)")
+                db.execSQL("CREATE INDEX `index_coordination_items_dueAt` ON `coordination_items` (`dueAt`)")
+                db.execSQL("CREATE UNIQUE INDEX `index_coordination_items_projectId_type_referenceNumber` ON `coordination_items` (`projectId`, `type`, `referenceNumber`)")
+                db.execSQL("CREATE TABLE `coordination_events` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `coordinationItemId` INTEGER NOT NULL, `fromStatus` TEXT NOT NULL, `toStatus` TEXT NOT NULL, `note` TEXT NOT NULL, `actor` TEXT NOT NULL, `occurredAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX `index_coordination_events_coordinationItemId` ON `coordination_events` (`coordinationItemId`)")
+                db.execSQL("CREATE INDEX `index_coordination_events_occurredAt` ON `coordination_events` (`occurredAt`)")
+                installCoordinationAuditTriggers(db)
+            }
+        }
+
+        val MIGRATION_23_24 = object : Migration(23, 24) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE `daily_site_reports` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `reportDate` INTEGER NOT NULL, `weather` TEXT NOT NULL, `manpower` TEXT NOT NULL, `workCompleted` TEXT NOT NULL, `materialsReceived` TEXT NOT NULL, `delaysOrConstraints` TEXT NOT NULL, `safetyObservations` TEXT NOT NULL, `nextDayPlan` TEXT NOT NULL, `preparedBy` TEXT NOT NULL, `photoUri` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX `index_daily_site_reports_projectId` ON `daily_site_reports` (`projectId`)")
+                db.execSQL("CREATE UNIQUE INDEX `index_daily_site_reports_projectId_reportDate` ON `daily_site_reports` (`projectId`, `reportDate`)")
+                db.execSQL("CREATE TABLE `project_decisions` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `referenceNumber` TEXT NOT NULL, `title` TEXT NOT NULL, `context` TEXT NOT NULL, `decisionRequired` TEXT NOT NULL, `impact` TEXT NOT NULL, `finalDecision` TEXT NOT NULL, `requestedFrom` TEXT NOT NULL, `owner` TEXT NOT NULL, `dueAt` INTEGER, `status` TEXT NOT NULL, `decidedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX `index_project_decisions_projectId` ON `project_decisions` (`projectId`)")
+                db.execSQL("CREATE INDEX `index_project_decisions_status` ON `project_decisions` (`status`)")
+                db.execSQL("CREATE UNIQUE INDEX `index_project_decisions_projectId_referenceNumber` ON `project_decisions` (`projectId`, `referenceNumber`)")
+                db.execSQL("CREATE TABLE `site_issues` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `referenceNumber` TEXT NOT NULL, `type` TEXT NOT NULL, `title` TEXT NOT NULL, `location` TEXT NOT NULL, `description` TEXT NOT NULL, `severity` TEXT NOT NULL, `assignedTo` TEXT NOT NULL, `correctiveAction` TEXT NOT NULL, `dueAt` INTEGER, `status` TEXT NOT NULL, `evidenceUri` TEXT, `verificationNote` TEXT NOT NULL, `closedAt` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX `index_site_issues_projectId` ON `site_issues` (`projectId`)")
+                db.execSQL("CREATE INDEX `index_site_issues_type` ON `site_issues` (`type`)")
+                db.execSQL("CREATE INDEX `index_site_issues_status` ON `site_issues` (`status`)")
+                db.execSQL("CREATE UNIQUE INDEX `index_site_issues_projectId_referenceNumber` ON `site_issues` (`projectId`, `referenceNumber`)")
+                db.execSQL("CREATE TABLE `site_issue_events` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `siteIssueId` INTEGER NOT NULL, `fromStatus` TEXT NOT NULL, `toStatus` TEXT NOT NULL, `note` TEXT NOT NULL, `actor` TEXT NOT NULL, `occurredAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX `index_site_issue_events_siteIssueId` ON `site_issue_events` (`siteIssueId`)")
+                db.execSQL("CREATE INDEX `index_site_issue_events_occurredAt` ON `site_issue_events` (`occurredAt`)")
+                installSiteIssueAuditTriggers(db)
+            }
+        }
+
         internal fun installReferenceCatalog(db: SupportSQLiteDatabase) = installCatalog(db, PREDEFINED_ITEMS)
 
         private fun installPwdCatalog(db: SupportSQLiteDatabase) =
@@ -494,6 +546,16 @@ abstract class AppDatabase : RoomDatabase() {
         private fun installPortalAuditTriggers(db: SupportSQLiteDatabase) {
             db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_portal_audit_update BEFORE UPDATE ON portal_audit_events BEGIN SELECT RAISE(ABORT, 'Portal audit events are immutable'); END")
             db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_portal_audit_delete BEFORE DELETE ON portal_audit_events BEGIN SELECT RAISE(ABORT, 'Portal audit events are immutable'); END")
+        }
+
+        private fun installCoordinationAuditTriggers(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_coordination_event_update BEFORE UPDATE ON coordination_events BEGIN SELECT RAISE(ABORT, 'Coordination events are immutable'); END")
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_coordination_event_delete BEFORE DELETE ON coordination_events BEGIN SELECT RAISE(ABORT, 'Coordination events are immutable'); END")
+        }
+
+        private fun installSiteIssueAuditTriggers(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_site_issue_event_update BEFORE UPDATE ON site_issue_events BEGIN SELECT RAISE(ABORT, 'Site issue events are immutable'); END")
+            db.execSQL("CREATE TRIGGER IF NOT EXISTS immutable_site_issue_event_delete BEFORE DELETE ON site_issue_events BEGIN SELECT RAISE(ABORT, 'Site issue events are immutable'); END")
         }
 
         private fun installDocumentControlTriggers(db: SupportSQLiteDatabase) {

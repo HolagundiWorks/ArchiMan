@@ -1,10 +1,16 @@
 # Support and Release Operations
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 22, reviewed 11 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 24, reviewed 13 September 2026.
 
 ## Scope
 
 ArchiMan is offline-first and quantity-only. Rates, valuation, bills, invoices, receipts, payments, accounting, background cloud access and silent data upload are not supported. A user-started, named-user HTTPS workspace on the current local Wi-Fi network is permitted. Editors and administrators may add controlled project records; viewers cannot write.
+
+## Local Wi-Fi workspace connectivity
+
+The phone receives its IP address from Wi-Fi DHCP; ArchiMan detects it and listens on HTTPS port `8765`. A successful **Workspace is available** screen proves address detection and TLS listener creation. If a desktop on the same subnet cannot ping/ARP the phone or connect to port `8765`, investigate router AP isolation, client isolation or WLAN partition before changing ArchiMan. A self-signed-certificate warning occurs only after network connectivity succeeds and is expected; compare the displayed SHA-256 fingerprint before proceeding.
+
+Samsung/Bouncy Castle must use the Android Keystore directly for the TLS key manager. Android Keystore private keys are non-exportable handles and must never be copied into a BKS memory keystore.
 
 ## Privacy-safe support diagnostics
 
@@ -31,7 +37,7 @@ From the repository root, run:
 
 The first boundary check rejects active commercial terminology, unapproved network/cloud dependencies, or outbound cleartext configuration. It verifies the permissions required by the approved local Wi-Fi workspace. The second invocation also checks the merged debug manifest produced by the build.
 
-The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, profile, consultancy-scope, portal-security and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`. The schema-22 baseline includes preserving 20→21 and 21→22 migration tests, immutable portal-audit verification, and explicit removal of the obsolete commercial schema.
+The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, profile, consultancy-scope, coordination, site-control, portal-security and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`. The schema-24 baseline includes preserving 20→21, 21→22, 22→23 and 23→24 migration tests, immutable portal/coordination/site-issue audit verification, and explicit removal of the obsolete commercial schema.
 
 ## Continuous integration
 

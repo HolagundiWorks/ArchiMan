@@ -9,17 +9,25 @@ import com.example.data.repository.SiteRepository
 import com.example.domain.WorkCatalog
 import com.example.domain.CatalogDocumentParser
 import com.example.domain.MeasurementSheetStatus
+import com.example.domain.MeasurementInput
+import com.example.domain.QuantityCalculator
 import com.example.ui.navigation.AppScreen
 import com.example.ui.navigation.DirectorySection
 import com.example.ui.navigation.HomeTab
 import com.example.ui.navigation.ProjectSection
 import com.example.portal.LocalPortalServer
 import com.example.cloud.SupabaseConnectionManager
+import com.example.aorms.AormsLoginResult
+import com.example.aorms.AormsSessionManager
+import com.example.company.CompanyDatabaseImportPreview
+import com.example.company.CompanyDatabasePackageManager
 import com.example.portal.PortalProject
 import com.example.portal.PortalSnapshot
 import com.example.portal.PortalMutation
 import com.example.portal.PortalMutationResult
 import com.example.portal.PortalPrincipal
+import com.example.portal.PortalOption
+import com.example.portal.PortalUserOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
@@ -35,7 +43,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     private val localPortalServer = LocalPortalServer(application)
     val localPortalState = localPortalServer.state
     private val supabaseConnectionManager = SupabaseConnectionManager(application)
+    private val companyDatabasePackageManager = CompanyDatabasePackageManager(application, database)
     val supabaseConnectionState = supabaseConnectionManager.state
+    private val aormsSessionManager = AormsSessionManager(application)
+    val aormsSessionState = aormsSessionManager.state
 
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
@@ -123,6 +134,29 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     val siteInspections: StateFlow<List<SiteInspectionEntity>> = selectedProjectId
         .flatMapLatest { it?.let(repository::getSiteInspections) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val dailySiteReports: StateFlow<List<DailySiteReportEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getDailySiteReports) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectDecisions: StateFlow<List<ProjectDecisionEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectDecisions) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val siteIssues: StateFlow<List<SiteIssueEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getSiteIssues) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val projectConsultants: StateFlow<List<ProjectConsultantEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getProjectConsultants) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val coordinationItems: StateFlow<List<CoordinationItemEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getCoordinationItems) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    private val _coordinationMessage = MutableStateFlow<String?>(null)
+    val coordinationMessage: StateFlow<String?> = _coordinationMessage.asStateFlow()
 
     val projectDrawings: StateFlow<List<ProjectDrawingEntity>> = selectedProjectId
         .flatMapLatest { it?.let(repository::getProjectDrawings) ?: flowOf(emptyList()) }
@@ -248,6 +282,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     val editingMeasurement: StateFlow<MeasurementEntity?> = _editingMeasurement.asStateFlow()
 
     init {
+        // Office-only app: every launch must reach the AORMS identity server
+        // before the phone's own database is shown. See AormsSessionManager.
+        viewModelScope.launch { aormsSessionManager.reverify() }
+
         // Auto-select initial context
         viewModelScope.launch {
             projects.collect { list ->
@@ -300,6 +338,21 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             repository.upsertCompanyProfile(profile.copy(id = 1, updatedAt = System.currentTimeMillis()))
         }
     }
+
+    suspend fun exportCompanyDatabase(destination: android.net.Uri, password: String): String =
+        withContext(Dispatchers.IO) { companyDatabasePackageManager.exportTo(destination, password.toCharArray()) }
+
+    suspend fun previewCompanyDatabase(source: android.net.Uri, password: String): CompanyDatabaseImportPreview =
+        withContext(Dispatchers.IO) { companyDatabasePackageManager.previewImport(source, password.toCharArray()) }
+
+    suspend fun stageCompanyDatabaseRestore(preview: CompanyDatabaseImportPreview) =
+        withContext(Dispatchers.IO) { companyDatabasePackageManager.stageRestore(preview) }
+
+    fun discardCompanyDatabasePreview(preview: CompanyDatabaseImportPreview?) =
+        companyDatabasePackageManager.discardPreview(preview)
+
+    fun consumeCompanyDatabaseRestoreMessage(): String? =
+        companyDatabasePackageManager.consumeRestoreMessage()
 
     fun updateProjectProfile(project: ProjectEntity) {
         if (project.name.isBlank()) return
@@ -404,38 +457,240 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun startLocalPortal() {
-        if (localUsers.value.none { it.isActive }) { _portalUserMessage.value = "Create at least one active portal user first."; return }
+        // An AORMS account can always sign in to the portal, so an active local
+        // user is no longer a hard prerequisite — only enforced when AORMS
+        // itself is not configured for this install.
+        if (aormsSessionManager.serverConfig() == null && localUsers.value.none { it.isActive }) {
+            _portalUserMessage.value = "Create at least one active portal user first."; return
+        }
         localPortalServer.start(
-            provider = {
-                val measurementCounts = measurements.value.groupingBy { it.projectId }.eachCount()
-                val selectedId = selectedProjectId.value
-                PortalSnapshot(
-                    companyName = companyProfile.value?.practiceName?.ifBlank { "ArchiMan" } ?: "ArchiMan",
-                    projects = projects.value.map { project -> PortalProject(project.id, project.name, project.projectCode, project.projectType, project.status, project.client, project.siteLocation, project.architectInCharge, measurementCounts[project.id] ?: 0) },
-                    selectedProject = projects.value.firstOrNull { it.id == selectedId }?.name,
-                    selectedProjectId = selectedId,
-                    tasks = projectTasks.value.map { "${it.title} · ${it.status}" },
-                    schedules = projectSchedules.value.map { "${it.title} · ${it.status}" },
-                    inspections = siteInspections.value.map { "${it.location} · ${it.observation} · ${it.status}" },
-                    drawings = projectDrawings.value.map { "${it.drawingNumber} · ${it.title} · ${it.status}" }
-                )
-            },
-            authenticate = repository::authenticateLocalUser,
+            provider = ::buildPortalSnapshot,
+            authenticate = ::authenticatePortalVisitor,
             mutate = ::applyPortalMutation
         )
     }
 
-    private suspend fun applyPortalMutation(principal: PortalPrincipal, mutation: PortalMutation): PortalMutationResult {
-        if (projects.value.none { it.id == mutation.projectId }) return PortalMutationResult(false, "Project was not found.")
-        val entityId = when (mutation.action) {
-            "ADD_TASK" -> repository.insertProjectTask(ProjectTaskEntity(projectId = mutation.projectId, title = mutation.title, description = mutation.description))
-            "ADD_APPROVAL" -> repository.insertProjectApproval(ProjectApprovalEntity(projectId = mutation.projectId, approvalType = "CLIENT", title = mutation.title, description = mutation.description))
-            "ADD_BACKLOG" -> repository.insertProjectBacklogItem(ProjectBacklogEntity(projectId = mutation.projectId, title = mutation.title, description = mutation.description))
-            else -> return PortalMutationResult(false, "Unsupported edit.")
+    /**
+     * LAN portal sign-in: an office AORMS account (checked live against the
+     * same AORMS connection the phone itself uses) or a phone-created local
+     * portal account (for people without an AORMS seat, e.g. a contractor).
+     * AORMS is tried first only for email-shaped usernames so a local
+     * username never triggers a network round-trip.
+     */
+    private suspend fun authenticatePortalVisitor(username: String, password: CharArray): PortalPrincipal? {
+        val trimmed = username.trim()
+        if (trimmed.contains('@')) {
+            when (val result = aormsSessionManager.verifyOnly(trimmed, String(password), company = null)) {
+                is AormsLoginResult.Success -> return PortalPrincipal(
+                    // No LocalUserEntity row backs an AORMS-authenticated visitor;
+                    // -1 is a sentinel the audit log stores as a plain, unconstrained value.
+                    userId = -1L,
+                    username = result.identity.email,
+                    displayName = result.identity.name?.ifBlank { null } ?: result.identity.email,
+                    role = when (result.identity.role) {
+                        "OWNER" -> "ADMIN"
+                        "MEMBER" -> "EDITOR"
+                        else -> "VIEWER"
+                    }
+                )
+                is AormsLoginResult.InvalidCredentials -> return null
+                is AormsLoginResult.NotAMember -> return null
+                // Configuration/network trouble: fall through to the local check
+                // rather than locking everyone out of the portal.
+                else -> Unit
+            }
         }
-        repository.recordPortalAudit(PortalAuditEventEntity(userId = principal.userId, username = principal.username, action = mutation.action, entityType = mutation.action.removePrefix("ADD_"), entityId = entityId, projectId = mutation.projectId, summary = mutation.title.take(160), sourceAddress = mutation.sourceAddress))
-        return PortalMutationResult(true, "Saved ${mutation.title}.")
+        return repository.authenticateLocalUser(trimmed, password)
     }
+
+    private suspend fun buildPortalSnapshot(requestedProjectId: Long?): PortalSnapshot {
+        val projectRows = repository.allProjects.first()
+        val clientRows = repository.allClients.first()
+        val contractorRows = repository.allContractors.first()
+        val workItemRows = repository.allItems.first()
+        val allMeasurementRows = repository.allMeasurements.first()
+        val allSheetRows = repository.getMeasurementSheets().first()
+        val profile = repository.companyProfile.first()
+        val portalUserRows = repository.localUsers.first()
+        val auditRows = repository.portalAuditEvents.first()
+        val selected = projectRows.firstOrNull { it.id == requestedProjectId }
+            ?: projectRows.firstOrNull { it.id == selectedProjectId.value }
+            ?: projectRows.firstOrNull()
+        val projectId = selected?.id
+        val taskRows = projectId?.let { repository.getProjectTasks(it).first() }.orEmpty()
+        val selectionRows = projectId?.let { repository.getProjectSelectionItems(it).first() }.orEmpty()
+        val scheduleRows = projectId?.let { repository.getProjectSchedules(it).first() }.orEmpty()
+        val meetingRows = projectId?.let { repository.getMeetingMinutes(it).first() }.orEmpty()
+        val inspectionRows = projectId?.let { repository.getSiteInspections(it).first() }.orEmpty()
+        val dailyReportRows = projectId?.let { repository.getDailySiteReports(it).first() }.orEmpty()
+        val decisionRows = projectId?.let { repository.getProjectDecisions(it).first() }.orEmpty()
+        val siteIssueRows = projectId?.let { repository.getSiteIssues(it).first() }.orEmpty()
+        val drawingRows = projectId?.let { repository.getProjectDrawings(it).first() }.orEmpty()
+        val consultantRows = projectId?.let { repository.getProjectConsultants(it).first() }.orEmpty()
+        val coordinationRows = projectId?.let { repository.getCoordinationItems(it).first() }.orEmpty()
+        val floorRows = projectId?.let { repository.getFloorsByProject(it).first() }.orEmpty()
+        val measurementRows = projectId?.let { repository.getMeasurementsByProject(it).first() }.orEmpty()
+        val sheetRows = allSheetRows.filter { it.projectId == projectId && it.archivedAt == null }
+        val measurementCounts = allMeasurementRows.groupingBy { it.projectId }.eachCount()
+        return PortalSnapshot(
+            companyName = profile?.practiceName?.ifBlank { "ArchiMan" } ?: "ArchiMan",
+            projects = projectRows.map { project -> PortalProject(project.id, project.name, project.projectCode, project.projectType, project.status, project.client, project.siteLocation, project.architectInCharge, measurementCounts[project.id] ?: 0) },
+            selectedProject = selected?.name,
+            selectedProjectId = projectId,
+            clients = clientRows.map { PortalOption(it.id, it.name, listOf(it.clientType, it.contactPerson).filter(String::isNotBlank).joinToString(" · ")) },
+            contractors = contractorRows.map { PortalOption(it.id, it.name, it.contractorType) },
+            workItems = workItemRows.filter { it.isActive }.map { PortalOption(it.id, it.name, "${it.workType} · ${it.calculationType.displayName} · ${it.unit}") },
+            floors = floorRows.map { PortalOption(it.id, it.name) },
+            tasks = taskRows.map { "${it.title} · ${it.status}" },
+            selections = selectionRows.map { "${it.itemName} · ${it.quantity} ${it.unit} · ${it.status}" },
+            schedules = scheduleRows.map { "${it.title} · ${formatPortalDate(it.scheduledAt)} · ${it.status}" },
+            meetings = meetingRows.map { "${it.title} · ${formatPortalDate(it.meetingAt)}" },
+            inspections = inspectionRows.map { "${it.location} · ${it.observation} · ${it.status}" },
+            dailyReports = dailyReportRows.map { "${formatPortalDate(it.reportDate)} · ${it.workCompleted}" },
+            siteIssues = siteIssueRows.map { "${it.referenceNumber} · ${it.type} · ${it.title} · ${it.status}" },
+            decisions = decisionRows.map { "${it.referenceNumber} · ${it.title} · ${it.status}" },
+            drawings = drawingRows.map { "${it.drawingNumber} · ${it.title} · ${it.status}" },
+            responsibilities = consultantRows.map { "${it.name} · ${it.discipline} · ${it.raciRole.take(1)}" },
+            coordination = coordinationRows.map { "${it.referenceNumber} · ${it.subject} · ${it.status}" },
+            measurements = measurementRows.takeLast(100).map { "${it.itemName} · ${it.description} · ${it.quantity} ${it.unit}" },
+            measurementSheets = sheetRows.map { PortalOption(it.id, it.sheetCode, "${it.itemNameSnapshot} · ${it.status} · Rev ${it.revision}") },
+            coordinationRecords = coordinationRows.map { PortalOption(it.id, it.referenceNumber, "${it.type} · ${it.subject} · ${it.status}") },
+            portalUsers = portalUserRows.map { PortalUserOption(it.id, it.username, it.displayName, it.role, it.isActive) },
+            auditEvents = auditRows.take(50).map { "${formatPortalDate(it.occurredAt)} · ${it.username} · ${it.action} · ${it.entityType} · ${it.summary}" },
+            companyLegalName = profile?.legalName.orEmpty(),
+            companyType = profile?.companyType.orEmpty(),
+            companyAddress = profile?.address.orEmpty(),
+            companyPhone = profile?.phone.orEmpty(),
+            companyEmail = profile?.email.orEmpty()
+        )
+    }
+
+    private suspend fun applyPortalMutation(principal: PortalPrincipal, mutation: PortalMutation): PortalMutationResult = runCatching {
+        fun field(name: String) = mutation.fields[name].orEmpty()
+        fun required(name: String) = field(name).takeIf(String::isNotBlank) ?: error("$name is required.")
+        fun long(name: String) = field(name).toLongOrNull() ?: 0L
+        fun number(name: String, default: Double = 0.0) = field(name).toDoubleOrNull() ?: default
+        fun date(name: String): Long? = field(name).takeIf(String::isNotBlank)?.let(::parsePortalDate)
+        val projectRequired = mutation.action !in setOf("UPDATE_COMPANY", "ADD_PROJECT", "ADD_CLIENT", "ADD_CONTRACTOR", "QUALIFY_CONTRACTOR", "CREATE_PORTAL_USER", "UPDATE_PORTAL_USER", "SET_PROJECT_STATUS", "ARCHIVE_WORK_ITEM")
+        if (projectRequired) requireNotNull(repository.getProjectById(mutation.projectId)) { "Project was not found." }
+        var auditProjectId: Long? = mutation.projectId.takeIf { it > 0 }
+        val (entityType, entityId) = when (mutation.action) {
+            "UPDATE_COMPANY" -> {
+                val current = repository.companyProfile.first() ?: CompanyProfileEntity()
+                repository.upsertCompanyProfile(current.copy(id = 1, practiceName = mutation.title, legalName = field("legalName"), companyType = field("companyType").ifBlank { "Architecture practice" }, address = field("address"), phone = field("phone"), email = field("email"), updatedAt = System.currentTimeMillis()))
+                auditProjectId = null
+                "COMPANY_PROFILE" to 1L
+            }
+            "ADD_PROJECT" -> {
+                val clientId = long("clientId")
+                val client = clientId.takeIf { it > 0 }?.let { repository.getClientById(it) }
+                val id = repository.insertProject(ProjectEntity(name = mutation.title, projectCode = field("code"), projectType = field("type").ifBlank { "Residential" }, clientId = client?.id ?: 0, client = client?.name.orEmpty(), siteLocation = field("location"), architectInCharge = field("architect"), description = mutation.description))
+                auditProjectId = id
+                "PROJECT" to id
+            }
+            "ADD_CLIENT" -> "CLIENT" to repository.insertClient(ClientEntity(name = mutation.title, clientType = field("clientType").ifBlank { "Individual" }, contactPerson = field("contactPerson"), contactNo = field("phone"), email = field("email"), address = field("address")))
+            "ADD_CONTRACTOR" -> "CONTRACTOR" to repository.insertContractor(ContractorEntity(name = mutation.title, contractorType = field("contractorType").ifBlank { "Civil" }, phone = field("phone"), contactNo = field("phone"), address = field("address")))
+            "QUALIFY_CONTRACTOR" -> {
+                val contractor = requireNotNull(repository.getContractorById(long("contractorId"))) { "Contractor was not found." }
+                val item = requireNotNull(repository.getItemById(long("itemId"))) { "Work item was not found." }
+                "CONTRACTOR_QUALIFICATION" to repository.insertQualifiedItem(ContractorQualifiedItemEntity(contractorId = contractor.id, workType = item.workType, itemName = item.name, uom = item.unit, calculationType = item.calculationType))
+            }
+            "CREATE_PORTAL_USER" -> {
+                val password = required("password").toCharArray()
+                val id = try {
+                    repository.createLocalUser(required("username"), mutation.title, password, field("role").ifBlank { "VIEWER" })
+                } finally {
+                    password.fill('\u0000')
+                }
+                auditProjectId = null
+                "PORTAL_USER" to id
+            }
+            "UPDATE_PORTAL_USER" -> {
+                val user = requireNotNull(repository.getLocalUserById(long("userId"))) { "Portal user was not found." }
+                val newPassword = field("newPassword").takeIf(String::isNotBlank)?.toCharArray()
+                try {
+                    repository.updateLocalUser(user, field("displayName"), required("role"), required("active").toBooleanStrict(), newPassword)
+                } finally {
+                    newPassword?.fill('\u0000')
+                }
+                auditProjectId = null
+                "PORTAL_USER" to user.id
+            }
+            "SET_PROJECT_STATUS" -> {
+                val project = requireNotNull(repository.getProjectById(long("targetProjectId"))) { "Project was not found." }
+                repository.updateProject(project.copy(status = required("status")))
+                auditProjectId = project.id
+                "PROJECT" to project.id
+            }
+            "ARCHIVE_WORK_ITEM" -> {
+                val item = requireNotNull(repository.getItemById(long("itemId"))) { "Work item was not found." }
+                repository.deleteItem(item)
+                auditProjectId = null
+                "WORK_ITEM" to item.id
+            }
+            "ASSIGN_CONTRACTOR" -> {
+                val contractor = requireNotNull(repository.getContractorById(long("contractorId"))) { "Contractor was not found." }
+                "PROJECT_CONTRACTOR" to repository.insertProjectContractorRef(ProjectContractorCrossRef(projectId = mutation.projectId, contractorId = contractor.id))
+            }
+            "ADD_FLOOR" -> "FLOOR" to repository.insertFloor(FloorEntity(projectId = mutation.projectId, name = mutation.title, orderIndex = long("order").toInt()))
+            "ADD_TASK" -> "TASK" to repository.insertProjectTask(ProjectTaskEntity(projectId = mutation.projectId, title = mutation.title, description = mutation.description, dueDate = date("dueAt"), status = field("status").ifBlank { "OPEN" }))
+            "ADD_APPROVAL" -> "APPROVAL" to repository.insertProjectApproval(ProjectApprovalEntity(projectId = mutation.projectId, approvalType = field("approvalType").ifBlank { "CLIENT" }, title = mutation.title, description = mutation.description, phase = field("phase").ifBlank { "DESIGN" }))
+            "ADD_BACKLOG" -> "BACKLOG" to repository.insertProjectBacklogItem(ProjectBacklogEntity(projectId = mutation.projectId, title = mutation.title, description = mutation.description, category = field("category").ifBlank { "GENERAL" }, priority = field("priority").ifBlank { "MEDIUM" }, phase = field("phase").ifBlank { "DESIGN" }, dueAt = date("dueAt")))
+            "ADD_SCOPE" -> "SCOPE" to repository.insertProjectScopeItem(ProjectScopeItemEntity(projectId = mutation.projectId, title = mutation.title, details = mutation.description, category = field("category").ifBlank { "SCOPE" }, status = field("status").ifBlank { "INCLUDED" }))
+            "ADD_SELECTION" -> "SELECTION" to repository.insertProjectSelectionItem(ProjectSelectionItemEntity(projectId = mutation.projectId, itemName = mutation.title, specification = field("specification"), makeOrBrand = field("brand"), quantity = number("quantity", 1.0).also { require(it > 0) { "Quantity must be greater than zero." } }, unit = field("unit").ifBlank { "Nos" }, remarks = field("remarks")))
+            "ADD_SCHEDULE" -> "SCHEDULE" to repository.insertProjectSchedule(ProjectScheduleEntity(projectId = mutation.projectId, title = mutation.title, scheduledAt = requireNotNull(date("scheduledAt")) { "Schedule date is required." }, location = field("location"), notes = mutation.description))
+            "ADD_DECISION" -> "DECISION" to repository.insertProjectDecision(ProjectDecisionEntity(projectId = mutation.projectId, referenceNumber = mutation.title, title = required("decisionTitle"), context = field("context"), decisionRequired = mutation.description, impact = field("impact"), requestedFrom = field("requestedFrom"), owner = field("owner")))
+            "ADD_DAILY_REPORT" -> "DAILY_SITE_REPORT" to repository.upsertDailySiteReport(DailySiteReportEntity(projectId = mutation.projectId, reportDate = requireNotNull(date("reportDate")) { "Report date is required." }, weather = field("weather"), manpower = field("manpower"), workCompleted = mutation.title, materialsReceived = field("materials"), delaysOrConstraints = field("delays"), safetyObservations = field("safety"), nextDayPlan = field("nextPlan"), preparedBy = field("preparedBy")))
+            "ADD_SITE_ISSUE" -> "SITE_ISSUE" to repository.createSiteIssue(SiteIssueEntity(projectId = mutation.projectId, referenceNumber = mutation.title, type = field("issueType").ifBlank { "SNAG" }, title = required("issueTitle"), location = field("location"), description = mutation.description, severity = field("severity").ifBlank { "NORMAL" }, assignedTo = field("assignedTo"), correctiveAction = field("corrective")), principal.displayName)
+            "ADD_MEETING" -> "MEETING" to repository.insertMeetingMinutes(MeetingMinutesEntity(projectId = mutation.projectId, title = mutation.title, meetingAt = requireNotNull(date("meetingAt")) { "Meeting date is required." }, location = field("location"), attendees = field("attendees"), discussion = mutation.description, decisions = field("decisions"), actionItems = field("actions")))
+            "ADD_INSPECTION" -> "INSPECTION" to repository.insertSiteInspection(SiteInspectionEntity(projectId = mutation.projectId, inspectionAt = System.currentTimeMillis(), location = required("location"), inspector = field("inspector"), observation = mutation.title, severity = field("severity").ifBlank { "NORMAL" }, correctiveAction = field("corrective")))
+            "ADD_RESPONSIBILITY" -> "RESPONSIBILITY" to repository.insertProjectConsultant(ProjectConsultantEntity(projectId = mutation.projectId, name = mutation.title, organisation = field("organisation"), discipline = required("discipline"), email = field("email"), phone = field("phone"), phase = field("phase").ifBlank { "All phases" }, responsibility = mutation.description, raciRole = field("raciRole").ifBlank { "RESPONSIBLE" }))
+            "ADD_COORDINATION" -> "COORDINATION" to repository.createCoordinationItem(CoordinationItemEntity(projectId = mutation.projectId, type = field("recordType").ifBlank { "RFI" }, referenceNumber = mutation.title, subject = required("subject"), discipline = field("discipline").ifBlank { "Architectural" }, location = field("location"), raisedBy = field("raisedBy"), assignedTo = field("assignedTo"), questionOrRequirement = mutation.description, priority = field("priority").ifBlank { "NORMAL" }, dueAt = date("dueAt")), principal.displayName)
+            "ADD_MEASUREMENT" -> {
+                val contractor = requireNotNull(repository.getContractorById(long("contractorId"))) { "Contractor was not found." }
+                require(repository.getProjectContractorRefsSync(mutation.projectId).any { it.contractorId == contractor.id }) { "Assign this contractor to the project first." }
+                val item = requireNotNull(repository.getItemById(long("itemId"))) { "Work item was not found." }
+                require(repository.getQualifiedItemsForContractorSync(contractor.id).any { it.itemName.equals(item.name, true) }) { "Import this work item into the contractor's work list first." }
+                val floor = long("floorId").takeIf { it > 0 }?.let { requireNotNull(repository.getFloorById(it)) { "Floor was not found." }.also { floor -> require(floor.projectId == mutation.projectId) { "Floor belongs to another project." } } }
+                val nos = number("nos", 1.0); val length = number("length"); val width = number("width"); val height = number("height"); val deduction = number("deduction")
+                require(nos > 0 && deduction >= 0) { "Number must be positive and deduction cannot be negative." }
+                val quantity = QuantityCalculator.calculate(item.calculationType, MeasurementInput(no = nos, length = length, breadth = width, height = height, deduction = deduction))
+                require(quantity > 0) { "Enter the dimensions required by ${item.calculationType.displayName}." }
+                val id = repository.insertMeasurement(MeasurementEntity(projectId = mutation.projectId, floorId = floor?.id, contractorId = contractor.id, contractorName = contractor.name, itemId = item.id, itemName = item.name, unit = item.unit, calculationType = item.calculationType, formulaCode = item.calculationType.name, description = mutation.title, length = length, width = width, height = height, nos = nos, deduction = deduction, quantity = quantity, floor = floor?.name.orEmpty(), remarks = field("remarks")))
+                "MEASUREMENT" to id
+            }
+            "TRANSITION_SHEET" -> {
+                val sheetId = long("sheetId")
+                val sheet = requireNotNull(repository.getMeasurementSheets().first().firstOrNull { it.id == sheetId && it.projectId == mutation.projectId }) { "Measurement sheet was not found." }
+                val target = runCatching { MeasurementSheetStatus.valueOf(required("toStatus")) }.getOrElse { error("Review status is invalid.") }
+                repository.transitionMeasurementSheet(sheet.id, target, principal.displayName, field("comment"))
+                "MEASUREMENT_SHEET" to sheet.id
+            }
+            "ARCHIVE_COORDINATION" -> {
+                val item = requireNotNull(repository.getCoordinationItemById(long("coordinationId"))) { "Coordination record was not found." }
+                require(item.projectId == mutation.projectId) { "Coordination record belongs to another project." }
+                repository.archiveCoordinationItem(item, principal.displayName)
+                "COORDINATION" to item.id
+            }
+            "ARCHIVE_SHEET" -> {
+                val sheetId = long("sheetId")
+                val sheet = requireNotNull(repository.getMeasurementSheets().first().firstOrNull { it.id == sheetId && it.projectId == mutation.projectId }) { "Measurement sheet was not found." }
+                repository.archiveMeasurementSheet(sheet.id, principal.displayName)
+                "MEASUREMENT_SHEET" to sheet.id
+            }
+            else -> error("Unsupported edit.")
+        }
+        repository.recordPortalAudit(PortalAuditEventEntity(userId = principal.userId, username = principal.username, action = mutation.action, entityType = entityType, entityId = entityId, projectId = auditProjectId, summary = mutation.title.take(160), sourceAddress = mutation.sourceAddress))
+        PortalMutationResult(true, "Saved ${mutation.title}.")
+    }.getOrElse { PortalMutationResult(false, it.message ?: "Could not save this record.") }
+
+    private fun parsePortalDate(value: String): Long = requireNotNull(
+        listOf("yyyy-MM-dd'T'HH:mm", "yyyy-MM-dd").firstNotNullOfOrNull { pattern ->
+            runCatching { SimpleDateFormat(pattern, Locale.US).apply { isLenient = false }.parse(value)?.time }.getOrNull()
+        }
+    ) { "Date is invalid." }
+
+    private fun formatPortalDate(value: Long): String = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date(value))
 
     fun stopLocalPortal() = localPortalServer.stop()
 
@@ -462,6 +717,21 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearSupabaseConnection() = supabaseConnectionManager.clear()
+
+    fun saveAormsServerConfig(baseUrl: String, productApiKey: String) =
+        aormsSessionManager.saveServerConfig(baseUrl, productApiKey)
+
+    fun aormsServerConfig() = aormsSessionManager.serverConfig()
+
+    fun signInToAorms(email: String, password: String, company: String?) {
+        viewModelScope.launch(Dispatchers.IO) { aormsSessionManager.signIn(email, password, company) }
+    }
+
+    fun retryAormsConnection() {
+        viewModelScope.launch(Dispatchers.IO) { aormsSessionManager.reverify() }
+    }
+
+    fun signOutOfAorms() = aormsSessionManager.signOut()
 
     override fun onCleared() {
         localPortalServer.close()
@@ -552,6 +822,110 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteSiteInspection(item: SiteInspectionEntity) {
         viewModelScope.launch(Dispatchers.IO) { repository.deleteSiteInspection(item) }
     }
+
+    fun addDailySiteReport(workCompleted: String, weather: String, manpower: String, materials: String, delays: String, safety: String, nextPlan: String, preparedBy: String, photoUri: String?) {
+        val projectId = selectedProjectId.value ?: return
+        if (workCompleted.isBlank()) return
+        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).run { parse(format(java.util.Date()))?.time ?: System.currentTimeMillis() }
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.upsertDailySiteReport(DailySiteReportEntity(projectId = projectId, reportDate = day, weather = weather.trim(), manpower = manpower.trim(), workCompleted = workCompleted.trim(), materialsReceived = materials.trim(), delaysOrConstraints = delays.trim(), safetyObservations = safety.trim(), nextDayPlan = nextPlan.trim(), preparedBy = preparedBy.trim(), photoUri = photoUri))
+        }
+    }
+
+    fun deleteDailySiteReport(item: DailySiteReportEntity) = viewModelScope.launch(Dispatchers.IO) { repository.deleteDailySiteReport(item) }
+
+    fun addProjectDecision(reference: String, title: String, context: String, required: String, impact: String, requestedFrom: String, owner: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (reference.isBlank() || title.isBlank() || required.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertProjectDecision(ProjectDecisionEntity(projectId = projectId, referenceNumber = reference.trim(), title = title.trim(), context = context.trim(), decisionRequired = required.trim(), impact = impact.trim(), requestedFrom = requestedFrom.trim(), owner = owner.trim()))
+        }
+    }
+
+    fun decideProjectDecision(item: ProjectDecisionEntity, finalDecision: String) {
+        if (finalDecision.isBlank() || item.status == "DECIDED") return
+        viewModelScope.launch(Dispatchers.IO) { repository.updateProjectDecision(item.copy(finalDecision = finalDecision.trim(), status = "DECIDED", decidedAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis())) }
+    }
+
+    fun addSiteIssue(reference: String, type: String, title: String, location: String, description: String, severity: String, assignedTo: String, correctiveAction: String, evidenceUri: String?) {
+        val projectId = selectedProjectId.value ?: return
+        if (reference.isBlank() || title.isBlank() || description.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.createSiteIssue(SiteIssueEntity(projectId = projectId, referenceNumber = reference.trim(), type = type, title = title.trim(), location = location.trim(), description = description.trim(), severity = severity, assignedTo = assignedTo.trim(), correctiveAction = correctiveAction.trim(), evidenceUri = evidenceUri))
+        }
+    }
+
+    fun advanceSiteIssue(item: SiteIssueEntity, verificationNote: String = "") {
+        val next = when (item.status) { "OPEN" -> "IN_PROGRESS"; "IN_PROGRESS" -> "READY_FOR_VERIFICATION"; "READY_FOR_VERIFICATION" -> "CLOSED"; else -> return }
+        viewModelScope.launch(Dispatchers.IO) { runCatching { repository.transitionSiteIssue(item, next, verificationNote) } }
+    }
+
+    fun addProjectConsultant(name: String, organisation: String, discipline: String, email: String, phone: String, phase: String, responsibility: String, raciRole: String) {
+        val projectId = selectedProjectId.value ?: return
+        if (name.isBlank() || discipline.isBlank() || responsibility.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                repository.insertProjectConsultant(
+                    ProjectConsultantEntity(
+                        projectId = projectId,
+                        name = name.trim(),
+                        organisation = organisation.trim(),
+                        discipline = discipline.trim(),
+                        email = email.trim(),
+                        phone = phone.trim(),
+                        phase = phase.trim().ifBlank { "All phases" },
+                        responsibility = responsibility.trim(),
+                        raciRole = raciRole
+                    )
+                )
+            }.onFailure { _coordinationMessage.value = "That consultant and discipline already exist." }
+        }
+    }
+
+    fun archiveProjectConsultant(item: ProjectConsultantEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.updateProjectConsultant(item.copy(status = "ARCHIVED")) }
+    }
+
+    fun coordinationEvents(itemId: Long): Flow<List<CoordinationEventEntity>> =
+        repository.getCoordinationEvents(itemId)
+
+    fun addCoordinationItem(type: String, referenceNumber: String, subject: String, discipline: String, location: String, raisedBy: String, assignedTo: String, requirement: String, priority: String, dueAt: Long?, linkedDrawingRevisionId: Long?) {
+        val projectId = selectedProjectId.value ?: return
+        if (referenceNumber.isBlank() || subject.isBlank() || requirement.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching {
+                repository.createCoordinationItem(
+                    CoordinationItemEntity(
+                        projectId = projectId,
+                        type = type,
+                        referenceNumber = referenceNumber.trim(),
+                        subject = subject.trim(),
+                        discipline = discipline.trim().ifBlank { "Architectural" },
+                        location = location.trim(),
+                        raisedBy = raisedBy.trim(),
+                        assignedTo = assignedTo.trim(),
+                        questionOrRequirement = requirement.trim(),
+                        priority = priority,
+                        dueAt = dueAt,
+                        linkedDrawingRevisionId = linkedDrawingRevisionId
+                    )
+                )
+            }.onFailure { _coordinationMessage.value = it.message ?: "Could not create coordination record." }
+        }
+    }
+
+    fun transitionCoordinationItem(item: CoordinationItemEntity, status: String, note: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { repository.transitionCoordinationItem(item, status, note) }
+                .onFailure { _coordinationMessage.value = it.message ?: "Could not update coordination record." }
+        }
+    }
+
+    fun archiveCoordinationItem(item: CoordinationItemEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.archiveCoordinationItem(item) }
+    }
+
+    fun clearCoordinationMessage() { _coordinationMessage.value = null }
 
     fun registerDrawing(
         drawingNumber: String,

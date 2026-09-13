@@ -12,10 +12,7 @@
 #   public *;
 #}
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
-
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Preserve actionable production stack traces while avoiding disclosure of
+# local source filenames. Release mapping files must be retained with each APK.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

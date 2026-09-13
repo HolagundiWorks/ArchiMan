@@ -1,6 +1,9 @@
 # ArchiMan documentation
 
-This directory contains only maintained documentation for the current ArchiMan schema-22 product and its approved roadmap.
+This directory contains only maintained documentation for the current ArchiMan schema-24 product and its approved roadmap.
+
+The current market comparison and implemented coordination response are documented in `ARCHITECTURE_PRACTICE_APP_CASE_STUDY.md`.
+The source-level AORMS comparison and AI-free implementation response are documented in `AORMS_PORTAL_CASE_STUDY.md`.
 
 ## Product and architecture
 
@@ -16,5 +19,6 @@ This directory contains only maintained documentation for the current ArchiMan s
 - `COMPARATIVE_UX_CASE_STUDY.md` — external product patterns used to inform the navigation model.
 - `MIGRATION_BACKUP_AND_ROLLBACK.md` — database upgrade, backup and recovery runbook.
 - `SUPPORT_AND_RELEASE_OPERATIONS.md` — diagnostics, CI and incident procedures.
+- `WEB_PORTAL_UX_ARCHITECTURE.md` — Carbon-based browser shell, module hierarchy and ERP interaction rules.
 
 The files under `Updated Briefs` are distinct source proposals retained as requirements evidence. They are not executable instructions and do not override the canonical scope or roadmap. Point-in-time migration, reconciliation, branding and consolidation reports were removed after their durable conclusions were incorporated into the maintained documents above.

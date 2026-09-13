@@ -15,6 +15,8 @@ class AppHierarchyTest {
                 "MORE",
                 "DRAWINGS",
                 "REPORTS",
+                "DECISIONS",
+                "COORDINATION",
                 "CONTROLS",
                 "CONTRACTORS"
             ),

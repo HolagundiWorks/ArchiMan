@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.BuildConfig
 import coil.compose.AsyncImage
 import com.example.company.CompanyProfileBackupManager
+import com.example.company.CompanyDatabaseImportPreview
 import com.example.data.local.DATABASE_SCHEMA_VERSION
 import com.example.data.local.entity.CompanyProfileEntity
 import com.example.data.local.entity.ProjectEntity
@@ -73,6 +74,11 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
     var practiceRegistrationDetails by remember { mutableStateOf("") }
     var logoUri by remember { mutableStateOf<String?>(null) }
     var pendingImport by remember { mutableStateOf<CompanyProfileEntity?>(null) }
+    var pendingDatabaseImport by remember { mutableStateOf<CompanyDatabaseImportPreview?>(null) }
+    var restoreStaged by remember { mutableStateOf(false) }
+    var databasePassword by remember { mutableStateOf("") }
+    var databasePasswordConfirmation by remember { mutableStateOf("") }
+    var showDatabasePassword by remember { mutableStateOf(false) }
     var supabaseUrl by remember { mutableStateOf("") }
     var supabaseKey by remember { mutableStateOf("") }
     var showSupabaseKey by remember { mutableStateOf(false) }
@@ -100,6 +106,10 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
         }
     }
 
+    LaunchedEffect(Unit) {
+        viewModel.consumeCompanyDatabaseRestoreMessage()?.let { snackbar.showSnackbar(it) }
+    }
+
     LaunchedEffect(supabaseState.projectUrl, supabaseState.publishableKey) {
         supabaseUrl = supabaseState.projectUrl
         supabaseKey = supabaseState.publishableKey
@@ -125,6 +135,23 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             runCatching { withContext(Dispatchers.IO) { backupManager.importFrom(uri) } }
                 .onSuccess { pendingImport = it }
                 .onFailure { snackbar.showSnackbar(it.message ?: "Could not import the backup.") }
+        }
+    }
+    val databaseExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) scope.launch {
+            val password = databasePassword
+            runCatching { viewModel.exportCompanyDatabase(uri, password) }
+                .onSuccess { checksum -> databasePassword = ""; databasePasswordConfirmation = ""; snackbar.showSnackbar("Company database exported · ${checksum.take(12)}…") }
+                .onFailure { snackbar.showSnackbar(it.message ?: "Could not export the company database.") }
+        }
+    }
+    val databaseImporter = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            pendingDatabaseImport?.let(viewModel::discardCompanyDatabasePreview)
+            val password = databasePassword
+            runCatching { viewModel.previewCompanyDatabase(uri, password) }
+                .onSuccess { databasePassword = ""; databasePasswordConfirmation = ""; pendingDatabaseImport = it }
+                .onFailure { snackbar.showSnackbar(it.message ?: "Could not validate the company database.") }
         }
     }
 
@@ -184,14 +211,44 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             OutlinedTextField(pan, { pan = it.uppercase(Locale.ROOT).take(10) }, label = { Text("PAN (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             OutlinedTextField(gstin, { gstin = it.uppercase(Locale.ROOT).take(15) }, label = { Text("GSTIN (optional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
             HorizontalDivider()
-            Text("Company backup", style = MaterialTheme.typography.titleSmall)
-            Text("Export or restore only the company profile and logo. Project and measurement data are not included.", style = MaterialTheme.typography.bodySmall)
+            Text("Full company database", style = MaterialTheme.typography.titleSmall)
+            Text("Password-encrypted .archimandb package containing the verified SQLite database, portal users, company logo and managed measurement photos. Import is previewed and keeps the previous local database in private recovery storage.", style = MaterialTheme.typography.bodySmall)
+            OutlinedTextField(
+                databasePassword,
+                { databasePassword = it.take(128) },
+                label = { Text("Database password") },
+                supportingText = { Text("At least 12 characters for export; enter the existing password for import") },
+                visualTransformation = if (showDatabasePassword) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = { TextButton(onClick = { showDatabasePassword = !showDatabasePassword }) { Text(if (showDatabasePassword) "Hide" else "Show") } },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+            OutlinedTextField(
+                databasePasswordConfirmation,
+                { databasePasswordConfirmation = it.take(128) },
+                label = { Text("Confirm new export password") },
+                supportingText = { Text("Required only when exporting") },
+                isError = databasePasswordConfirmation.isNotBlank() && databasePasswordConfirmation != databasePassword,
+                visualTransformation = PasswordVisualTransformation(),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(enabled = saved != null, onClick = { backupExporter.launch("ArchiMan-company-profile.json") }, modifier = Modifier.weight(1f)) {
+                Button(enabled = databasePassword.length >= 12 && databasePassword == databasePasswordConfirmation, onClick = { databaseExporter.launch("ArchiMan-company.archimandb") }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export")
                 }
-                OutlinedButton(onClick = { backupImporter.launch(arrayOf("application/json", "text/*")) }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(enabled = databasePassword.isNotEmpty(), onClick = { databaseImporter.launch(arrayOf("application/octet-stream", "application/zip", "*/*")) }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.Download, null); Spacer(Modifier.width(4.dp)); Text("Import")
+                }
+            }
+            Text("Profile-only transfer", style = MaterialTheme.typography.titleSmall)
+            Text("JSON transfer for only the practice identity and logo. Projects and measurements are not included.", style = MaterialTheme.typography.bodySmall)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(enabled = saved != null, onClick = { backupExporter.launch("ArchiMan-company-profile.json") }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export profile")
+                }
+                OutlinedButton(onClick = { backupImporter.launch(arrayOf("application/json", "text/*")) }, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.Download, null); Spacer(Modifier.width(4.dp)); Text("Import profile")
                 }
             }
             HorizontalDivider()
@@ -211,6 +268,8 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
                 }
                 if (supabaseState.projectUrl.isNotBlank()) OutlinedButton(onClick = viewModel::clearSupabaseConnection) { Text("Clear") }
             }
+            HorizontalDivider()
+            AormsIdentitySection(viewModel)
             Button(
                 enabled = practiceName.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
@@ -238,6 +297,42 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
             text = { Text("This will replace the current company profile with “${imported.practiceName}”. Projects, measurements and Supabase settings will not be changed.") },
             confirmButton = { Button(onClick = { viewModel.saveCompanyProfile(imported); pendingImport = null; scope.launch { snackbar.showSnackbar("Company profile restored.") } }) { Text("Restore") } },
             dismissButton = { TextButton(onClick = { backupManager.discardImportedLogo(imported.logoUri); pendingImport = null }) { Text("Cancel") } }
+        )
+    }
+
+    pendingDatabaseImport?.let { preview ->
+        AlertDialog(
+            onDismissRequest = { viewModel.discardCompanyDatabasePreview(preview); pendingDatabaseImport = null },
+            title = { Text("Replace this company database?") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(preview.practiceName, style = MaterialTheme.typography.titleMedium)
+                    Text("Schema ${preview.schemaVersion} · ${preview.projectCount} projects · ${preview.measurementCount} measurements · ${preview.attachmentCount} managed files")
+                    Text("SHA-256 ${preview.databaseChecksum}", style = MaterialTheme.typography.labelSmall)
+                    Text("The current database will be retained in private recovery storage. The replacement is applied only after ArchiMan restarts.", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    scope.launch {
+                        runCatching { viewModel.stageCompanyDatabaseRestore(preview) }
+                            .onSuccess { pendingDatabaseImport = null; restoreStaged = true }
+                            .onFailure { snackbar.showSnackbar(it.message ?: "Could not stage the company database.") }
+                    }
+                }) { Text("Import and restart") }
+            },
+            dismissButton = { TextButton(onClick = { viewModel.discardCompanyDatabasePreview(preview); pendingDatabaseImport = null }) { Text("Cancel") } }
+        )
+    }
+
+    if (restoreStaged) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Restart required") },
+            text = { Text("Close ArchiMan now, then open it again. The validated company database will be applied before the app opens.") },
+            confirmButton = {
+                Button(onClick = { android.os.Process.killProcess(android.os.Process.myPid()) }) { Text("Close ArchiMan") }
+            }
         )
     }
 }
@@ -269,10 +364,17 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Icon(if (state.isRunning) Icons.Default.Wifi else Icons.Default.WifiOff, null, modifier = Modifier.size(42.dp))
-            Text(if (state.isRunning) "Workspace is available" else "Use ArchiMan from a browser", style = MaterialTheme.typography.titleLarge)
+            Icon(if (state.isRunning || state.isStarting) Icons.Default.Wifi else Icons.Default.WifiOff, null, modifier = Modifier.size(42.dp))
             Text(
-                "People on the same trusted Wi-Fi can sign in with their own account. Editors can add tasks, approvals and backlog actions; viewers can inspect live project information.",
+                when {
+                    state.isRunning -> "Workspace is available"
+                    state.isStarting -> "Finding the Wi-Fi address…"
+                    else -> "Use ArchiMan from a browser"
+                },
+                style = MaterialTheme.typography.titleLarge
+            )
+            Text(
+                "People on the same trusted Wi-Fi can sign in with their own account. Admins and editors can enter projects, contacts, contractor work lists, planning, reports, coordination and measurement rows; viewers have read-only access.",
                 style = MaterialTheme.typography.bodyMedium
             )
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -300,22 +402,23 @@ fun LocalPortalScreen(viewModel: SiteViewModel, onBack: () -> Unit) {
                     }
                 }
                 Text("A browser may show a one-time certificate warning because the phone creates its own local certificate. Compare its SHA-256 fingerprint with the value above before continuing. Use only on a trusted Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
+                Text("If another device times out before showing the certificate warning, the Wi-Fi router is blocking device-to-device traffic. Disable AP/client isolation (sometimes called WLAN partition) or use a trusted hotspot where connected devices may communicate.", style = MaterialTheme.typography.bodySmall)
                 Button(onClick = viewModel::stopLocalPortal, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                     Text("Stop workspace")
                 }
             } else {
-                Button(enabled = users.any { it.isActive }, onClick = viewModel::startLocalPortal, modifier = Modifier.fillMaxWidth()) {
+                Button(enabled = users.any { it.isActive } && !state.isStarting, onClick = viewModel::startLocalPortal, modifier = Modifier.fillMaxWidth()) {
                     Icon(Icons.Default.Wifi, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Start secure workspace")
+                    Text(if (state.isStarting) "Finding address…" else "Start secure workspace")
                 }
-                Text("Nothing is uploaded to the internet. The address works only from devices that can reach this phone on the same Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
+                Text("The Wi-Fi router assigns the phone's IP address; ArchiMan detects and displays it. Nothing is uploaded to the internet, and the address works only from devices that can reach this phone on the same Wi-Fi network.", style = MaterialTheme.typography.bodySmall)
             }
             HorizontalDivider()
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
                     Text("Portal users", style = MaterialTheme.typography.titleMedium)
-                    Text("Admin manages access · Editor can add records · Viewer can only view", style = MaterialTheme.typography.bodySmall)
+                    Text("Admin manages access · Editor can enter records · Viewer can only view", style = MaterialTheme.typography.bodySmall)
                 }
                 TextButton(onClick = { showAddUser = true }) { Text("Add user") }
             }

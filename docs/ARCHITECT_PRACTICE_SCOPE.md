@@ -1,6 +1,6 @@
 # ArchiMan Architectural Practice Scope
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 22, reviewed 11 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 24, reviewed 13 September 2026.
 
 ## Product boundary
 
@@ -14,7 +14,7 @@ The approval/compliance matrix and jurisdiction-profile proposal is explicitly e
 
 ## Canonical project workspaces
 
-The schema-22 release implements expanded practice/client profiles, project site data, Brief & Scope, planning, quantity-only measurement, drawing-register foundations, site reports and controlled LAN quick entry for tasks, approvals and backlog actions. Its current Room model contains no commercial tables or columns; preserving migrations upgrade older databases. Items below that require full DWG rendering, coordination workflows, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
+The schema-24 release implements expanded practice/client profiles, project site data, Brief & Scope, planning and formal decisions, quantity-only measurement, drawing-register foundations, daily reports, verified snag/NCR closure, RFI/submittal/site-instruction coordination, a consultant responsibility matrix and controlled LAN entry. Its current Room model contains no commercial tables or columns; preserving migrations upgrade older databases. Items below that require full DWG rendering, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
 
 1. Drawings
    - DWG viewing, layers, pan, zoom and extents.
@@ -22,10 +22,10 @@ The schema-22 release implements expanded practice/client profiles, project site
    - Drawing register, immutable revisions, issue status and as-built classification.
    - Transmittals with recipients, purpose, included revisions and acknowledgement.
 2. Coordination
-   - RFI register and responses.
-   - Submittals and shop-drawing review.
-   - Numbered site instructions and compliance evidence.
-   - Consultant directory, disciplines and responsibility matrix.
+   - Implemented: RFI register and responses.
+   - Implemented: submittals and shop-drawing review states.
+   - Implemented: numbered site instructions, acknowledgement and compliance states.
+   - Implemented: consultant directory, disciplines and responsibility matrix.
 3. Field
    - Daily progress reports.
    - Snags, defects and NCRs with assignment, before/after evidence and verified closure.

@@ -341,6 +341,9 @@ interface PortalAccessDao {
     @Query("SELECT * FROM local_users WHERE lower(username)=lower(:username) LIMIT 1")
     suspend fun findUser(username: String): LocalUserEntity?
 
+    @Query("SELECT * FROM local_users WHERE id=:id LIMIT 1")
+    suspend fun getUserById(id: Long): LocalUserEntity?
+
     @Insert suspend fun insertUser(user: LocalUserEntity): Long
     @Update suspend fun updateUser(user: LocalUserEntity)
 
@@ -392,6 +395,50 @@ interface SiteInspectionDao {
     @Insert suspend fun insert(item: SiteInspectionEntity): Long
     @Update suspend fun update(item: SiteInspectionEntity)
     @Delete suspend fun delete(item: SiteInspectionEntity)
+}
+
+@Dao
+interface SiteControlDao {
+    @Query("SELECT * FROM daily_site_reports WHERE projectId=:projectId ORDER BY reportDate DESC")
+    fun observeDailyReports(projectId: Long): Flow<List<DailySiteReportEntity>>
+
+    @Query("SELECT * FROM project_decisions WHERE projectId=:projectId ORDER BY CASE status WHEN 'DECIDED' THEN 1 ELSE 0 END, dueAt IS NULL, dueAt, createdAt DESC")
+    fun observeDecisions(projectId: Long): Flow<List<ProjectDecisionEntity>>
+
+    @Query("SELECT * FROM site_issues WHERE projectId=:projectId ORDER BY CASE status WHEN 'CLOSED' THEN 1 ELSE 0 END, dueAt IS NULL, dueAt, createdAt DESC")
+    fun observeIssues(projectId: Long): Flow<List<SiteIssueEntity>>
+
+    @Query("SELECT * FROM site_issue_events WHERE siteIssueId=:issueId ORDER BY occurredAt, id")
+    fun observeIssueEvents(issueId: Long): Flow<List<SiteIssueEventEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun upsertDailyReport(item: DailySiteReportEntity): Long
+    @Delete suspend fun deleteDailyReport(item: DailySiteReportEntity)
+    @Insert suspend fun insertDecision(item: ProjectDecisionEntity): Long
+    @Update suspend fun updateDecision(item: ProjectDecisionEntity)
+    @Insert suspend fun insertIssue(item: SiteIssueEntity): Long
+    @Update suspend fun updateIssue(item: SiteIssueEntity)
+    @Insert suspend fun insertIssueEvent(item: SiteIssueEventEntity): Long
+}
+
+@Dao
+interface CoordinationDao {
+    @Query("SELECT * FROM project_consultants WHERE projectId=:projectId AND status='ACTIVE' ORDER BY discipline, name")
+    fun getConsultants(projectId: Long): Flow<List<ProjectConsultantEntity>>
+
+    @Query("SELECT * FROM coordination_items WHERE projectId=:projectId AND archivedAt IS NULL ORDER BY CASE status WHEN 'CLOSED' THEN 1 ELSE 0 END, dueAt IS NULL, dueAt, createdAt DESC")
+    fun getItems(projectId: Long): Flow<List<CoordinationItemEntity>>
+
+    @Query("SELECT * FROM coordination_items WHERE id=:id LIMIT 1")
+    suspend fun getItemById(id: Long): CoordinationItemEntity?
+
+    @Query("SELECT * FROM coordination_events WHERE coordinationItemId=:itemId ORDER BY occurredAt, id")
+    fun getEvents(itemId: Long): Flow<List<CoordinationEventEntity>>
+
+    @Insert suspend fun insertConsultant(item: ProjectConsultantEntity): Long
+    @Update suspend fun updateConsultant(item: ProjectConsultantEntity)
+    @Insert suspend fun insertItem(item: CoordinationItemEntity): Long
+    @Update suspend fun updateItem(item: CoordinationItemEntity)
+    @Insert suspend fun insertEvent(item: CoordinationEventEntity): Long
 }
 
 @Dao

@@ -1,6 +1,10 @@
 # ArchiMan Application Structure and Hierarchy
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 22, reviewed 11 September 2026.
+The Android app is the offline field client and authoritative local server. The authenticated Carbon-based web portal is the primary office ERP surface for portfolio administration, planning, registers, coordination, review and high-volume entry. Both surfaces use the same phone database; there is no browser-side replica.
+
+ArchiMan is office-only: opening the phone app, or the LAN browser portal, requires a real AORMS account. Every launch verifies live against AORMS's Product License API (`POST /platform/v1/verify-login`, `com.example.aorms.AormsIdentityClient`) — there is no offline or cached session. An administrator enters the office's AORMS server URL and product API key once, under Practice, before anyone can sign in. The LAN portal accepts either an AORMS email (checked the same way, over the phone's own connection) or a phone-created local portal account for people without an AORMS seat.
+
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 24, reviewed 13 September 2026.
 
 ## User-facing hierarchy
 
@@ -42,7 +46,7 @@ Portfolio
 ├── Library
 │   └── PWD SR → Work Type → Work Item → UOM / Formula
 └── Practice
-    ├── Company / Practice Profile, Logo, Backup and Supabase Connection
+    ├── Company / Practice Profile, Logo, Profile Transfer, Encrypted Company Database, Supabase Connection and AORMS Identity Server
     └── Local Wi-Fi Workspace / User Access / Support Diagnostics
 ```
 
@@ -51,7 +55,7 @@ The bottom navigation represents stable hierarchy levels, not a second copy of p
 - At portfolio level: Projects, Contacts, Library and Practice.
 - Inside a project: Project, Work, Record, M-Book and More. Portfolio exit uses the project header back action.
 - There is no competing project tab row. Brief, planning and specialist registers are grouped in one labelled More hierarchy.
-- Company profile, logo/backup, Supabase configuration and the LAN portal are grouped under Practice; measurement exports remain inside M-Book.
+- Company profile, logo/profile transfer, encrypted whole-company database portability, Supabase configuration and the LAN workspace are grouped under Practice; measurement exports remain inside M-Book. Database import/export is intentionally unavailable through the browser workspace.
 - M-Book and Record remain persistent project actions and are not repeated inside the Overview menu.
 - Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of ArchiMan.
 
@@ -111,7 +115,7 @@ com.example
 
 ## Incremental refactoring sequence
 
-1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-22 baseline.
+1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-24 baseline.
 2. Split the monolithic `SiteViewModel` into project, measurement and catalogue coordinators.
 3. Split `ProjectWorkspaceScreen` into overview, planning and team feature files.
 4. Split `Entities.kt`, `SiteDaos.kt` and `SiteRepository.kt` by business area without changing the schema.

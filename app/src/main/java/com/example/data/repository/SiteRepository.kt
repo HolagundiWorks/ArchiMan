@@ -3,9 +3,12 @@ package com.example.data.repository
 import androidx.room.withTransaction
 import com.example.domain.MeasurementSheetStatus
 import com.example.domain.MeasurementSheetWorkflow
+import com.example.domain.CoordinationWorkflow
+import com.example.domain.SiteIssueWorkflow
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import com.example.portal.PortalPasswordHasher
 import com.example.portal.PortalPrincipal
 
@@ -39,6 +42,31 @@ class SiteRepository(private val database: AppDatabase) {
     }
 
     suspend fun setLocalUserActive(user: LocalUserEntity, active: Boolean) = database.portalAccessDao().updateUser(user.copy(isActive = active, updatedAt = System.currentTimeMillis()))
+    suspend fun getLocalUserById(id: Long) = database.portalAccessDao().getUserById(id)
+
+    suspend fun updateLocalUser(user: LocalUserEntity, displayName: String, role: String, active: Boolean, newPassword: CharArray?) {
+        require(role in setOf("ADMIN", "EDITOR", "VIEWER")) { "Unknown portal role." }
+        val currentUsers = localUsers.first()
+        val wouldRemoveLastAdmin = user.role == "ADMIN" && user.isActive && (role != "ADMIN" || !active) &&
+            currentUsers.count { it.role == "ADMIN" && it.isActive } <= 1
+        require(!wouldRemoveLastAdmin) { "At least one active administrator is required." }
+        val password = newPassword?.takeIf { it.isNotEmpty() }
+        val digest = password?.let {
+            require(it.size >= 10) { "The new password must contain at least 10 characters." }
+            PortalPasswordHasher.hash(it)
+        }
+        database.portalAccessDao().updateUser(
+            user.copy(
+                displayName = displayName.trim().ifBlank { user.username },
+                role = role,
+                isActive = active,
+                passwordHash = digest?.hash ?: user.passwordHash,
+                passwordSalt = digest?.salt ?: user.passwordSalt,
+                passwordIterations = digest?.iterations ?: user.passwordIterations,
+                updatedAt = System.currentTimeMillis()
+            )
+        )
+    }
     suspend fun recordPortalAudit(event: PortalAuditEventEntity) = database.portalAccessDao().insertAuditEvent(event)
     fun getProjectConsultancyProfile(projectId: Long) = database.projectConsultancyDao().observeProfile(projectId)
     fun getProjectScopeItems(projectId: Long) = database.projectConsultancyDao().observeScopeItems(projectId)
@@ -81,6 +109,94 @@ class SiteRepository(private val database: AppDatabase) {
     suspend fun updateSiteInspection(item: SiteInspectionEntity) = database.siteInspectionDao().update(item)
     suspend fun deleteSiteInspection(item: SiteInspectionEntity) = database.siteInspectionDao().delete(item)
 
+    fun getDailySiteReports(projectId: Long) = database.siteControlDao().observeDailyReports(projectId)
+    fun getProjectDecisions(projectId: Long) = database.siteControlDao().observeDecisions(projectId)
+    fun getSiteIssues(projectId: Long) = database.siteControlDao().observeIssues(projectId)
+    fun getSiteIssueEvents(issueId: Long) = database.siteControlDao().observeIssueEvents(issueId)
+    suspend fun upsertDailySiteReport(item: DailySiteReportEntity) = database.siteControlDao().upsertDailyReport(item)
+    suspend fun deleteDailySiteReport(item: DailySiteReportEntity) = database.siteControlDao().deleteDailyReport(item)
+    suspend fun insertProjectDecision(item: ProjectDecisionEntity) = database.siteControlDao().insertDecision(item)
+    suspend fun updateProjectDecision(item: ProjectDecisionEntity) = database.siteControlDao().updateDecision(item)
+
+    suspend fun createSiteIssue(item: SiteIssueEntity, actor: String = "Local user"): Long = database.withTransaction {
+        require(item.type in setOf("SNAG", "NCR")) { "Site issue type must be SNAG or NCR." }
+        val id = database.siteControlDao().insertIssue(item.copy(status = "OPEN"))
+        database.siteControlDao().insertIssueEvent(SiteIssueEventEntity(siteIssueId = id, fromStatus = "", toStatus = "OPEN", note = "Issue recorded", actor = actor))
+        id
+    }
+
+    suspend fun transitionSiteIssue(item: SiteIssueEntity, toStatus: String, note: String, actor: String = "Local user") = database.withTransaction {
+        SiteIssueWorkflow.requireTransition(item.status, toStatus, note)
+        val now = System.currentTimeMillis()
+        database.siteControlDao().updateIssue(item.copy(status = toStatus, verificationNote = if (toStatus == "CLOSED") note.trim() else item.verificationNote, closedAt = if (toStatus == "CLOSED") now else null, updatedAt = now))
+        database.siteControlDao().insertIssueEvent(SiteIssueEventEntity(siteIssueId = item.id, fromStatus = item.status, toStatus = toStatus, note = note.trim(), actor = actor))
+    }
+
+    fun getProjectConsultants(projectId: Long) = database.coordinationDao().getConsultants(projectId)
+    fun getCoordinationItems(projectId: Long) = database.coordinationDao().getItems(projectId)
+    suspend fun getCoordinationItemById(id: Long) = database.coordinationDao().getItemById(id)
+    fun getCoordinationEvents(itemId: Long) = database.coordinationDao().getEvents(itemId)
+    suspend fun insertProjectConsultant(item: ProjectConsultantEntity) = database.coordinationDao().insertConsultant(item)
+    suspend fun updateProjectConsultant(item: ProjectConsultantEntity) = database.coordinationDao().updateConsultant(item)
+
+    suspend fun createCoordinationItem(item: CoordinationItemEntity, actor: String = "Local user"): Long =
+        database.withTransaction {
+            val initial = CoordinationWorkflow.initialStatus(item.type)
+            val id = database.coordinationDao().insertItem(item.copy(status = initial))
+            database.coordinationDao().insertEvent(
+                CoordinationEventEntity(
+                    coordinationItemId = id,
+                    fromStatus = "",
+                    toStatus = initial,
+                    note = "Record created",
+                    actor = actor
+                )
+            )
+            id
+        }
+
+    suspend fun transitionCoordinationItem(item: CoordinationItemEntity, toStatus: String, note: String, actor: String = "Local user") =
+        database.withTransaction {
+            require(toStatus in CoordinationWorkflow.allowedNextStatuses(item.type, item.status)) {
+                "Invalid ${item.type} transition from ${item.status} to $toStatus"
+            }
+            val now = System.currentTimeMillis()
+            database.coordinationDao().updateItem(
+                item.copy(
+                    status = toStatus,
+                    response = note.trim().ifBlank { item.response },
+                    updatedAt = now,
+                    closedAt = if (CoordinationWorkflow.isClosed(toStatus)) now else null
+                )
+            )
+            database.coordinationDao().insertEvent(
+                CoordinationEventEntity(
+                    coordinationItemId = item.id,
+                    fromStatus = item.status,
+                    toStatus = toStatus,
+                    note = note.trim(),
+                    actor = actor,
+                    occurredAt = now
+                )
+            )
+        }
+
+    suspend fun archiveCoordinationItem(item: CoordinationItemEntity, actor: String = "Local user") =
+        database.withTransaction {
+            val now = System.currentTimeMillis()
+            database.coordinationDao().updateItem(item.copy(archivedAt = now, updatedAt = now))
+            database.coordinationDao().insertEvent(
+                CoordinationEventEntity(
+                    coordinationItemId = item.id,
+                    fromStatus = item.status,
+                    toStatus = "ARCHIVED",
+                    note = "Record archived",
+                    actor = actor,
+                    occurredAt = now
+                )
+            )
+        }
+
     fun getProjectDrawings(projectId: Long) = database.drawingDao().getDrawings(projectId)
     fun getDrawingRevisions(projectId: Long) = database.drawingDao().getRevisions(projectId)
     fun getDrawingTransmittals(projectId: Long) = database.drawingDao().getTransmittals(projectId)
@@ -100,6 +216,8 @@ class SiteRepository(private val database: AppDatabase) {
     // Client operations
     suspend fun insertClient(client: ClientEntity): Long =
         database.clientDao().insertClient(client)
+
+    suspend fun getClientById(id: Long): ClientEntity? = database.clientDao().getClientById(id)
 
     suspend fun updateClient(client: ClientEntity) =
         database.clientDao().updateClient(client)
@@ -192,6 +310,8 @@ class SiteRepository(private val database: AppDatabase) {
     suspend fun insertProject(project: ProjectEntity): Long =
         database.projectDao().insertProject(project)
 
+    suspend fun getProjectById(id: Long): ProjectEntity? = database.projectDao().getProjectById(id)
+
     suspend fun updateProject(project: ProjectEntity) =
         database.projectDao().updateProject(project)
 
@@ -200,6 +320,12 @@ class SiteRepository(private val database: AppDatabase) {
 
     suspend fun insertContractor(contractor: ContractorEntity): Long =
         database.contractorDao().insertContractor(contractor)
+
+    suspend fun getContractorById(id: Long): ContractorEntity? = database.contractorDao().getContractorById(id)
+
+    suspend fun getItemById(id: Long): ItemMasterEntity? = database.itemMasterDao().getItemById(id)
+
+    suspend fun getFloorById(id: Long): FloorEntity? = database.floorDao().getFloorById(id)
 
     suspend fun updateContractor(contractor: ContractorEntity) =
         database.contractorDao().updateContractor(contractor)

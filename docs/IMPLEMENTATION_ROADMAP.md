@@ -2,7 +2,7 @@
 
 > ArchiMan is a field-first, quantity-only Measurement Book application. Rates, valuation, billing and accounting are outside the product boundary. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`.
 
-Current implementation baseline: Room schema 22, pure Material 3 UI, audited 11 September 2026.
+Current implementation baseline: Room schema 24, pure Material 3 UI, audited 13 September 2026.
 
 ## Phase 0 - Scope lock and safety
 
@@ -63,7 +63,7 @@ Exit criteria: one canonical work catalog with no unresolved duplicate candidate
 
 ## Phase 4 - Measurement sheet domain and safe schema migration
 
-Status: Completed through schema version 22 locally and installed as an in-place device upgrade. The schema-22 migration removes the obsolete commercial schema while preserving every quantity and measurement-context field; a production backup/restore drill remains open.
+Status: Completed through schema version 24 locally. The schema-22 migration removes the obsolete commercial schema while preserving every quantity and measurement-context field; schema 23 adds non-commercial project coordination registers; schema 24 adds decisions, daily reports and verified snag/NCR closure. A production backup/restore drill remains open.
 
 - [x] Split measurement sheet headers from linked measurement rows while retaining compatibility snapshots.
 - [x] Introduce immutable formula code, formula version, UOM, item, contractor, floor, and date snapshots.
@@ -93,19 +93,24 @@ Exit criteria: a complete traceable field-to-approved-M-Book process.
 
 ## Phase 6 - Enterprise platform
 
-Status: Started; offline security and encrypted platform backup controls are implemented. Multi-user platform capabilities remain future scope.
+Status: Started; offline security, encrypted whole-company portability and authenticated local-browser entry are implemented. Project-scoped authorization, concurrent editing controls and remote synchronization remain future scope.
 
 - Authentication, organizations, roles, and permissions.
 - [x] Add optional Supabase project configuration using a client-safe publishable key and explicit connection test; no data sync is enabled by configuration alone.
 - [x] Add portable company-profile/logo export and confirmation-based import.
+- [x] Add a password-encrypted `.archimandb` whole-company export/import containing a consistent SQLite snapshot and managed logo/photo files, with manifest checksums, preview, staged restart restore and retained private rollback copies.
 - [x] Encrypted Android backup/device-transfer allowlist for the database, attachments, and drafts.
 - [x] User-started, named-user HTTPS workspace bound to the phone's current local Wi-Fi address.
 - [x] Admin, Editor and Viewer roles with slow salted password hashing, login throttling, session expiry and CSRF protection.
-- [x] Controlled task, approval and backlog quick entry with an append-only audit log.
-- [ ] Project-specific account assignments and optimistic conflict handling before exposing measurement or document editing in the browser.
+- [x] Authenticated responsive browser administration hosted by the phone: company profile, projects, clients, contractors, qualification/assignment, floors, scope, planning, site reports, consultant coordination, measurement rows and M-Book review transitions; all writes use the repository/domain path and append-only portal audit.
+- [x] Replace the browser's flat record-and-form page with an offline Carbon-style ERP shell: persistent navigation, project context, dashboard KPIs, module routes, data-table and empty-state patterns, progressive actions and narrow-screen adaptation.
+- [x] Add browser Admin controls for portal-user creation, role/activation/password maintenance, project lifecycle, work-item archival, coordination archival and M-Book archival, with recent web-audit visibility.
+- [ ] Add project-specific account assignments and optimistic conflict handling. Current Admin/Editor authority is practice-wide, while Viewer remains read-only.
+- [ ] Complete field-by-field browser editing for every existing operational record. Current browser administration covers creation, workflow transitions, identity settings and controlled archival; remaining edits continue on the phone.
 - Optional secure multi-device synchronization and remote review remain future scope.
 - Conflict resolution and device management.
 - [x] Privacy-safe, user-initiated offline support diagnostics export and operations runbook.
+- [x] Enable release code optimization and resource shrinking, retaining retraceable crash metadata.
 - [x] CI build, unit/migration test, product-boundary, merged-manifest, report, and APK artifact gates.
 - Managed distribution and signed release promotion.
 - [x] Remove unused network SDKs; allow only the platform permissions required by the approved local Wi-Fi workspace.
@@ -114,7 +119,7 @@ Exit criteria: multi-user, recoverable, supportable deployment with operational 
 
 ## Phase 5A - Project onboarding and controls
 
-Status: Core registers implemented through schema 22; template administration and formal sign-off documents remain open.
+Status: Core registers implemented through schema 23; template administration and formal sign-off documents remain open.
 
 - [x] Project-type onboarding questionnaire with stable question codes and template version snapshots.
 - [x] Persisted answers, clarifications and completion progress.
@@ -157,6 +162,7 @@ Status: Core registers implemented through schema 22; template administration an
 - [x] Preserve the selected work-item ID through canonical editor sessions and reject orphan measurement saves.
 - [x] Build and migration-test the schema-18 milestone locally.
 - [x] Add schema 19 with preserving practice/client profile and project site-data expansion.
+- [x] Add schema 23 with consultant responsibility assignments, RFI/submittal/site-instruction registers and immutable coordination events.
 - [x] Migrate the shared design foundation to Material 3 color, typography, shape, text-field, divider, dropdown and auto-mirrored icon APIs.
 - [x] Replace the parallel custom design system with direct Material 3 theme roles and components.
 - [ ] Add verified dark/adaptive screenshot coverage.
@@ -168,12 +174,13 @@ Status: Core registers implemented through schema 22; template administration an
 - [x] Add schema-16 drawing register, immutable revision, transmittal and markup-metadata foundation.
 - [ ] Complete controlled drawing-file intake, managed storage, revision issue workflow and transmittal export.
 - [ ] Integrate a native DWG viewer behind a replaceable engine boundary; add non-destructive annotation and calibrated measurement overlays.
-- [ ] Add revision-linked RFIs, submittals and numbered site instructions.
-- [ ] Add daily reports, snagging and NCR evidence/verification closure.
-- [ ] Add consultant coordination and a responsibility matrix.
+- [x] Add numbered RFIs, submittals and site instructions with optional exact drawing-revision links and an immutable in-app activity timeline.
+- [ ] Add managed attachments to coordination records and include them in controlled exports.
+- [x] Add daily reports, formal decisions, snagging and NCR evidence/verification closure with immutable status events.
+- [x] Add consultant coordination and a responsibility matrix foundation.
 - [ ] Replace the simple schedule with programme dependencies, baselines and progress updates.
 - [ ] Add a versioned handover and as-built document package.
-- [ ] Add roles, offline synchronisation, immutable cross-feature audit events and tested backups.
+- [ ] Add offline synchronization and complete cross-feature immutable audit coverage; local roles, portal audit and tested encrypted company-package validation are implemented.
 - [ ] Add external integrations through explicit adapters.
 - [x] Exclude approval/compliance matrices and jurisdiction profiles from ArchiMan.
 
@@ -191,7 +198,7 @@ The six distinct September 2026 source briefs remain under `Updated Briefs` as r
 - [ ] Add client/technical decision records and linked project backlogs.
 - [ ] Add design/execution/handover progress and project-specific execution-level status.
 - [x] Add local users, Admin/Editor/Viewer roles and immutable audit events for controlled LAN quick entry.
-- [ ] Add project-specific assignments and conflict handling before measurement or document editing is exposed over LAN.
+- [ ] Add project-specific assignments and optimistic conflict handling; current LAN roles are practice-wide.
 
 ## Architecture Consultancy ERP v3 proposal
 
@@ -202,8 +209,8 @@ The ERP proposal is retained under `Updated Briefs` as reference material. Its f
 - [x] Expand client records with type, contact person, email, correspondence address, preferred communication and notes.
 - [x] Add structured project site data under Brief & Scope.
 - [ ] Add installation/server identity and local system-health reporting.
-- [ ] Design encrypted whole-company package export/import with preview, checksum and safety backup.
+- [x] Implement password-encrypted whole-company `.archimandb` export/import with preview, per-file SHA-256 validation, SQLite integrity/foreign-key checks, staged restart replacement and retained private safety backups.
 - [x] Add local users, roles and immutable audit events for controlled writable LAN access.
-- [ ] Add project assignments and cross-feature conflict handling before expanding LAN writes.
-- [ ] Add authenticated responsive LAN administration only after concurrency, threat-model and recovery tests.
+- [ ] Add project assignments and cross-feature optimistic conflict handling; global Admin/Editor LAN entry is implemented.
+- [x] Add authenticated responsive LAN data entry with named roles, CSRF protection, login throttling, bounded connections and requests, capped idle/absolute sessions, Host/Origin validation, hardened browser headers, short-lived read caching and immutable mutation audit. Independent threat-model and penetration-test acceptance remain open.
 - [ ] Evaluate optional Supabase backup separately from synchronization; neither is part of the current release.

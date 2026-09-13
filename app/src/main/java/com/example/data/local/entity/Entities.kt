@@ -317,6 +317,143 @@ data class SiteInspectionEntity(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+@Entity(tableName = "daily_site_reports", indices = [Index("projectId"), Index(value = ["projectId", "reportDate"], unique = true)])
+data class DailySiteReportEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val reportDate: Long,
+    val weather: String = "",
+    val manpower: String = "",
+    val workCompleted: String,
+    val materialsReceived: String = "",
+    val delaysOrConstraints: String = "",
+    val safetyObservations: String = "",
+    val nextDayPlan: String = "",
+    val preparedBy: String = "",
+    val photoUri: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "project_decisions", indices = [Index("projectId"), Index("status"), Index(value = ["projectId", "referenceNumber"], unique = true)])
+data class ProjectDecisionEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val referenceNumber: String,
+    val title: String,
+    val context: String = "",
+    val decisionRequired: String,
+    val impact: String = "",
+    val finalDecision: String = "",
+    val requestedFrom: String = "",
+    val owner: String = "",
+    val dueAt: Long? = null,
+    val status: String = "OPEN",
+    val decidedAt: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "site_issues", indices = [Index("projectId"), Index("type"), Index("status"), Index(value = ["projectId", "referenceNumber"], unique = true)])
+data class SiteIssueEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val referenceNumber: String,
+    val type: String,
+    val title: String,
+    val location: String = "",
+    val description: String,
+    val severity: String = "NORMAL",
+    val assignedTo: String = "",
+    val correctiveAction: String = "",
+    val dueAt: Long? = null,
+    val status: String = "OPEN",
+    val evidenceUri: String? = null,
+    val verificationNote: String = "",
+    val closedAt: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "site_issue_events", indices = [Index("siteIssueId"), Index("occurredAt")])
+data class SiteIssueEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val siteIssueId: Long,
+    val fromStatus: String,
+    val toStatus: String,
+    val note: String = "",
+    val actor: String = "",
+    val occurredAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "project_consultants",
+    indices = [
+        Index("projectId"),
+        Index(value = ["projectId", "name", "discipline"], unique = true)
+    ]
+)
+data class ProjectConsultantEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val name: String,
+    val organisation: String = "",
+    val discipline: String,
+    val email: String = "",
+    val phone: String = "",
+    val phase: String = "All phases",
+    val responsibility: String = "",
+    val raciRole: String = "RESPONSIBLE",
+    val status: String = "ACTIVE",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+@Entity(
+    tableName = "coordination_items",
+    indices = [
+        Index("projectId"),
+        Index("type"),
+        Index("status"),
+        Index("dueAt"),
+        Index(value = ["projectId", "type", "referenceNumber"], unique = true)
+    ]
+)
+data class CoordinationItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val type: String,
+    val referenceNumber: String,
+    val subject: String,
+    val discipline: String = "Architectural",
+    val location: String = "",
+    val raisedBy: String = "",
+    val assignedTo: String = "",
+    val questionOrRequirement: String = "",
+    val response: String = "",
+    val status: String = "DRAFT",
+    val priority: String = "NORMAL",
+    val dueAt: Long? = null,
+    val linkedDrawingRevisionId: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val closedAt: Long? = null,
+    val archivedAt: Long? = null
+)
+
+@Entity(
+    tableName = "coordination_events",
+    indices = [Index("coordinationItemId"), Index("occurredAt")]
+)
+data class CoordinationEventEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val coordinationItemId: Long,
+    val fromStatus: String,
+    val toStatus: String,
+    val note: String = "",
+    val actor: String = "",
+    val occurredAt: Long = System.currentTimeMillis()
+)
+
 @Entity(
     tableName = "project_drawings",
     indices = [Index("projectId"), Index(value = ["projectId", "drawingNumber"], unique = true)]

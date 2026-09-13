@@ -2,7 +2,7 @@
 
 - Date updated: 11 September 2026
 - Reference device: Samsung A10s, 720 × 1520 px (approximately 360 dp wide)
-- Implementation baseline: ArchiMan schema 22
+- Implementation baseline: ArchiMan schema 24
 
 ## Scope
 
@@ -68,4 +68,4 @@ The project More screen contains Brief, Planning, Onboarding & Controls, Drawing
 - Verify TalkBack traversal and row-action labels.
 - Verify landscape/tablet layouts and font scaling at 1.3× and 1.5×.
 - Validate permission denial, offline restart and attachment recovery on production-class devices.
-- Add automated navigation and screenshot tests for the schema-22 hierarchy.
+- Add automated navigation and screenshot tests for the schema-24 hierarchy.

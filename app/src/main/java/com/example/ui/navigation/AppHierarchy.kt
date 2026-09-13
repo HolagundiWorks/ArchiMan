@@ -32,6 +32,8 @@ enum class ProjectSection {
     MORE,
     DRAWINGS,
     REPORTS,
+    DECISIONS,
+    COORDINATION,
     CONTROLS,
     CONTRACTORS
 }

@@ -2,7 +2,7 @@
 
 ## Product, UX, Architecture, and Delivery Specification
 
-Status: Current product and architecture baseline at Room schema 22, reviewed 11 September 2026
+Status: Current product and architecture baseline at Room schema 24, reviewed 13 September 2026
 Product boundary: Offline-first, quantity-only architectural Measurement Book with supporting project administration
 Explicitly out of scope: rates, valuation, invoices, bills, retention, payments, and accounting
 
@@ -280,7 +280,7 @@ Direct deletion is forbidden when a work item is referenced.
 - Role-based access for create, submit, check, approve, export, and administration.
 - Audit user, device, timestamp, old value, and new value.
 - Configurable backup and retention policy.
-- Commercial data is neither exposed nor present in the current schema. Historical migrations remain available only to upgrade older databases into schema 22 without losing measurement rows.
+- Commercial data is neither exposed nor present in the current schema. Historical migrations remain available only to upgrade older databases through schema 24 without losing measurement rows.
 
 ## 14. Target Android architecture
 

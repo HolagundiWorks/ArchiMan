@@ -66,6 +66,11 @@ fun ProjectWorkspaceScreen(
     val schedules by viewModel.projectSchedules.collectAsStateWithLifecycle()
     val meetingMinutes by viewModel.meetingMinutes.collectAsStateWithLifecycle()
     val siteInspections by viewModel.siteInspections.collectAsStateWithLifecycle()
+    val dailySiteReports by viewModel.dailySiteReports.collectAsStateWithLifecycle()
+    val projectDecisions by viewModel.projectDecisions.collectAsStateWithLifecycle()
+    val siteIssues by viewModel.siteIssues.collectAsStateWithLifecycle()
+    val projectConsultants by viewModel.projectConsultants.collectAsStateWithLifecycle()
+    val coordinationItems by viewModel.coordinationItems.collectAsStateWithLifecycle()
     val projectDrawings by viewModel.projectDrawings.collectAsStateWithLifecycle()
     val drawingRevisions by viewModel.drawingRevisions.collectAsStateWithLifecycle()
     val drawingTransmittals by viewModel.drawingTransmittals.collectAsStateWithLifecycle()
@@ -96,6 +101,8 @@ fun ProjectWorkspaceScreen(
         ProjectSection.MORE -> "Project tools"
         ProjectSection.DRAWINGS -> "Drawings"
         ProjectSection.REPORTS -> "Site reports"
+        ProjectSection.DECISIONS -> "Decisions"
+        ProjectSection.COORDINATION -> "Coordination"
         ProjectSection.CONTROLS -> "Onboarding & controls"
         ProjectSection.CONTRACTORS -> "Project team"
     }
@@ -145,7 +152,7 @@ fun ProjectWorkspaceScreen(
                     taskCount = projectTasks.size,
                     selectionCount = selectionItems.size,
                     scheduleCount = schedules.size,
-                    reportCount = meetingMinutes.size + siteInspections.size,
+                    reportCount = meetingMinutes.size + siteInspections.size + dailySiteReports.size + siteIssues.size,
                     drawingCount = projectDrawings.size,
                     measurementCount = projectMeasurements.size,
                     briefStatus = consultancyProfile?.briefStatus ?: "NOT_STARTED",
@@ -162,7 +169,9 @@ fun ProjectWorkspaceScreen(
                 }
                 ProjectSection.MORE -> ProjectMoreMenu(
                     drawingCount = projectDrawings.size,
-                    reportCount = meetingMinutes.size + siteInspections.size,
+                    reportCount = meetingMinutes.size + siteInspections.size + dailySiteReports.size + siteIssues.size,
+                    decisionCount = projectDecisions.count { it.status != "DECIDED" },
+                    coordinationCount = coordinationItems.count { !com.example.domain.CoordinationWorkflow.isClosed(it.status) },
                     contractorCount = projectContractors.size,
                     controlCount = approvals.count { it.status != "APPROVED" } + backlog.count { it.status == "OPEN" },
                     onSelect = viewModel::setProjectSection
@@ -171,7 +180,19 @@ fun ProjectWorkspaceScreen(
                     DrawingRegisterScreen(viewModel, projectDrawings, drawingRevisions, drawingTransmittals)
                 }
                 ProjectSection.REPORTS -> ProjectSecondarySection("Site reports") {
-                    ProjectReportsScreen(viewModel, meetingMinutes, siteInspections)
+                    ProjectReportsScreen(viewModel, meetingMinutes, siteInspections, dailySiteReports, siteIssues)
+                }
+                ProjectSection.DECISIONS -> ProjectSecondarySection("Decisions") {
+                    ProjectDecisionsScreen(viewModel, projectDecisions)
+                }
+                ProjectSection.COORDINATION -> ProjectSecondarySection("Coordination") {
+                    CoordinationScreen(
+                        viewModel = viewModel,
+                        consultants = projectConsultants,
+                        records = coordinationItems,
+                        drawings = projectDrawings,
+                        revisions = drawingRevisions
+                    )
                 }
                 ProjectSection.CONTROLS -> ProjectSecondarySection("Onboarding & controls") {
                     ProjectControlsScreen(viewModel, currentProject, onboardingResponses, approvals, backlog)
@@ -232,6 +253,8 @@ fun ProjectWorkspaceScreen(
 private fun ProjectMoreMenu(
     drawingCount: Int,
     reportCount: Int,
+    decisionCount: Int,
+    coordinationCount: Int,
     contractorCount: Int,
     controlCount: Int,
     onSelect: (ProjectSection) -> Unit
@@ -251,7 +274,9 @@ private fun ProjectMoreMenu(
         item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", Icons.AutoMirrored.Filled.Rule) { onSelect(ProjectSection.CONTROLS) } }
         item { Text("DOCUMENTS & SITE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
         item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", Icons.Default.Architecture) { onSelect(ProjectSection.DRAWINGS) } }
-        item { ProjectMoreRow("Site reports", "$reportCount meeting minutes and inspection reports", Icons.AutoMirrored.Filled.Assignment) { onSelect(ProjectSection.REPORTS) } }
+        item { ProjectMoreRow("Site reports", "$reportCount daily, snag, NCR, inspection and meeting records", Icons.AutoMirrored.Filled.Assignment) { onSelect(ProjectSection.REPORTS) } }
+        item { ProjectMoreRow("Decisions", "$decisionCount decisions awaiting closure", Icons.Default.Gavel) { onSelect(ProjectSection.DECISIONS) } }
+        item { ProjectMoreRow("Coordination", "$coordinationCount open RFIs, submittals or instructions", Icons.Default.SyncAlt) { onSelect(ProjectSection.COORDINATION) } }
         item { Text("PROJECT TEAM", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp)) }
         item { ProjectMoreRow("Project team", "$contractorCount assigned contractors", Icons.Default.Engineering) { onSelect(ProjectSection.CONTRACTORS) } }
     }
