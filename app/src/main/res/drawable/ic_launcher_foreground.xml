@@ -3,7 +3,7 @@
     <item
         android:width="72dp"
         android:height="72dp"
-        android:drawable="@drawable/amb_icon_logo_1787383164279"
+        android:drawable="@drawable/ic_launcher_boolean"
         android:gravity="center" />
 </layer-list>
 

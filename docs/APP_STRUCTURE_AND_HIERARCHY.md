@@ -44,7 +44,7 @@ Portfolio
 ├── Library
 │   └── PWD SR → Work Type → Work Item → UOM / Formula
 └── Practice
-    ├── Company / Practice Profile, Logo, Profile Transfer, Encrypted Company Database and Supabase Connection
+    ├── Company / Practice Profile, Logo, Profile Transfer and Encrypted Company Database
     └── Local Wi-Fi Workspace / User Access / Support Diagnostics
 ```
 
@@ -53,7 +53,7 @@ The bottom navigation represents stable hierarchy levels, not a second copy of p
 - At portfolio level: Projects, Contacts, Library and Practice.
 - Inside a project: Project, Work, Record, M-Book and More. Portfolio exit uses the project header back action.
 - There is no competing project tab row. Brief, planning and specialist registers are grouped in one labelled More hierarchy.
-- Company profile, logo/profile transfer, encrypted whole-company database portability, Supabase configuration and the LAN workspace are grouped under Practice; measurement exports remain inside M-Book. Database import/export is intentionally unavailable through the browser workspace.
+- Company profile, logo/profile transfer, encrypted whole-company database portability and the LAN workspace are grouped under Practice; measurement exports remain inside M-Book. Database import/export is intentionally unavailable through the browser workspace.
 - M-Book and Record remain persistent project actions and are not repeated inside the Overview menu.
 - Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of ArchiMan.
 

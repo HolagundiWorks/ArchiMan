@@ -4,7 +4,7 @@
 
 ## Product boundary
 
-ArchiMan is an offline-first, quantity-only Architectural Consultancy Measurement Book with supporting project administration. It is not a rate, valuation, billing, statutory approval portal, CAD/BIM authoring package, accounting system, or launcher.
+ArchiMan is open-source and local-only: an offline-first, quantity-only Architectural Consultancy Measurement Book with supporting project administration. There is no cloud account, remote server or background sync of any kind — the phone is the only database, and portability between phones happens only through explicit, user-initiated `.archimandb` export/import. ArchiMan is not a rate, valuation, billing, statutory approval portal, CAD/BIM authoring package, accounting system, or launcher.
 
 ArchiMan may expose a write-enabled web workspace on the phone's current local Wi-Fi network only after an explicit user action. Access uses named local accounts with Admin, Editor or Viewer roles. Passwords are salted and deliberately slow-hashed; data is disclosed only after authentication; state-changing requests require CSRF tokens and create append-only audit events. The workspace uses phone-generated HTTPS, binds to the Wi-Fi address, performs no cloud upload, and stops on user request, after one hour, or on application teardown.
 

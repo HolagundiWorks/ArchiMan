@@ -102,9 +102,11 @@ private fun PortfolioPracticeScreen(onNavigate: (AppScreen) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             item { Text("PRACTICE SETUP", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp) }
-            item { PortfolioToolRow("Company profile & connections", "Logo, practice identity, profile backup and Supabase setup", Icons.Default.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
+            item { PortfolioToolRow("Company profile", "Logo, practice identity and profile backup", Icons.Default.Domain) { onNavigate(AppScreen.COMPANY_PROFILE) } }
             item { Text("LOCAL ACCESS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
             item { PortfolioToolRow("Local Wi-Fi workspace", "Secure browser access with named users and controlled editing", Icons.Default.Wifi) { onNavigate(AppScreen.LOCAL_PORTAL) } }
+            item { Text("MONITORING", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
+            item { PortfolioToolRow("Company dashboard", "Full-screen landscape monitoring board — leave this phone on a desk or wall-mounted", Icons.Default.Dashboard) { onNavigate(AppScreen.COMPANY_DASHBOARD) } }
         }
     }
 }

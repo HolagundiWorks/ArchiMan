@@ -16,7 +16,6 @@ import com.example.ui.navigation.DirectorySection
 import com.example.ui.navigation.HomeTab
 import com.example.ui.navigation.ProjectSection
 import com.example.portal.LocalPortalServer
-import com.example.cloud.SupabaseConnectionManager
 import com.example.domain.CompanyDashboardSnapshot
 import com.example.domain.computeCompanyDashboardSnapshot
 import com.example.company.CompanyDatabaseImportPreview
@@ -42,9 +41,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     val repository = SiteRepository(database)
     private val localPortalServer = LocalPortalServer(application)
     val localPortalState = localPortalServer.state
-    private val supabaseConnectionManager = SupabaseConnectionManager(application)
     private val companyDatabasePackageManager = CompanyDatabasePackageManager(application, database)
-    val supabaseConnectionState = supabaseConnectionManager.state
 
     private val _currentScreen = MutableStateFlow(AppScreen.HOME)
     val currentScreen: StateFlow<AppScreen> = _currentScreen.asStateFlow()
@@ -699,12 +696,6 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearPortalUserMessage() { _portalUserMessage.value = null }
-
-    fun configureSupabase(projectUrl: String, publishableKey: String) {
-        viewModelScope.launch(Dispatchers.IO) { supabaseConnectionManager.saveAndTest(projectUrl, publishableKey) }
-    }
-
-    fun clearSupabaseConnection() = supabaseConnectionManager.clear()
 
     override fun onCleared() {
         localPortalServer.close()

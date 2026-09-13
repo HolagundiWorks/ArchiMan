@@ -96,8 +96,7 @@ Exit criteria: a complete traceable field-to-approved-M-Book process.
 Status: Started; offline security, encrypted whole-company portability and authenticated local-browser entry are implemented. Project-scoped authorization, concurrent editing controls and remote synchronization remain future scope.
 
 - Authentication, organizations, roles, and permissions.
-- [x] Add optional Supabase project configuration using a client-safe publishable key and explicit connection test; no data sync is enabled by configuration alone.
-- [x] Add portable company-profile/logo export and confirmation-based import.
+- [x] Add portable company-profile/logo export and confirmation-based import as a `.archimandb` file.
 - [x] Add a password-encrypted `.archimandb` whole-company export/import containing a consistent SQLite snapshot and managed logo/photo files, with manifest checksums, preview, staged restart restore and retained private rollback copies.
 - [x] Encrypted Android backup/device-transfer allowlist for the database, attachments, and drafts.
 - [x] User-started, named-user HTTPS workspace bound to the phone's current local Wi-Fi address.
@@ -186,7 +185,7 @@ Status: Core registers implemented through schema 23; template administration an
 
 ## Updated consultancy briefs programme
 
-The six distinct September 2026 source briefs remain under `Updated Briefs` as requirements evidence; the exact duplicate was removed on 9 September. Accepted work is represented in this roadmap and the product scope. WordPress deployment instructions and all consultancy billing, tax, invoice and payment features are outside the current app; Supabase remains an optional, user-configured connection only.
+The six distinct September 2026 source briefs remain under `Updated Briefs` as requirements evidence; the exact duplicate was removed on 9 September. Accepted work is represented in this roadmap and the product scope. WordPress deployment instructions and all consultancy billing, tax, invoice and payment features are outside the current app; ArchiMan is local-only and has no cloud connection of any kind.
 
 - [x] Add schema-18 project consultancy profile and structured scope-register foundation.
 - [x] Add a mobile Brief & Scope project workspace for consultancy, phase, design stage, review status and core brief capture.
@@ -213,4 +212,3 @@ The ERP proposal is retained under `Updated Briefs` as reference material. Its f
 - [x] Add local users, roles and immutable audit events for controlled writable LAN access.
 - [ ] Add project assignments and cross-feature optimistic conflict handling; global Admin/Editor LAN entry is implemented.
 - [x] Add authenticated responsive LAN data entry with named roles, CSRF protection, login throttling, bounded connections and requests, capped idle/absolute sessions, Host/Origin validation, hardened browser headers, short-lived read caching and immutable mutation audit. Independent threat-model and penetration-test acceptance remain open.
-- [ ] Evaluate optional Supabase backup separately from synchronization; neither is part of the current release.

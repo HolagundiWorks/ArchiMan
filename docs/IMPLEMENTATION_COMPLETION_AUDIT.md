@@ -3,7 +3,7 @@
 - Audit updated: 13 September 2026
 - Product: ArchiMan — Architectural Consultancy Management App
 - Current database target: Room schema 24
-- Source baseline: current ArchiMan UX, company portability, optional Supabase configuration and secure LAN-workspace implementation
+- Source baseline: current ArchiMan UX, company portability and secure LAN-workspace implementation
 
 ## Release identity
 

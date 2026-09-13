@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Carbon Design System "Boolean" glyph (carbon/icons, 32px artboard),
+     recolored to Carbon Blue 60 (#0F62FE) per the app icon brief. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="72dp"
+    android:height="72dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <path
+        android:fillColor="#0F62FE"
+        android:pathData="M23,23a7,7,0,1,1,7-7A7.0078,7.0078,0,0,1,23,23Zm0-12a5,5,0,1,0,5,5A5.0055,5.0055,0,0,0,23,11Z M16,16A7,7,0,1,1,2,16A7,7,0,1,1,16,16Z" />
+</vector>

@@ -8,7 +8,7 @@ This runbook applies to managed ArchiMan deployments. A database backup is requi
 
 ## User-operated whole-company package
 
-Company Profile → Full company database creates a password-encrypted `.archimandb` package. It contains a consistent SQLite snapshot, the company logo directory and managed measurement-photo directory. The manifest records schema version, exact file list, sizes and SHA-256 checksums. Supabase connection preferences, temporary drafts and arbitrary device files are deliberately excluded.
+Company Profile → Full company database creates a password-encrypted `.archimandb` package. It contains a consistent SQLite snapshot, the company logo directory and managed measurement-photo directory. The manifest records schema version, exact file list, sizes and SHA-256 checksums. Temporary drafts and arbitrary device files are deliberately excluded.
 
 Import decrypts into private staging, rejects unsafe or unexpected paths, verifies every checksum, runs SQLite integrity and foreign-key checks, and shows the company name/count preview before confirmation. A confirmed import is applied only on the next app start, before Room opens. The prior database and managed files are retained in private recovery storage; the newest three recovery copies are kept.
 

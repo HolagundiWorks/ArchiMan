@@ -10,7 +10,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.AddAPhoto
-import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.UploadFile
@@ -50,7 +49,6 @@ import kotlinx.coroutines.withContext
 @Composable
 fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPortal: () -> Unit) {
     val saved by viewModel.companyProfile.collectAsStateWithLifecycle()
-    val supabaseState by viewModel.supabaseConnectionState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -79,9 +77,6 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
     var databasePassword by remember { mutableStateOf("") }
     var databasePasswordConfirmation by remember { mutableStateOf("") }
     var showDatabasePassword by remember { mutableStateOf(false) }
-    var supabaseUrl by remember { mutableStateOf("") }
-    var supabaseKey by remember { mutableStateOf("") }
-    var showSupabaseKey by remember { mutableStateOf(false) }
 
     LaunchedEffect(saved) {
         saved?.let {
@@ -110,11 +105,6 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
         viewModel.consumeCompanyDatabaseRestoreMessage()?.let { snackbar.showSnackbar(it) }
     }
 
-    LaunchedEffect(supabaseState.projectUrl, supabaseState.publishableKey) {
-        supabaseUrl = supabaseState.projectUrl
-        supabaseKey = supabaseState.publishableKey
-    }
-
     val logoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) scope.launch {
             runCatching { withContext(Dispatchers.IO) { backupManager.storeLogo(uri) } }
@@ -122,7 +112,7 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
                 .onFailure { snackbar.showSnackbar(it.message ?: "Could not add the logo.") }
         }
     }
-    val backupExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
+    val backupExporter = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
         val profile = saved
         if (uri != null && profile != null) scope.launch {
             runCatching { withContext(Dispatchers.IO) { backupManager.exportTo(uri, profile) } }
@@ -242,31 +232,14 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
                 }
             }
             Text("Profile-only transfer", style = MaterialTheme.typography.titleSmall)
-            Text("JSON transfer for only the practice identity and logo. Projects and measurements are not included.", style = MaterialTheme.typography.bodySmall)
+            Text("Portable .archimandb file for only the practice identity and logo. Projects and measurements are not included.", style = MaterialTheme.typography.bodySmall)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(enabled = saved != null, onClick = { backupExporter.launch("ArchiMan-company-profile.json") }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(enabled = saved != null, onClick = { backupExporter.launch("ArchiMan-company-profile.archimandb") }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.UploadFile, null); Spacer(Modifier.width(4.dp)); Text("Export profile")
                 }
-                OutlinedButton(onClick = { backupImporter.launch(arrayOf("application/json", "text/*")) }, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = { backupImporter.launch(arrayOf("application/octet-stream", "application/json", "text/*", "*/*")) }, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Default.Download, null); Spacer(Modifier.width(4.dp)); Text("Import profile")
                 }
-            }
-            HorizontalDivider()
-            Text("Supabase connection", style = MaterialTheme.typography.titleSmall)
-            Text("Optional platform connection. Connecting does not upload or synchronise data. Use only a publishable key; Row Level Security must be configured in Supabase.", style = MaterialTheme.typography.bodySmall)
-            OutlinedTextField(supabaseUrl, { supabaseUrl = it }, label = { Text("Project URL") }, placeholder = { Text("https://your-project.supabase.co") }, modifier = Modifier.fillMaxWidth(), singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
-            OutlinedTextField(
-                supabaseKey, { supabaseKey = it }, label = { Text("Publishable key") }, placeholder = { Text("sb_publishable_…") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                visualTransformation = if (showSupabaseKey) VisualTransformation.None else PasswordVisualTransformation(),
-                trailingIcon = { TextButton(onClick = { showSupabaseKey = !showSupabaseKey }) { Text(if (showSupabaseKey) "Hide" else "Show") } }
-            )
-            Text(supabaseState.message, style = MaterialTheme.typography.bodySmall, color = if (supabaseState.isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(enabled = !supabaseState.isTesting && supabaseUrl.isNotBlank() && supabaseKey.isNotBlank(), onClick = { viewModel.configureSupabase(supabaseUrl, supabaseKey) }, modifier = Modifier.weight(1f)) {
-                    Icon(Icons.Default.Cloud, null); Spacer(Modifier.width(4.dp)); Text(if (supabaseState.isTesting) "Testing…" else "Save & test")
-                }
-                if (supabaseState.projectUrl.isNotBlank()) OutlinedButton(onClick = viewModel::clearSupabaseConnection) { Text("Clear") }
             }
             Button(
                 enabled = practiceName.isNotBlank(),
@@ -292,7 +265,7 @@ fun CompanyProfileScreen(viewModel: SiteViewModel, onBack: () -> Unit, onOpenPor
         AlertDialog(
             onDismissRequest = { backupManager.discardImportedLogo(imported.logoUri); pendingImport = null },
             title = { Text("Restore company profile?") },
-            text = { Text("This will replace the current company profile with “${imported.practiceName}”. Projects, measurements and Supabase settings will not be changed.") },
+            text = { Text("This will replace the current company profile with “${imported.practiceName}”. Projects and measurements will not be changed.") },
             confirmButton = { Button(onClick = { viewModel.saveCompanyProfile(imported); pendingImport = null; scope.launch { snackbar.showSnackbar("Company profile restored.") } }) { Text("Restore") } },
             dismissButton = { TextButton(onClick = { backupManager.discardImportedLogo(imported.logoUri); pendingImport = null }) { Text("Cancel") } }
         )
