@@ -19,6 +19,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.domain.CompanyDashboardSnapshot
+import com.example.domain.RevisionRiskBand
 import com.example.ui.viewmodel.SiteViewModel
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -64,10 +65,10 @@ fun CompanyDashboardScreen(viewModel: SiteViewModel, onExit: () -> Unit) {
                 DashboardTile(Modifier.weight(1f), CarbonIcons.Apartment, "Active Projects", snapshot.activeProjects, "of ${snapshot.totalProjects} total")
                 DashboardTile(Modifier.weight(1f), CarbonIcons.Assignment, "Open RFIs", snapshot.openRfis, null)
                 DashboardTile(Modifier.weight(1f), CarbonIcons.RuleFolder, "Open Submittals", snapshot.openSubmittals, null)
-                DashboardTile(Modifier.weight(1f), CarbonIcons.Gavel, "Open Site Instructions", snapshot.openSiteInstructions, null)
             }
             Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                DashboardTile(Modifier.weight(1f), CarbonIcons.Gavel, "Open Site Instructions", snapshot.openSiteInstructions, null)
                 DashboardTile(
                     Modifier.weight(1f), CarbonIcons.ReportProblem, "Open Snags / NCRs", snapshot.openSiteIssues,
                     if (snapshot.criticalOpenSiteIssues > 0) "${snapshot.criticalOpenSiteIssues} critical/attention" else "None critical",
@@ -78,11 +79,19 @@ fun CompanyDashboardScreen(viewModel: SiteViewModel, onExit: () -> Unit) {
                     if (snapshot.overdueDecisions > 0) "${snapshot.overdueDecisions} overdue" else "None overdue",
                     alert = snapshot.overdueDecisions > 0
                 )
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(modifier = Modifier.weight(1f).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DashboardTile(
                     Modifier.weight(1f), CarbonIcons.Warning, "Overdue Tasks", snapshot.overdueTasks, null,
                     alert = snapshot.overdueTasks > 0
                 )
                 DashboardTile(Modifier.weight(1f), CarbonIcons.Today, "Today's Site Reports", snapshot.todaysSiteReports, null)
+                DashboardTile(
+                    Modifier.weight(1f), CarbonIcons.History, "Revision Risk", snapshot.revisionRisk.criticalRevisions,
+                    "${snapshot.revisionRisk.riskBand.name} · ${snapshot.revisionRisk.totalRevisions} revisions",
+                    alert = snapshot.revisionRisk.riskBand == RevisionRiskBand.HIGH
+                )
             }
         }
     }

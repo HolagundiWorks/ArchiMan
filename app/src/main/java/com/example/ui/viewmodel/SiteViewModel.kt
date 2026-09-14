@@ -88,7 +88,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     private data class DashboardPartB(
         val tasks: List<ProjectTaskEntity>,
         val drawings: List<ProjectDrawingEntity>,
-        val schedules: List<ProjectScheduleEntity>
+        val schedules: List<ProjectScheduleEntity>,
+        val revisions: List<DrawingRevisionEntity>
     )
     private val dashboardPartA = combine(
         repository.allProjects, repository.allCoordinationItems, repository.allSiteIssues,
@@ -97,14 +98,15 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         DashboardPartA(projects, coordination, issues, decisions, dailyReports)
     }
     private val dashboardPartB = combine(
-        repository.allProjectTasks, repository.allDrawings, repository.allProjectSchedules
-    ) { tasks, drawings, schedules -> DashboardPartB(tasks, drawings, schedules) }
+        repository.allProjectTasks, repository.allDrawings, repository.allProjectSchedules, repository.allDrawingRevisions
+    ) { tasks, drawings, schedules, revisions -> DashboardPartB(tasks, drawings, schedules, revisions) }
 
     val companyDashboard: StateFlow<CompanyDashboardSnapshot> = combine(dashboardPartA, dashboardPartB) { a, b ->
         computeCompanyDashboardSnapshot(
             projects = a.projects, coordinationItems = a.coordination, siteIssues = a.issues,
             decisions = a.decisions, dailyReports = a.dailyReports,
-            tasks = b.tasks, drawings = b.drawings, schedules = b.schedules
+            tasks = b.tasks, drawings = b.drawings, schedules = b.schedules,
+            drawingRevisions = b.revisions
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), CompanyDashboardSnapshot())
     val companyProfile: StateFlow<CompanyProfileEntity?> = repository.companyProfile
@@ -540,6 +542,7 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             measurements = measurementRows.takeLast(100).map { "${it.itemName} · ${it.description} · ${it.quantity} ${it.unit}" },
             measurementSheets = sheetRows.map { PortalOption(it.id, it.sheetCode, "${it.itemNameSnapshot} · ${it.status} · Rev ${it.revision}") },
             coordinationRecords = coordinationRows.map { PortalOption(it.id, it.referenceNumber, "${it.type} · ${it.subject} · ${it.status}") },
+            siteIssueRecords = siteIssueRows.map { PortalOption(it.id, it.referenceNumber, "${it.type} · ${it.title} · ${it.status}") },
             portalUsers = portalUserRows.map { PortalUserOption(it.id, it.username, it.displayName, it.role, it.isActive) },
             auditEvents = auditRows.take(50).map { "${formatPortalDate(it.occurredAt)} · ${it.username} · ${it.action} · ${it.entityType} · ${it.summary}" },
             companyLegalName = profile?.legalName.orEmpty(),
@@ -655,6 +658,18 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                 val item = requireNotNull(repository.getCoordinationItemById(long("coordinationId"))) { "Coordination record was not found." }
                 require(item.projectId == mutation.projectId) { "Coordination record belongs to another project." }
                 repository.archiveCoordinationItem(item, principal.displayName)
+                "COORDINATION" to item.id
+            }
+            "TRANSITION_SITE_ISSUE" -> {
+                val issueId = long("issueId")
+                val issue = requireNotNull(repository.getSiteIssues(mutation.projectId).first().firstOrNull { it.id == issueId }) { "Snag / NCR was not found." }
+                repository.transitionSiteIssue(issue, required("toStatus"), field("note"), principal.displayName)
+                "SITE_ISSUE" to issue.id
+            }
+            "TRANSITION_COORDINATION" -> {
+                val item = requireNotNull(repository.getCoordinationItemById(long("coordinationId"))) { "Coordination record was not found." }
+                require(item.projectId == mutation.projectId) { "Coordination record belongs to another project." }
+                repository.transitionCoordinationItem(item, required("toStatus"), field("note"), principal.displayName)
                 "COORDINATION" to item.id
             }
             "ARCHIVE_SHEET" -> {
@@ -901,7 +916,9 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         fileUri: String,
         issueStatus: String,
         revisionNotes: String,
-        isAsBuilt: Boolean
+        isAsBuilt: Boolean,
+        revisionSource: String = "",
+        severity: String = "NORMAL"
     ) {
         val projectId = selectedProjectId.value ?: return
         if (drawingNumber.isBlank() || title.isBlank() || revisionCode.isBlank() || fileUri.isBlank()) return
@@ -924,6 +941,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                     issueStatus = issueStatus,
                     revisionNotes = revisionNotes.trim(),
                     isAsBuilt = isAsBuilt,
+                    revisionSource = revisionSource,
+                    severity = severity.ifBlank { "NORMAL" },
                     issuedAt = if (issueStatus == "WIP") null else System.currentTimeMillis()
                 )
             )
@@ -938,7 +957,9 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         fileUri: String,
         issueStatus: String,
         revisionNotes: String,
-        isAsBuilt: Boolean
+        isAsBuilt: Boolean,
+        revisionSource: String = "",
+        severity: String = "NORMAL"
     ) {
         if (revisionCode.isBlank() || fileUri.isBlank()) return
         viewModelScope.launch(Dispatchers.IO) {
@@ -953,6 +974,8 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
                     issueStatus = issueStatus,
                     revisionNotes = revisionNotes.trim(),
                     isAsBuilt = isAsBuilt,
+                    revisionSource = revisionSource,
+                    severity = severity.ifBlank { "NORMAL" },
                     issuedAt = if (issueStatus == "WIP") null else System.currentTimeMillis()
                 )
             )

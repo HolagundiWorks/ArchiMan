@@ -486,6 +486,10 @@ data class DrawingRevisionEntity(
     val issueStatus: String = "WIP",
     val revisionNotes: String = "",
     val isAsBuilt: Boolean = false,
+    /** Why this revision happened — see com.example.domain.DrawingRevisionSource. Blank for revisions recorded before schema 25. */
+    val revisionSource: String = "",
+    /** Reuses the app-wide NORMAL/ATTENTION/CRITICAL severity scale (site issues, inspections). */
+    val severity: String = "NORMAL",
     val issuedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis()
 )

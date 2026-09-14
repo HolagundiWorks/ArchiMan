@@ -2,6 +2,7 @@ package com.example.domain
 
 import com.example.data.local.entity.CoordinationItemEntity
 import com.example.data.local.entity.DailySiteReportEntity
+import com.example.data.local.entity.DrawingRevisionEntity
 import com.example.data.local.entity.ProjectDecisionEntity
 import com.example.data.local.entity.ProjectDrawingEntity
 import com.example.data.local.entity.ProjectEntity
@@ -29,7 +30,8 @@ data class CompanyDashboardSnapshot(
     val overdueTasks: Int = 0,
     val drawingsInProgress: Int = 0,
     val totalDrawings: Int = 0,
-    val upcomingScheduleItems: Int = 0
+    val upcomingScheduleItems: Int = 0,
+    val revisionRisk: RevisionRiskSummary = computeRevisionRisk(emptyList())
 ) {
     val openCoordinationTotal: Int get() = openRfis + openSubmittals + openSiteInstructions
 }
@@ -51,7 +53,8 @@ fun computeCompanyDashboardSnapshot(
     drawings: List<ProjectDrawingEntity>,
     schedules: List<ProjectScheduleEntity>,
     now: Long = System.currentTimeMillis(),
-    upcomingWindowMs: Long = 7L * 24 * 60 * 60 * 1000
+    upcomingWindowMs: Long = 7L * 24 * 60 * 60 * 1000,
+    drawingRevisions: List<DrawingRevisionEntity> = emptyList()
 ): CompanyDashboardSnapshot {
     fun openCoordinationOfType(type: String) =
         coordinationItems.count { it.type == type && !CoordinationWorkflow.isClosed(it.status) }
@@ -73,6 +76,7 @@ fun computeCompanyDashboardSnapshot(
         overdueTasks = tasks.count { it.status != "DONE" && (it.dueDate ?: Long.MAX_VALUE) < now },
         drawingsInProgress = drawings.count { it.status == "WORKING" },
         totalDrawings = drawings.size,
-        upcomingScheduleItems = schedules.count { it.scheduledAt in now..(now + upcomingWindowMs) }
+        upcomingScheduleItems = schedules.count { it.scheduledAt in now..(now + upcomingWindowMs) },
+        revisionRisk = computeRevisionRisk(drawingRevisions.map { it.revisionSource to it.severity })
     )
 }

@@ -12,7 +12,7 @@ import com.example.data.local.dao.*
 import com.example.data.local.entity.*
 import com.example.domain.WorkCatalog
 
-const val DATABASE_SCHEMA_VERSION = 24
+const val DATABASE_SCHEMA_VERSION = 25
 
 @Database(
     entities = [
@@ -95,7 +95,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -504,6 +504,13 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL("CREATE INDEX `index_site_issue_events_siteIssueId` ON `site_issue_events` (`siteIssueId`)")
                 db.execSQL("CREATE INDEX `index_site_issue_events_occurredAt` ON `site_issue_events` (`occurredAt`)")
                 installSiteIssueAuditTriggers(db)
+            }
+        }
+
+        val MIGRATION_24_25 = object : Migration(24, 25) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `drawing_revisions` ADD COLUMN `revisionSource` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `drawing_revisions` ADD COLUMN `severity` TEXT NOT NULL DEFAULT 'NORMAL'")
             }
         }
 

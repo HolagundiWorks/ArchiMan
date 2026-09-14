@@ -31,6 +31,7 @@ class SiteRepository(private val database: AppDatabase) {
     val allSiteIssues: Flow<List<SiteIssueEntity>> = database.siteControlDao().observeAllIssues()
     val allCoordinationItems: Flow<List<CoordinationItemEntity>> = database.coordinationDao().getAllItems()
     val allDrawings: Flow<List<ProjectDrawingEntity>> = database.drawingDao().getAllDrawings()
+    val allDrawingRevisions: Flow<List<DrawingRevisionEntity>> = database.drawingDao().getAllRevisions()
 
     suspend fun upsertCompanyProfile(profile: CompanyProfileEntity) = database.companyProfileDao().upsert(profile)
 

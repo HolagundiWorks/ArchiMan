@@ -477,6 +477,10 @@ interface DrawingDao {
     @Query("SELECT * FROM drawing_revisions WHERE projectId=:projectId ORDER BY createdAt DESC, id DESC")
     fun getRevisions(projectId: Long): Flow<List<DrawingRevisionEntity>>
 
+    /** Company-wide, for the monitoring dashboard's revision-risk tile. */
+    @Query("SELECT * FROM drawing_revisions ORDER BY createdAt DESC, id DESC")
+    fun getAllRevisions(): Flow<List<DrawingRevisionEntity>>
+
     @Query("SELECT * FROM drawing_transmittals WHERE projectId=:projectId ORDER BY issuedAt DESC, id DESC")
     fun getTransmittals(projectId: Long): Flow<List<DrawingTransmittalEntity>>
 

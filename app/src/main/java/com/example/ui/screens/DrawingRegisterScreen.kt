@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.example.data.local.entity.DrawingRevisionEntity
 import com.example.data.local.entity.DrawingTransmittalEntity
 import com.example.data.local.entity.ProjectDrawingEntity
+import com.example.domain.DrawingRevisionSource
 import com.example.ui.viewmodel.SiteViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -136,13 +137,13 @@ fun DrawingRegisterScreen(
                 pendingUri = null
                 revisionOf = null
             },
-            onSave = { number, title, discipline, revision, status, notes, asBuilt ->
+            onSave = { number, title, discipline, revision, status, notes, asBuilt, revisionSource, severity ->
                 val mime = context.contentResolver.getType(uri) ?: "application/acad"
                 val existing = revisionOf
                 if (existing == null) {
                     viewModel.registerDrawing(number, title, discipline, revision, displayName(context, uri), mime, uri.toString(), status, notes, asBuilt)
                 } else {
-                    viewModel.addDrawingRevision(existing, revision, displayName(context, uri), mime, uri.toString(), status, notes, asBuilt)
+                    viewModel.addDrawingRevision(existing, revision, displayName(context, uri), mime, uri.toString(), status, notes, asBuilt, revisionSource, severity)
                 }
                 pendingUri = null
                 revisionOf = null
@@ -202,11 +203,12 @@ private fun DrawingRegisterCard(
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun DrawingRevisionDialog(
     existingDrawing: ProjectDrawingEntity?,
     initialFileName: String,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String, String, String, Boolean) -> Unit
+    onSave: (String, String, String, String, String, String, Boolean, String, String) -> Unit
 ) {
     var number by remember { mutableStateOf(existingDrawing?.drawingNumber.orEmpty()) }
     var title by remember { mutableStateOf(existingDrawing?.title.orEmpty()) }
@@ -215,6 +217,10 @@ private fun DrawingRevisionDialog(
     var status by remember { mutableStateOf("WIP") }
     var notes by remember { mutableStateOf("") }
     var asBuilt by remember { mutableStateOf(false) }
+    // Only meaningful for a revision to an existing drawing — a drawing's first
+    // revision has no prior version to have changed "because of" anything.
+    var revisionSource by remember { mutableStateOf("") }
+    var severity by remember { mutableStateOf("NORMAL") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -236,12 +242,26 @@ private fun DrawingRevisionDialog(
                     Checkbox(checked = asBuilt, onCheckedChange = { asBuilt = it })
                     Text("As-built revision")
                 }
+                if (existingDrawing != null) {
+                    Text("Why did this revision happen?", style = MaterialTheme.typography.labelMedium)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        DrawingRevisionSource.ALL.forEach { option ->
+                            FilterChip(selected = revisionSource == option, onClick = { revisionSource = option }, label = { Text(option.replace('_', ' ')) })
+                        }
+                    }
+                    Text("Severity", style = MaterialTheme.typography.labelMedium)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { option ->
+                            FilterChip(selected = severity == option, onClick = { severity = option }, label = { Text(option) })
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 enabled = number.isNotBlank() && title.isNotBlank() && revision.isNotBlank(),
-                onClick = { onSave(number, title, discipline, revision, status, notes, asBuilt) }
+                onClick = { onSave(number, title, discipline, revision, status, notes, asBuilt, revisionSource, severity) }
             ) { Text("Save revision") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
