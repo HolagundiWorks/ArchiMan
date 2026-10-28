@@ -802,16 +802,61 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) { repository.deleteSiteInspection(item) }
     }
 
-    fun addDailySiteReport(workCompleted: String, weather: String, manpower: String, materials: String, delays: String, safety: String, nextPlan: String, preparedBy: String, photoUri: String?) {
+    /**
+     * Upserts a day-keyed site log. [reportDate] is midnight-local of the chosen calendar day.
+     * When [existing] is supplied, its id/createdAt are preserved and photo cleanup is caller's concern.
+     */
+    fun upsertDailySiteReport(
+        workCompleted: String,
+        weather: String,
+        manpower: String,
+        materials: String,
+        delays: String,
+        safety: String,
+        nextPlan: String,
+        preparedBy: String,
+        photoUri: String?,
+        reportDate: Long? = null,
+        existing: DailySiteReportEntity? = null
+    ) {
         val projectId = selectedProjectId.value ?: return
         if (workCompleted.isBlank()) return
-        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).run { parse(format(java.util.Date()))?.time ?: System.currentTimeMillis() }
+        val day = reportDate?.let { startOfLocalDay(it) }
+            ?: existing?.reportDate
+            ?: startOfLocalDay(System.currentTimeMillis())
         viewModelScope.launch(Dispatchers.IO) {
-            repository.upsertDailySiteReport(DailySiteReportEntity(projectId = projectId, reportDate = day, weather = weather.trim(), manpower = manpower.trim(), workCompleted = workCompleted.trim(), materialsReceived = materials.trim(), delaysOrConstraints = delays.trim(), safetyObservations = safety.trim(), nextDayPlan = nextPlan.trim(), preparedBy = preparedBy.trim(), photoUri = photoUri))
+            repository.upsertDailySiteReport(
+                DailySiteReportEntity(
+                    id = existing?.id ?: 0,
+                    projectId = projectId,
+                    reportDate = day,
+                    weather = weather.trim(),
+                    manpower = manpower.trim(),
+                    workCompleted = workCompleted.trim(),
+                    materialsReceived = materials.trim(),
+                    delaysOrConstraints = delays.trim(),
+                    safetyObservations = safety.trim(),
+                    nextDayPlan = nextPlan.trim(),
+                    preparedBy = preparedBy.trim(),
+                    photoUri = photoUri,
+                    createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
         }
     }
 
+    /** @deprecated Prefer [upsertDailySiteReport]; kept for call-site compatibility during UI migration. */
+    fun addDailySiteReport(workCompleted: String, weather: String, manpower: String, materials: String, delays: String, safety: String, nextPlan: String, preparedBy: String, photoUri: String?) {
+        upsertDailySiteReport(workCompleted, weather, manpower, materials, delays, safety, nextPlan, preparedBy, photoUri)
+    }
+
     fun deleteDailySiteReport(item: DailySiteReportEntity) = viewModelScope.launch(Dispatchers.IO) { repository.deleteDailySiteReport(item) }
+
+    private fun startOfLocalDay(epochMillis: Long): Long {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        return sdf.parse(sdf.format(Date(epochMillis)))?.time ?: epochMillis
+    }
 
     fun addProjectDecision(reference: String, title: String, context: String, required: String, impact: String, requestedFrom: String, owner: String) {
         val projectId = selectedProjectId.value ?: return
@@ -826,11 +871,43 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) { repository.updateProjectDecision(item.copy(finalDecision = finalDecision.trim(), status = "DECIDED", decidedAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis())) }
     }
 
-    fun addSiteIssue(reference: String, type: String, title: String, location: String, description: String, severity: String, assignedTo: String, correctiveAction: String, evidenceUri: String?) {
+    fun addSiteIssue(
+        reference: String,
+        type: String,
+        title: String,
+        location: String,
+        description: String,
+        severity: String,
+        assignedTo: String,
+        correctiveAction: String,
+        evidenceUri: String?,
+        afterEvidenceUri: String? = null
+    ) {
         val projectId = selectedProjectId.value ?: return
         if (reference.isBlank() || title.isBlank() || description.isBlank()) return
         viewModelScope.launch(Dispatchers.IO) {
-            repository.createSiteIssue(SiteIssueEntity(projectId = projectId, referenceNumber = reference.trim(), type = type, title = title.trim(), location = location.trim(), description = description.trim(), severity = severity, assignedTo = assignedTo.trim(), correctiveAction = correctiveAction.trim(), evidenceUri = evidenceUri))
+            repository.createSiteIssue(
+                SiteIssueEntity(
+                    projectId = projectId,
+                    referenceNumber = reference.trim(),
+                    type = type,
+                    title = title.trim(),
+                    location = location.trim(),
+                    description = description.trim(),
+                    severity = severity,
+                    assignedTo = assignedTo.trim(),
+                    correctiveAction = correctiveAction.trim(),
+                    evidenceUri = evidenceUri,
+                    afterEvidenceUri = afterEvidenceUri
+                )
+            )
+        }
+    }
+
+    fun attachSiteIssueAfterEvidence(item: SiteIssueEntity, afterEvidenceUri: String?) {
+        if (item.status == "CLOSED") return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateSiteIssueEvidence(item.copy(afterEvidenceUri = afterEvidenceUri, updatedAt = System.currentTimeMillis()))
         }
     }
 

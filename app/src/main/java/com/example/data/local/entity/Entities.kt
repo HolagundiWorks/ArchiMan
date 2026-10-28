@@ -368,7 +368,10 @@ data class SiteIssueEntity(
     val correctiveAction: String = "",
     val dueAt: Long? = null,
     val status: String = "OPEN",
+    /** Before / discovery evidence (photo or PDF). Kept for schema continuity. */
     val evidenceUri: String? = null,
+    /** After / corrective closure evidence (photo or PDF). Added in schema 26. */
+    val afterEvidenceUri: String? = null,
     val verificationNote: String = "",
     val closedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),

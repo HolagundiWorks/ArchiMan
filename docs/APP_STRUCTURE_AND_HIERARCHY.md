@@ -2,7 +2,7 @@
 
 The Android app is the offline field client and authoritative local server. The authenticated Carbon-based web portal is the primary office ERP surface for portfolio administration, planning, registers, coordination, review and high-volume entry. Both surfaces use the same phone database; there is no browser-side replica.
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 24, reviewed 13 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 26, reviewed 28 October 2026.
 
 ## User-facing hierarchy
 
@@ -27,15 +27,15 @@ Portfolio
 │       │       │   ├── Drawing Register / Revisions
 │       │       │   └── Transmittals
 │       │       ├── Site Reports
+│       │       │   ├── Daily Site Logs
+│       │       │   ├── Snags / NCRs
+│       │       │   ├── Site Inspections
 │       │       │   ├── Meeting Minutes
-│       │       │   └── Site Inspections
+│       │       │   └── CSV / PDF export
 │       │       ├── Team / Contractors
 │       │       ├── Coordination
 │       │       │   ├── RFIs / Submittals / Site Instructions
 │       │       │   └── Consultants / Responsibility Matrix
-│       │       ├── Field Control
-│       │       │   ├── Daily Reports
-│       │       │   └── Snags / NCRs
 │       │       └── Handover / As-built Package
 ├── Contacts
 │   ├── Clients

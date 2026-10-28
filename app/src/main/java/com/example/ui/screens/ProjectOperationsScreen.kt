@@ -14,19 +14,25 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.data.attachments.SiteAttachmentStore
 import com.example.data.local.entity.*
 import com.example.ui.viewmodel.SiteViewModel
+import com.example.util.ExportHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
 private enum class PlanningPage(val label: String) { TASKS("Tasks"), SCHEDULE("Schedule"), SELECTIONS("Selections / PO") }
-private enum class ReportsPage(val label: String) { DAILY("Daily"), ISSUES("Snag / NCR"), INSPECTIONS("Inspections"), MINUTES("Minutes") }
+private enum class ReportsPage(val label: String) { DAILY("Daily logs"), ISSUES("Snag / NCR"), INSPECTIONS("Inspections"), MINUTES("Minutes") }
 
 @Composable
 fun ProjectPlanningScreen(
@@ -53,10 +59,37 @@ fun ProjectReportsScreen(
     minutes: List<MeetingMinutesEntity>,
     inspections: List<SiteInspectionEntity>,
     dailyReports: List<DailySiteReportEntity>,
-    siteIssues: List<SiteIssueEntity>
+    siteIssues: List<SiteIssueEntity>,
+    projectName: String = "Project"
 ) {
+    val context = LocalContext.current
     var page by remember { mutableStateOf(ReportsPage.DAILY) }
     Column(Modifier.fillMaxSize()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                "Export site reports",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row {
+                IconButton(onClick = {
+                    ExportHelper.exportAndShareSiteReportsCsv(
+                        context,
+                        ExportHelper.SiteReportBundle(projectName, dailyReports, inspections, minutes, siteIssues)
+                    )
+                }) { Icon(CarbonIcons.Download, contentDescription = "Export CSV") }
+                IconButton(onClick = {
+                    ExportHelper.exportAndShareSiteReportsPdf(
+                        context,
+                        ExportHelper.SiteReportBundle(projectName, dailyReports, inspections, minutes, siteIssues)
+                    )
+                }) { Icon(CarbonIcons.PictureAsPdf, contentDescription = "Export PDF") }
+            }
+        }
         OperationPageSelector(ReportsPage.values().map { it.label }, page.ordinal) { page = ReportsPage.values()[it] }
         when (page) {
             ReportsPage.DAILY -> DailyReportsTab(viewModel, dailyReports)
@@ -141,7 +174,7 @@ private fun MeetingMinutesTab(viewModel: SiteViewModel, minutes: List<MeetingMin
 private fun SiteInspectionTab(viewModel: SiteViewModel, inspections: List<SiteInspectionEntity>) {
     var add by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
-        if (inspections.isEmpty()) OperationEmpty("No site inspection reports", "Record observations, severity and corrective action.")
+        if (inspections.isEmpty()) OperationEmpty("No site inspection reports", "Record observations, severity and corrective action with optional photo evidence.")
         else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 84.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(inspections, key = { it.id }) { item ->
                 OperationCard {
@@ -151,6 +184,7 @@ private fun SiteInspectionTab(viewModel: SiteViewModel, inspections: List<SiteIn
                             Text(item.location, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text("${formatDateTime(item.inspectionAt)} • ${item.severity} • ${item.status}", color = severityColor(item.severity), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             Text(item.observation, style = MaterialTheme.typography.labelSmall)
+                            if (item.inspector.isNotBlank()) Text("Inspector: ${item.inspector}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                             if (item.correctiveAction.isNotBlank()) Text("Corrective action: ${item.correctiveAction}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                             if (item.photoUri != null) Text("Photo attached", color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                         }
@@ -168,39 +202,71 @@ private fun SiteInspectionTab(viewModel: SiteViewModel, inspections: List<SiteIn
 
 @Composable
 private fun DailyReportsTab(viewModel: SiteViewModel, reports: List<DailySiteReportEntity>) {
-    var add by remember { mutableStateOf(false) }
+    var editing by remember { mutableStateOf<DailySiteReportEntity?>(null) }
+    var creating by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
-        if (reports.isEmpty()) OperationEmpty("No daily reports", "Capture work completed, labour, materials, delays, safety and tomorrow's plan.")
+        if (reports.isEmpty()) OperationEmpty("No daily site logs", "Capture day-by-day work, weather, manpower, materials, delays, safety and tomorrow's plan.")
         else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 84.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(reports, key = { it.id }) { item ->
                 OperationCard {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Column(
+                            modifier = Modifier.weight(1f).clickable { editing = item },
+                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                        ) {
                             Text(SimpleDateFormat("dd MMM yyyy", Locale.getDefault()).format(Date(item.reportDate)), fontWeight = FontWeight.Bold)
                             Text(item.workCompleted, style = MaterialTheme.typography.bodySmall)
+                            if (item.weather.isNotBlank()) Text("Weather: ${item.weather}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (item.manpower.isNotBlank()) Text("Manpower: ${item.manpower}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (item.materialsReceived.isNotBlank()) Text("Materials: ${item.materialsReceived}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (item.delaysOrConstraints.isNotBlank()) Text("Constraints: ${item.delaysOrConstraints}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+                            if (item.safetyObservations.isNotBlank()) Text("Safety: ${item.safetyObservations}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (item.nextDayPlan.isNotBlank()) Text("Next day: ${item.nextDayPlan}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (item.preparedBy.isNotBlank()) Text("Prepared by: ${item.preparedBy}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (item.photoUri != null) Text("Photo attached", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            Text("Tap to edit this day's log", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                         }
                         IconButton(onClick = { viewModel.deleteDailySiteReport(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete") }
                     }
                 }
             }
         }
-        FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add daily report") }
+        FloatingActionButton(onClick = { creating = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add daily log") }
     }
-    if (add) DailyReportDialog(onDismiss = { add = false }) { work, weather, manpower, materials, delays, safety, next, by, photo ->
-        viewModel.addDailySiteReport(work, weather, manpower, materials, delays, safety, next, by, photo); add = false
+    if (creating) {
+        DailyReportDialog(existing = null, onDismiss = { creating = false }) { work, weather, manpower, materials, delays, safety, next, by, photo, reportDate ->
+            viewModel.upsertDailySiteReport(work, weather, manpower, materials, delays, safety, next, by, photo, reportDate = reportDate)
+            creating = false
+        }
+    }
+    editing?.let { item ->
+        DailyReportDialog(existing = item, onDismiss = { editing = null }) { work, weather, manpower, materials, delays, safety, next, by, photo, reportDate ->
+            viewModel.upsertDailySiteReport(work, weather, manpower, materials, delays, safety, next, by, photo, reportDate = reportDate, existing = item)
+            editing = null
+        }
     }
 }
 
 @Composable
 private fun SiteIssuesTab(viewModel: SiteViewModel, issues: List<SiteIssueEntity>) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val attachmentStore = remember(context) { SiteAttachmentStore(context) }
     var add by remember { mutableStateOf(false) }
     var closing by remember { mutableStateOf<SiteIssueEntity?>(null) }
+    var attachingAfter by remember { mutableStateOf<SiteIssueEntity?>(null) }
+    val afterPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val issue = attachingAfter
+        attachingAfter = null
+        if (uri == null || issue == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val managed = runCatching { withContext(Dispatchers.IO) { attachmentStore.import(uri) } }.getOrNull() ?: return@launch
+            withContext(Dispatchers.IO) { attachmentStore.deleteIfManaged(issue.afterEvidenceUri) }
+            viewModel.attachSiteIssueAfterEvidence(issue, managed)
+        }
+    }
     Box(Modifier.fillMaxSize()) {
-        if (issues.isEmpty()) OperationEmpty("No snag or NCR records", "Record defects and non-conformances, then verify corrective closure.")
+        if (issues.isEmpty()) OperationEmpty("No snag or NCR records", "Record defects and non-conformances with before/after evidence, then verify corrective closure.")
         else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(12.dp, 8.dp, 12.dp, 84.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(issues, key = { it.id }) { item ->
                 OperationCard {
@@ -214,7 +280,20 @@ private fun SiteIssuesTab(viewModel: SiteViewModel, issues: List<SiteIssueEntity
                             if (item.location.isNotBlank()) Text(item.location, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(item.description, style = MaterialTheme.typography.bodySmall)
                             if (item.assignedTo.isNotBlank()) Text("Assigned to: ${item.assignedTo}", style = MaterialTheme.typography.labelSmall)
+                            val evidenceLabel = when {
+                                item.evidenceUri != null && item.afterEvidenceUri != null -> "Before + after evidence attached"
+                                item.evidenceUri != null -> "Before evidence attached"
+                                item.afterEvidenceUri != null -> "After evidence attached"
+                                else -> null
+                            }
+                            if (evidenceLabel != null) Text(evidenceLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             if (item.verificationNote.isNotBlank()) Text("Verified: ${item.verificationNote}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            if (item.status != "CLOSED") {
+                                TextButton(onClick = {
+                                    attachingAfter = item
+                                    afterPicker.launch(arrayOf("image/*", "application/pdf"))
+                                }) { Text(if (item.afterEvidenceUri == null) "Attach after evidence" else "Replace after evidence") }
+                            }
                         }
                     }
                 }
@@ -222,13 +301,24 @@ private fun SiteIssuesTab(viewModel: SiteViewModel, issues: List<SiteIssueEntity
         }
         FloatingActionButton(onClick = { add = true }, modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp), shape = MaterialTheme.shapes.small) { Icon(CarbonIcons.Add, "Add site issue") }
     }
-    if (add) SiteIssueDialog(onDismiss = { add = false }) { reference, type, title, location, description, severity, assigned, corrective, evidence ->
-        viewModel.addSiteIssue(reference, type, title, location, description, severity, assigned, corrective, evidence); add = false
+    if (add) SiteIssueDialog(onDismiss = { add = false }) { reference, type, title, location, description, severity, assigned, corrective, before, after ->
+        viewModel.addSiteIssue(reference, type, title, location, description, severity, assigned, corrective, before, after); add = false
     }
     closing?.let { issue ->
         var note by remember(issue.id) { mutableStateOf("") }
         FormDialog("Verify ${issue.referenceNumber}", { closing = null }, note.isNotBlank(), { viewModel.advanceSiteIssue(issue, note); closing = null }) {
             Text("Closure is permanent. Record what was checked and the evidence accepted.", style = MaterialTheme.typography.bodySmall)
+            if (issue.evidenceUri != null || issue.afterEvidenceUri != null) {
+                Text(
+                    when {
+                        issue.evidenceUri != null && issue.afterEvidenceUri != null -> "Before and after evidence are on file."
+                        issue.afterEvidenceUri != null -> "After evidence is on file."
+                        else -> "Before evidence is on file."
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
             FormField(note, { note = it }, "Verification note", singleLine = false)
         }
     }
@@ -288,36 +378,173 @@ private fun MinutesDialog(onDismiss: () -> Unit, onSave: (String, String, String
 @Composable
 private fun InspectionDialog(onDismiss: () -> Unit, onSave: (String, String, String, String, String, String?) -> Unit) {
     val context = LocalContext.current
-    var location by remember { mutableStateOf("") }; var inspector by remember { mutableStateOf("") }; var observation by remember { mutableStateOf("") }; var severity by remember { mutableStateOf("NORMAL") }; var corrective by remember { mutableStateOf("") }; var photoUri by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val attachmentStore = remember(context) { SiteAttachmentStore(context) }
+    var location by remember { mutableStateOf("") }
+    var inspector by remember { mutableStateOf("") }
+    var observation by remember { mutableStateOf("") }
+    var severity by remember { mutableStateOf("NORMAL") }
+    var corrective by remember { mutableStateOf("") }
+    var photoUri by remember { mutableStateOf<String?>(null) }
+    var importing by remember { mutableStateOf(false) }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            photoUri = uri.toString()
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            importing = true
+            val managed = runCatching { withContext(Dispatchers.IO) { attachmentStore.import(uri) } }.getOrNull()
+            if (managed != null) {
+                withContext(Dispatchers.IO) { attachmentStore.deleteIfManaged(photoUri) }
+                photoUri = managed
+            }
+            importing = false
         }
     }
-    FormDialog("Site inspection", onDismiss, location.isNotBlank() && observation.isNotBlank(), { onSave(location, inspector, observation, severity, corrective, photoUri) }) { FormField(location, { location = it }, "Location / member"); FormField(inspector, { inspector = it }, "Inspector"); FormField(observation, { observation = it }, "Observation", singleLine = false); Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value, fontSize = 9.sp) }) } }; FormField(corrective, { corrective = it }, "Corrective action", singleLine = false); OutlinedButton(onClick = { photoPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (photoUri == null) "Attach optional photo" else "Photo attached") } }
-}
-
-@Composable
-private fun DailyReportDialog(onDismiss: () -> Unit, onSave: (String, String, String, String, String, String, String, String, String?) -> Unit) {
-    val context = LocalContext.current
-    var work by remember { mutableStateOf("") }; var weather by remember { mutableStateOf("") }; var manpower by remember { mutableStateOf("") }; var materials by remember { mutableStateOf("") }; var delays by remember { mutableStateOf("") }; var safety by remember { mutableStateOf("") }; var next by remember { mutableStateOf("") }; var preparedBy by remember { mutableStateOf("") }; var photo by remember { mutableStateOf<String?>(null) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) { runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }; photo = uri.toString() } }
-    FormDialog("Daily site report", onDismiss, work.isNotBlank(), { onSave(work, weather, manpower, materials, delays, safety, next, preparedBy, photo) }) {
-        FormField(work, { work = it }, "Work completed", singleLine = false); FormField(weather, { weather = it }, "Weather"); FormField(manpower, { manpower = it }, "Manpower / trades"); FormField(materials, { materials = it }, "Materials received", singleLine = false); FormField(delays, { delays = it }, "Delays or constraints", singleLine = false); FormField(safety, { safety = it }, "Safety observations", singleLine = false); FormField(next, { next = it }, "Next-day plan", singleLine = false); FormField(preparedBy, { preparedBy = it }, "Prepared by"); OutlinedButton(onClick = { picker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth()) { Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp)); Text(if (photo == null) "Attach optional photo" else "Photo attached") }
+    FormDialog("Site inspection", onDismiss, location.isNotBlank() && observation.isNotBlank() && !importing, { onSave(location, inspector, observation, severity, corrective, photoUri) }) {
+        FormField(location, { location = it }, "Location / member")
+        FormField(inspector, { inspector = it }, "Inspector")
+        FormField(observation, { observation = it }, "Observation / finding", singleLine = false)
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { value ->
+                FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value, fontSize = 9.sp) })
+            }
+        }
+        FormField(corrective, { corrective = it }, "Corrective action", singleLine = false)
+        OutlinedButton(onClick = { photoPicker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth(), enabled = !importing) {
+            Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp))
+            Text(when { importing -> "Importing photo…"; photoUri == null -> "Attach optional photo"; else -> "Photo attached" })
+        }
     }
 }
 
 @Composable
-private fun SiteIssueDialog(onDismiss: () -> Unit, onSave: (String, String, String, String, String, String, String, String, String?) -> Unit) {
+private fun DailyReportDialog(
+    existing: DailySiteReportEntity?,
+    onDismiss: () -> Unit,
+    onSave: (String, String, String, String, String, String, String, String, String?, Long) -> Unit
+) {
     val context = LocalContext.current
-    var reference by remember { mutableStateOf("") }; var type by remember { mutableStateOf("SNAG") }; var title by remember { mutableStateOf("") }; var location by remember { mutableStateOf("") }; var description by remember { mutableStateOf("") }; var severity by remember { mutableStateOf("NORMAL") }; var assigned by remember { mutableStateOf("") }; var corrective by remember { mutableStateOf("") }; var evidence by remember { mutableStateOf<String?>(null) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> if (uri != null) { runCatching { context.contentResolver.takePersistableUriPermission(uri, android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION) }; evidence = uri.toString() } }
-    FormDialog("Add snag / NCR", onDismiss, reference.isNotBlank() && title.isNotBlank() && description.isNotBlank(), { onSave(reference, type, title, location, description, severity, assigned, corrective, evidence) }) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) { listOf("SNAG", "NCR").forEach { value -> FilterChip(selected = type == value, onClick = { type = value }, label = { Text(value) }) } }
-        FormField(reference, { reference = it }, "Reference number"); FormField(title, { title = it }, "Title"); FormField(location, { location = it }, "Location"); FormField(description, { description = it }, "Description", singleLine = false)
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) { listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { value -> FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value, fontSize = 9.sp) }) } }
-        FormField(assigned, { assigned = it }, "Assigned to"); FormField(corrective, { corrective = it }, "Corrective action required", singleLine = false); OutlinedButton(onClick = { picker.launch(arrayOf("image/*", "application/pdf")) }, modifier = Modifier.fillMaxWidth()) { Icon(CarbonIcons.AttachFile, null); Spacer(Modifier.width(6.dp)); Text(if (evidence == null) "Attach optional evidence" else "Evidence attached") }
+    val scope = rememberCoroutineScope()
+    val attachmentStore = remember(context) { SiteAttachmentStore(context) }
+    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
+    var dateText by remember(existing?.id) {
+        mutableStateOf(dateFormat.format(Date(existing?.reportDate ?: System.currentTimeMillis())))
+    }
+    var work by remember(existing?.id) { mutableStateOf(existing?.workCompleted.orEmpty()) }
+    var weather by remember(existing?.id) { mutableStateOf(existing?.weather.orEmpty()) }
+    var manpower by remember(existing?.id) { mutableStateOf(existing?.manpower.orEmpty()) }
+    var materials by remember(existing?.id) { mutableStateOf(existing?.materialsReceived.orEmpty()) }
+    var delays by remember(existing?.id) { mutableStateOf(existing?.delaysOrConstraints.orEmpty()) }
+    var safety by remember(existing?.id) { mutableStateOf(existing?.safetyObservations.orEmpty()) }
+    var next by remember(existing?.id) { mutableStateOf(existing?.nextDayPlan.orEmpty()) }
+    var preparedBy by remember(existing?.id) { mutableStateOf(existing?.preparedBy.orEmpty()) }
+    var photo by remember(existing?.id) { mutableStateOf(existing?.photoUri) }
+    var importing by remember { mutableStateOf(false) }
+    val parsedDate = remember(dateText) { runCatching { dateFormat.apply { isLenient = false }.parse(dateText)?.time }.getOrNull() }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            importing = true
+            val managed = runCatching { withContext(Dispatchers.IO) { attachmentStore.import(uri) } }.getOrNull()
+            if (managed != null) {
+                withContext(Dispatchers.IO) { attachmentStore.deleteIfManaged(photo) }
+                photo = managed
+            }
+            importing = false
+        }
+    }
+    FormDialog(
+        if (existing == null) "Daily site log" else "Edit daily site log",
+        onDismiss,
+        work.isNotBlank() && parsedDate != null && !importing,
+        { onSave(work, weather, manpower, materials, delays, safety, next, preparedBy, photo, parsedDate ?: System.currentTimeMillis()) }
+    ) {
+        FormField(dateText, { dateText = it }, "Date YYYY-MM-DD")
+        FormField(work, { work = it }, "Work completed", singleLine = false)
+        FormField(weather, { weather = it }, "Weather")
+        FormField(manpower, { manpower = it }, "Manpower / trades")
+        FormField(materials, { materials = it }, "Materials received", singleLine = false)
+        FormField(delays, { delays = it }, "Delays or constraints", singleLine = false)
+        FormField(safety, { safety = it }, "Safety observations", singleLine = false)
+        FormField(next, { next = it }, "Next-day plan", singleLine = false)
+        FormField(preparedBy, { preparedBy = it }, "Prepared by")
+        OutlinedButton(onClick = { picker.launch(arrayOf("image/*")) }, modifier = Modifier.fillMaxWidth(), enabled = !importing) {
+            Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp))
+            Text(when { importing -> "Importing photo…"; photo == null -> "Attach optional photo"; else -> "Photo attached" })
+        }
+    }
+}
+
+@Composable
+private fun SiteIssueDialog(onDismiss: () -> Unit, onSave: (String, String, String, String, String, String, String, String, String?, String?) -> Unit) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val attachmentStore = remember(context) { SiteAttachmentStore(context) }
+    var reference by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("SNAG") }
+    var title by remember { mutableStateOf("") }
+    var location by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var severity by remember { mutableStateOf("NORMAL") }
+    var assigned by remember { mutableStateOf("") }
+    var corrective by remember { mutableStateOf("") }
+    var beforeEvidence by remember { mutableStateOf<String?>(null) }
+    var afterEvidence by remember { mutableStateOf<String?>(null) }
+    var importing by remember { mutableStateOf(false) }
+    var pickingAfter by remember { mutableStateOf(false) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        val forAfter = pickingAfter
+        pickingAfter = false
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            importing = true
+            val managed = runCatching { withContext(Dispatchers.IO) { attachmentStore.import(uri) } }.getOrNull()
+            if (managed != null) {
+                if (forAfter) {
+                    withContext(Dispatchers.IO) { attachmentStore.deleteIfManaged(afterEvidence) }
+                    afterEvidence = managed
+                } else {
+                    withContext(Dispatchers.IO) { attachmentStore.deleteIfManaged(beforeEvidence) }
+                    beforeEvidence = managed
+                }
+            }
+            importing = false
+        }
+    }
+    FormDialog("Add snag / NCR", onDismiss, reference.isNotBlank() && title.isNotBlank() && description.isNotBlank() && !importing, {
+        onSave(reference, type, title, location, description, severity, assigned, corrective, beforeEvidence, afterEvidence)
+    }) {
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            listOf("SNAG", "NCR").forEach { value ->
+                FilterChip(selected = type == value, onClick = { type = value }, label = { Text(value) })
+            }
+        }
+        FormField(reference, { reference = it }, "Reference number")
+        FormField(title, { title = it }, "Title")
+        FormField(location, { location = it }, "Location")
+        FormField(description, { description = it }, "Description", singleLine = false)
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            listOf("NORMAL", "ATTENTION", "CRITICAL").forEach { value ->
+                FilterChip(selected = severity == value, onClick = { severity = value }, label = { Text(value, fontSize = 9.sp) })
+            }
+        }
+        FormField(assigned, { assigned = it }, "Assigned to")
+        FormField(corrective, { corrective = it }, "Corrective action required", singleLine = false)
+        OutlinedButton(
+            onClick = { pickingAfter = false; picker.launch(arrayOf("image/*", "application/pdf")) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !importing
+        ) {
+            Icon(CarbonIcons.AttachFile, null); Spacer(Modifier.width(6.dp))
+            Text(when { importing && !pickingAfter -> "Importing…"; beforeEvidence == null -> "Attach before evidence"; else -> "Before evidence attached" })
+        }
+        OutlinedButton(
+            onClick = { pickingAfter = true; picker.launch(arrayOf("image/*", "application/pdf")) },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !importing
+        ) {
+            Icon(CarbonIcons.AddAPhoto, null); Spacer(Modifier.width(6.dp))
+            Text(when { importing && pickingAfter -> "Importing…"; afterEvidence == null -> "Attach after evidence (optional)"; else -> "After evidence attached" })
+        }
     }
 }
 

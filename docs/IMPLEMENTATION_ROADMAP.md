@@ -146,7 +146,7 @@ Status: Core registers implemented through schema 23; template administration an
 - [x] Add project schedules, structured meeting minutes and site inspection reports with optional photos in schema 15.
 - [x] Retain material selection and quantity-only purchase-order export under Project Planning.
 - [ ] Build a previewed, user-confirmed import from `/sdcard/Vishwakarma/os-bundle.json`; do not maintain two live project databases.
-- [ ] Add PDF/CSV exports for meeting minutes and inspection reports before retiring standalone Vishwakarma apps.
+- [x] Add PDF/CSV exports for meeting minutes, inspection reports and daily site logs (combined Site reports export under Project → More → Site reports).
 - [ ] Split the all-purpose ViewModel, repository, entities and DAOs into measurement, catalogue and project feature boundaries.
 - [x] Phased migration plan documented.
 - [x] Remove commercial values from contractor qualification UI.

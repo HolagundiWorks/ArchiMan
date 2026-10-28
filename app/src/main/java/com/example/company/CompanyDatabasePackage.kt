@@ -324,7 +324,7 @@ class CompanyDatabasePackageManager(
         private const val SALT_BYTES = 16
         private const val IV_BYTES = 12
         private val FILE_MAGIC = "ARCHIMANDB1".toByteArray(Charsets.US_ASCII)
-        internal val MANAGED_DIRECTORIES = listOf("company", "measurement_attachments")
+        internal val MANAGED_DIRECTORIES = listOf("company", "measurement_attachments", "site_attachments")
         internal fun restoreRoot(context: Context) = File(context.filesDir, "company_restore").apply { mkdirs() }
     }
 }
@@ -406,6 +406,12 @@ object CompanyDatabaseRestoreCoordinator {
             val tables = sqlite.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null).use { cursor -> buildSet { while (cursor.moveToNext()) add(cursor.getString(0)) } }
             if ("company_profile" in tables) rewrite("company_profile", "id", "logoUri", "company")
             if ("measurements" in tables) rewrite("measurements", "id", "photoUri", "measurement_attachments")
+            if ("site_inspections" in tables) rewrite("site_inspections", "id", "photoUri", "site_attachments")
+            if ("daily_site_reports" in tables) rewrite("daily_site_reports", "id", "photoUri", "site_attachments")
+            if ("site_issues" in tables) {
+                rewrite("site_issues", "id", "evidenceUri", "site_attachments")
+                rewrite("site_issues", "id", "afterEvidenceUri", "site_attachments")
+            }
         } finally {
             sqlite.close()
         }

@@ -135,6 +135,12 @@ class SiteRepository(private val database: AppDatabase) {
         id
     }
 
+    /** Updates non-status fields such as after-evidence without appending a workflow event. */
+    suspend fun updateSiteIssueEvidence(item: SiteIssueEntity) {
+        require(item.status != "CLOSED") { "Closed snag/NCR records are immutable." }
+        database.siteControlDao().updateIssue(item.copy(updatedAt = System.currentTimeMillis()))
+    }
+
     suspend fun transitionSiteIssue(item: SiteIssueEntity, toStatus: String, note: String, actor: String = "Local user") = database.withTransaction {
         SiteIssueWorkflow.requireTransition(item.status, toStatus, note)
         val now = System.currentTimeMillis()

@@ -174,7 +174,14 @@ fun ProjectWorkspaceScreen(
                     DrawingRegisterScreen(viewModel, projectDrawings, drawingRevisions, drawingTransmittals)
                 }
                 ProjectSection.REPORTS -> ProjectSecondarySection("Site reports") {
-                    ProjectReportsScreen(viewModel, meetingMinutes, siteInspections, dailySiteReports, siteIssues)
+                    ProjectReportsScreen(
+                        viewModel = viewModel,
+                        minutes = meetingMinutes,
+                        inspections = siteInspections,
+                        dailyReports = dailySiteReports,
+                        siteIssues = siteIssues,
+                        projectName = currentProject?.name ?: "Project"
+                    )
                 }
                 ProjectSection.DECISIONS -> ProjectSecondarySection("Decisions") {
                     ProjectDecisionsScreen(viewModel, projectDecisions)
@@ -268,7 +275,7 @@ private fun ProjectMoreMenu(
         item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", CarbonIcons.Rule) { onSelect(ProjectSection.CONTROLS) } }
         item { Text("DOCUMENTS & SITE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
         item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", CarbonIcons.Architecture) { onSelect(ProjectSection.DRAWINGS) } }
-        item { ProjectMoreRow("Site reports", "$reportCount daily, snag, NCR, inspection and meeting records", CarbonIcons.Assignment) { onSelect(ProjectSection.REPORTS) } }
+        item { ProjectMoreRow("Site reports", "$reportCount daily logs, snag/NCR, inspection and meeting records — with CSV/PDF export", CarbonIcons.Assignment) { onSelect(ProjectSection.REPORTS) } }
         item { ProjectMoreRow("Decisions", "$decisionCount decisions awaiting closure", CarbonIcons.Gavel) { onSelect(ProjectSection.DECISIONS) } }
         item { ProjectMoreRow("Coordination", "$coordinationCount open RFIs, submittals or instructions", CarbonIcons.SyncAlt) { onSelect(ProjectSection.COORDINATION) } }
         item { Text("PROJECT TEAM", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp)) }
