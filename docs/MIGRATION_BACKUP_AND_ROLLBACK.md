@@ -1,14 +1,14 @@
 # ArchiMan Database Migration Backup and Rollback Runbook
 
-> Current database target: Room schema 24. Package ID and database filename remain unchanged to preserve upgrades and field data.
+> Current database target: Room schema 26. Package ID and database filename remain unchanged to preserve upgrades and field data.
 
 ## Purpose
 
-This runbook applies to managed ArchiMan deployments. A database backup is required before installing an APK that raises the Room schema version. Measurement rows and managed photo attachments must be treated as one backup set.
+This runbook applies to managed ArchiMan deployments. A database backup is required before installing an APK that raises the Room schema version. Measurement rows, site-report evidence and managed photo attachments must be treated as one backup set.
 
 ## User-operated whole-company package
 
-Company Profile → Full company database creates a password-encrypted `.archimandb` package. It contains a consistent SQLite snapshot, the company logo directory and managed measurement-photo directory. The manifest records schema version, exact file list, sizes and SHA-256 checksums. Temporary drafts and arbitrary device files are deliberately excluded.
+Company Profile → Full company database creates a password-encrypted `.archimandb` package. It contains a consistent SQLite snapshot, the company logo directory, managed measurement-photo directory (`files/measurement_attachments/`) and managed site-evidence directory (`files/site_attachments/`). The manifest records schema version, exact file list, sizes and SHA-256 checksums. Temporary drafts and arbitrary device files are deliberately excluded.
 
 Import decrypts into private staging, rejects unsafe or unexpected paths, verifies every checksum, runs SQLite integrity and foreign-key checks, and shows the company name/count preview before confirmation. A confirmed import is applied only on the next app start, before Room opens. The prior database and managed files are retained in private recovery storage; the newest three recovery copies are kept.
 
@@ -31,6 +31,7 @@ For a USB-debuggable internal build, stop the package and copy all present SQLit
 - `databases/site_measurement.db-wal`
 - `databases/site_measurement.db-shm`
 - `files/measurement_attachments/`
+- `files/site_attachments/`
 - `shared_prefs/measurement_drafts.xml`
 
 The current package remains `com.aistudio.sitemeasure.qvtrpl` and the database remains `site_measurement.db`; the ArchiMan rebrand intentionally does not rename either technical identifier.
@@ -50,8 +51,10 @@ After first launch, verify:
 - schema 22 removes the obsolete commercial tables and columns only after copying every quantity-bearing measurement field into the replacement table;
 - schema 23 adds project consultants, coordination items and immutable coordination events without rewriting existing project or measurement data;
 - schema 24 adds formal decisions, daily site reports, snag/NCR records and immutable issue events without rewriting existing project or measurement data;
-- managed photo paths referenced by measurements exist;
-- the application opens the M-Book and canonical editor without a fatal error.
+- schema 25 adds drawing-revision source and severity metadata without rewriting existing revisions;
+- schema 26 adds snag/NCR `afterEvidenceUri` and requires managed site attachments to restore with the package;
+- managed photo paths referenced by measurements and site reports exist;
+- the application opens the M-Book, Site reports and canonical editor without a fatal error.
 
 Do not approve deployment based only on a successful APK installation.
 

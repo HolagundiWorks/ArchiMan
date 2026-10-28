@@ -1,6 +1,6 @@
 # ArchiMan documentation
 
-This directory contains only maintained documentation for the current ArchiMan schema-24 product and its approved roadmap.
+This directory contains only maintained documentation for the current ArchiMan schema-26 product and its approved roadmap.
 
 The current market comparison and implemented coordination response are documented in `ARCHITECTURE_PRACTICE_APP_CASE_STUDY.md`.
 The source-level AORMS comparison and AI-free implementation response are documented in `AORMS_PORTAL_CASE_STUDY.md`.

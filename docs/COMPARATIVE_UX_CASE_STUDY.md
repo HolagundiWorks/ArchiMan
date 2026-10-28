@@ -1,7 +1,7 @@
 # Comparative UX case study: field and construction applications
 
 Reviewed: 9 September 2026
-Applied baseline: ArchiMan schema 24
+Applied baseline: ArchiMan schema 26
 
 ## Objective
 
@@ -64,7 +64,7 @@ Project | Work | Record | M-Book | More
 
 - Record remains the prominent field action.
 - Work and M-Book remain one tap away during measurement work.
-- More groups Brief, Planning and the specialist project registers (coordination, drawings, site reports, decisions, snags/NCRs) so they don't compete with the four persistent actions.
+- More groups Brief, Planning and the specialist project registers (coordination, drawings, site reports including daily logs / snags / inspections / minutes, decisions) so they don't compete with the four persistent actions.
 - The project header back action returns to the portfolio; a duplicate Home tab is unnecessary.
 
 ### Project home sections
@@ -76,7 +76,7 @@ Overview | Brief | Planning | More
 - Overview provides identity, current status, next steps and small operational counts.
 - Brief contains consultancy type, design phase, client requirements and agreed scope.
 - Planning contains tasks, schedule and material/specification selections.
-- More contains drawings, site reports, coordination, decisions, snag/NCR closure and project team tools.
+- More contains drawings, site reports (daily logs, snag/NCR, inspections, minutes + export), coordination, decisions and project team tools.
 
 ## Deliberately not copied
 
@@ -92,7 +92,7 @@ Overview | Brief | Planning | More
 - Project navigation is Project, Work, Record, M-Book and More.
 - The project workspace is Overview, Brief, Planning and More.
 - Clients and Contractors are consolidated under Contacts.
-- Drawings, site reports, coordination, decisions, snags/NCRs and project team tools are grouped under project More.
+- Drawings, site reports, coordination, decisions and project team tools are grouped under project More.
 
 ## Next structural steps
 

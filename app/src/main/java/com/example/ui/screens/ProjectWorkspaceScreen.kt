@@ -173,16 +173,15 @@ fun ProjectWorkspaceScreen(
                 ProjectSection.DRAWINGS -> ProjectSecondarySection("Drawings") {
                     DrawingRegisterScreen(viewModel, projectDrawings, drawingRevisions, drawingTransmittals)
                 }
-                ProjectSection.REPORTS -> ProjectSecondarySection("Site reports") {
-                    ProjectReportsScreen(
-                        viewModel = viewModel,
-                        minutes = meetingMinutes,
-                        inspections = siteInspections,
-                        dailyReports = dailySiteReports,
-                        siteIssues = siteIssues,
-                        projectName = currentProject?.name ?: "Project"
-                    )
-                }
+                // TopAppBar already titles this section; skip the duplicate secondary header.
+                ProjectSection.REPORTS -> ProjectReportsScreen(
+                    viewModel = viewModel,
+                    minutes = meetingMinutes,
+                    inspections = siteInspections,
+                    dailyReports = dailySiteReports,
+                    siteIssues = siteIssues,
+                    projectName = currentProject?.name ?: "Project"
+                )
                 ProjectSection.DECISIONS -> ProjectSecondarySection("Decisions") {
                     ProjectDecisionsScreen(viewModel, projectDecisions)
                 }

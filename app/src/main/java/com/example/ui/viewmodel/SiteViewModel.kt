@@ -3,6 +3,7 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.attachments.SiteAttachmentStore
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import com.example.data.repository.SiteRepository
@@ -799,12 +800,15 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteSiteInspection(item: SiteInspectionEntity) {
-        viewModelScope.launch(Dispatchers.IO) { repository.deleteSiteInspection(item) }
+        viewModelScope.launch(Dispatchers.IO) {
+            SiteAttachmentStore(getApplication()).deleteIfManaged(item.photoUri)
+            repository.deleteSiteInspection(item)
+        }
     }
 
     /**
      * Upserts a day-keyed site log. [reportDate] is midnight-local of the chosen calendar day.
-     * When [existing] is supplied, its id/createdAt are preserved and photo cleanup is caller's concern.
+     * When [existing] is supplied, its id/createdAt are preserved; replaced managed photos are deleted.
      */
     fun upsertDailySiteReport(
         workCompleted: String,
@@ -825,6 +829,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             ?: existing?.reportDate
             ?: startOfLocalDay(System.currentTimeMillis())
         viewModelScope.launch(Dispatchers.IO) {
+            val store = SiteAttachmentStore(getApplication())
+            if (existing?.photoUri != null && existing.photoUri != photoUri) {
+                store.deleteIfManaged(existing.photoUri)
+            }
             repository.upsertDailySiteReport(
                 DailySiteReportEntity(
                     id = existing?.id ?: 0,
@@ -846,12 +854,10 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** @deprecated Prefer [upsertDailySiteReport]; kept for call-site compatibility during UI migration. */
-    fun addDailySiteReport(workCompleted: String, weather: String, manpower: String, materials: String, delays: String, safety: String, nextPlan: String, preparedBy: String, photoUri: String?) {
-        upsertDailySiteReport(workCompleted, weather, manpower, materials, delays, safety, nextPlan, preparedBy, photoUri)
+    fun deleteDailySiteReport(item: DailySiteReportEntity) = viewModelScope.launch(Dispatchers.IO) {
+        SiteAttachmentStore(getApplication()).deleteIfManaged(item.photoUri)
+        repository.deleteDailySiteReport(item)
     }
-
-    fun deleteDailySiteReport(item: DailySiteReportEntity) = viewModelScope.launch(Dispatchers.IO) { repository.deleteDailySiteReport(item) }
 
     private fun startOfLocalDay(epochMillis: Long): Long {
         val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
@@ -907,6 +913,9 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     fun attachSiteIssueAfterEvidence(item: SiteIssueEntity, afterEvidenceUri: String?) {
         if (item.status == "CLOSED") return
         viewModelScope.launch(Dispatchers.IO) {
+            if (item.afterEvidenceUri != null && item.afterEvidenceUri != afterEvidenceUri) {
+                SiteAttachmentStore(getApplication()).deleteIfManaged(item.afterEvidenceUri)
+            }
             repository.updateSiteIssueEvidence(item.copy(afterEvidenceUri = afterEvidenceUri, updatedAt = System.currentTimeMillis()))
         }
     }

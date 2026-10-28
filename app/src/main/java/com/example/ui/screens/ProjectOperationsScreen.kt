@@ -21,6 +21,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
+import android.net.Uri
+import coil.compose.AsyncImage
 import com.example.data.attachments.SiteAttachmentStore
 import com.example.data.local.entity.*
 import com.example.ui.viewmodel.SiteViewModel
@@ -30,6 +33,47 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
+
+@Composable
+private fun AttachmentLink(uriString: String?, label: String) {
+    if (uriString.isNullOrBlank()) return
+    val context = LocalContext.current
+    var preview by remember(uriString) { mutableStateOf(false) }
+    val isPdf = uriString.contains(".pdf", ignoreCase = true) ||
+        (context.contentResolver.getType(Uri.parse(uriString)) == "application/pdf")
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.clickable {
+            if (isPdf) {
+                runCatching {
+                    context.startActivity(Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(Uri.parse(uriString), "application/pdf")
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                    })
+                }
+            } else {
+                preview = true
+            }
+        }
+    )
+    if (preview) {
+        AlertDialog(
+            onDismissRequest = { preview = false },
+            confirmButton = { TextButton(onClick = { preview = false }) { Text("Close") } },
+            title = { Text(label) },
+            text = {
+                AsyncImage(
+                    model = uriString,
+                    contentDescription = label,
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp)
+                )
+            }
+        )
+    }
+}
 
 private enum class PlanningPage(val label: String) { TASKS("Tasks"), SCHEDULE("Schedule"), SELECTIONS("Selections / PO") }
 private enum class ReportsPage(val label: String) { DAILY("Daily logs"), ISSUES("Snag / NCR"), INSPECTIONS("Inspections"), MINUTES("Minutes") }
@@ -64,31 +108,32 @@ fun ProjectReportsScreen(
 ) {
     val context = LocalContext.current
     var page by remember { mutableStateOf(ReportsPage.DAILY) }
+    val hasExportableContent = dailyReports.isNotEmpty() || inspections.isNotEmpty() || minutes.isNotEmpty() || siteIssues.isNotEmpty()
+    val exportBundle = remember(projectName, dailyReports, inspections, minutes, siteIssues) {
+        ExportHelper.SiteReportBundle(projectName, dailyReports, inspections, minutes, siteIssues)
+    }
     Column(Modifier.fillMaxSize()) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            horizontalArrangement = Arrangement.End
         ) {
             Text(
-                "Export site reports",
+                if (hasExportableContent) "Export CSV / PDF" else "Nothing to export yet",
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 8.dp)
             )
-            Row {
-                IconButton(onClick = {
-                    ExportHelper.exportAndShareSiteReportsCsv(
-                        context,
-                        ExportHelper.SiteReportBundle(projectName, dailyReports, inspections, minutes, siteIssues)
-                    )
-                }) { Icon(CarbonIcons.Download, contentDescription = "Export CSV") }
-                IconButton(onClick = {
-                    ExportHelper.exportAndShareSiteReportsPdf(
-                        context,
-                        ExportHelper.SiteReportBundle(projectName, dailyReports, inspections, minutes, siteIssues)
-                    )
-                }) { Icon(CarbonIcons.PictureAsPdf, contentDescription = "Export PDF") }
-            }
+            IconButton(
+                enabled = hasExportableContent,
+                onClick = { ExportHelper.exportAndShareSiteReportsCsv(context, exportBundle) }
+            ) { Icon(CarbonIcons.Download, contentDescription = "Export CSV") }
+            IconButton(
+                enabled = hasExportableContent,
+                onClick = { ExportHelper.exportAndShareSiteReportsPdf(context, exportBundle) }
+            ) { Icon(CarbonIcons.PictureAsPdf, contentDescription = "Export PDF") }
         }
         OperationPageSelector(ReportsPage.values().map { it.label }, page.ordinal) { page = ReportsPage.values()[it] }
         when (page) {
@@ -186,7 +231,7 @@ private fun SiteInspectionTab(viewModel: SiteViewModel, inspections: List<SiteIn
                             Text(item.observation, style = MaterialTheme.typography.labelSmall)
                             if (item.inspector.isNotBlank()) Text("Inspector: ${item.inspector}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
                             if (item.correctiveAction.isNotBlank()) Text("Corrective action: ${item.correctiveAction}", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 10.sp)
-                            if (item.photoUri != null) Text("Photo attached", color = MaterialTheme.colorScheme.primary, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                            AttachmentLink(item.photoUri, "View photo")
                         }
                         IconButton(onClick = { viewModel.deleteSiteInspection(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete") }
                     }
@@ -223,8 +268,8 @@ private fun DailyReportsTab(viewModel: SiteViewModel, reports: List<DailySiteRep
                             if (item.safetyObservations.isNotBlank()) Text("Safety: ${item.safetyObservations}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (item.nextDayPlan.isNotBlank()) Text("Next day: ${item.nextDayPlan}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (item.preparedBy.isNotBlank()) Text("Prepared by: ${item.preparedBy}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (item.photoUri != null) Text("Photo attached", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                            Text("Tap to edit this day's log", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            AttachmentLink(item.photoUri, "View photo")
+                            Text("Tap card to edit", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         IconButton(onClick = { viewModel.deleteDailySiteReport(item) }) { Icon(CarbonIcons.DeleteOutline, "Delete") }
                     }
@@ -280,13 +325,8 @@ private fun SiteIssuesTab(viewModel: SiteViewModel, issues: List<SiteIssueEntity
                             if (item.location.isNotBlank()) Text(item.location, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(item.description, style = MaterialTheme.typography.bodySmall)
                             if (item.assignedTo.isNotBlank()) Text("Assigned to: ${item.assignedTo}", style = MaterialTheme.typography.labelSmall)
-                            val evidenceLabel = when {
-                                item.evidenceUri != null && item.afterEvidenceUri != null -> "Before + after evidence attached"
-                                item.evidenceUri != null -> "Before evidence attached"
-                                item.afterEvidenceUri != null -> "After evidence attached"
-                                else -> null
-                            }
-                            if (evidenceLabel != null) Text(evidenceLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                            AttachmentLink(item.evidenceUri, "View before evidence")
+                            AttachmentLink(item.afterEvidenceUri, "View after evidence")
                             if (item.verificationNote.isNotBlank()) Text("Verified: ${item.verificationNote}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                             if (item.status != "CLOSED") {
                                 TextButton(onClick = {

@@ -27,8 +27,8 @@
 | Submittal review | Missing | Implement in schema 23 with received, review, approval and revise/resubmit states. |
 | Site instructions | Missing | Implement in schema 23 with draft, issue, acknowledgement, compliance and closure states. |
 | Coordination audit trail | Missing | Append an immutable event for creation, every status transition and archive action. |
-| Snag/NCR verified closure | Missing | Next field-control milestone; requires before/after evidence and independent verification. |
-| Daily reports | Missing | Next field-control milestone; should reuse project contacts, locations and attachments. |
+| Snag/NCR verified closure | Implemented (schema 24–26) | Verified closure with immutable events; managed before (`evidenceUri`) and after (`afterEvidenceUri`) evidence under Site reports. |
+| Daily reports | Implemented (schema 24+) | Daily site logs under Site reports with dated create/edit, managed photos and CSV/PDF export. |
 | Programme dependencies and baselines | Missing | Later planning milestone; do not overload the simple schedule list. |
 | Handover package manifest | Missing | Later controlled-document milestone. |
 | Practice staffing and workload | Missing | Later firm-management milestone, intentionally without rates, fees or payroll. |
@@ -57,9 +57,8 @@ Records are archived instead of deleted. Every creation, transition and archive 
 
 1. Managed coordination attachments with controlled retention and export inclusion.
 2. PDF/CSV summary and individual-record exports for RFIs, submittals and instructions.
-3. Daily reports plus snag/NCR verified closure using managed before/after photos.
-4. Dependency-aware programme with immutable baseline snapshots.
-5. Versioned handover/as-built manifest.
-6. Non-commercial practice resource planner for staff roles, skills, availability and phase assignments.
+3. Dependency-aware programme with immutable baseline snapshots.
+4. Versioned handover/as-built package (as-built flags already exist on drawing revisions).
+5. Non-commercial practice resource planner for staff roles, skills, availability and phase assignments.
 
 The coordination detail view, immutable event timeline and exact drawing-revision linking are now implemented in the schema-23 application layer.

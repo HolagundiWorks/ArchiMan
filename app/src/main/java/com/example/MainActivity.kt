@@ -90,13 +90,12 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                     if (homeTab == HomeTab.PRACTICE || selectedProjectId == null) AppScreen.HOME else AppScreen.PROJECT_WORKSPACE
                 )
                 AppScreen.REGISTER -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
-                AppScreen.PROJECTS -> viewModel.navigateTo(AppScreen.HOME)
                 else -> viewModel.navigateTo(AppScreen.HOME)
             }
         }
     }
 
-    val showPortfolioNavigation = currentScreen == AppScreen.HOME || currentScreen == AppScreen.CLIENTS || currentScreen == AppScreen.CONTRACTORS || currentScreen == AppScreen.PROJECTS
+    val showPortfolioNavigation = currentScreen == AppScreen.HOME || currentScreen == AppScreen.CLIENTS || currentScreen == AppScreen.CONTRACTORS
     val showProjectNavigation = currentScreen == AppScreen.PROJECT_WORKSPACE ||
         currentScreen == AppScreen.ROOM_WORKSPACE ||
         currentScreen == AppScreen.MEASUREMENT_BOOK ||
@@ -220,7 +219,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
         ) {
             Crossfade(targetState = currentScreen, label = "ScreenTransition") { screen ->
                 when (screen) {
-                    AppScreen.HOME, AppScreen.PROJECTS -> HomeScreen(viewModel = viewModel, onNavigate = { viewModel.navigateTo(it) })
+                    AppScreen.HOME -> HomeScreen(viewModel = viewModel, onNavigate = { viewModel.navigateTo(it) })
                     AppScreen.CLIENTS -> ClientsScreen(viewModel = viewModel)
                     AppScreen.CONTRACTORS -> ContractorsScreen(viewModel = viewModel)
                     AppScreen.COMPANY_PROFILE -> CompanyProfileScreen(

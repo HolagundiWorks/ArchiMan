@@ -26,7 +26,7 @@ No Carbon JavaScript or remote assets are loaded. This preserves the local-only 
 | Dashboard | Understand current workload | KPIs, project register, schedule, site attention, coordination |
 | Projects | Establish project context | Project profile, client, contractor assignment, floors, scope |
 | Planning | Control delivery | Tasks, approvals, backlog, programme, selections |
-| Site management | Record field activity | Inspections, drawing references, meeting minutes |
+| Site reports | Record field activity | Daily site logs, snag/NCR, inspections, meeting minutes, drawing references |
 | Coordination | Close communication loops | RFI, submittal, site instruction, RACI responsibilities |
 | Measurements | Maintain the measurement book | Rows, books, work items, floors, review transitions |
 | Directory and library | Maintain reusable master data | Clients, contractors, contractor qualification, work library |
