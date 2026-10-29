@@ -29,8 +29,9 @@ if ($entities -match $prohibitedPattern) {
 
 $database = Get-Content $databaseFile -Raw
 $requiredCommercialRemovalControls = @(
-    'const val DATABASE_SCHEMA_VERSION = 25',
+    'const val DATABASE_SCHEMA_VERSION = 26',
     'MIGRATION_21_22',
+    'MIGRATION_25_26',
     'DROP TABLE IF EXISTS `project_rate_book_assignments`',
     'DROP TABLE IF EXISTS `contractor_rate_book_items`',
     'DROP TABLE IF EXISTS `contractor_rate_books`',
