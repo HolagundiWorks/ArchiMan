@@ -13,6 +13,7 @@ class AppHierarchyTest {
                 "BRIEF_SCOPE",
                 "PLANNING",
                 "MORE",
+                "SITEMAN",
                 "DRAWINGS",
                 "REPORTS",
                 "DECISIONS",

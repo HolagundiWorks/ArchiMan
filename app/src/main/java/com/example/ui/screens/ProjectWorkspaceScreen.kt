@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.R
 import com.example.data.local.entity.*
 import com.example.ui.navigation.AppScreen
 import com.example.ui.navigation.ProjectSection
@@ -68,6 +70,8 @@ fun ProjectWorkspaceScreen(
     val projectDrawings by viewModel.projectDrawings.collectAsStateWithLifecycle()
     val drawingRevisions by viewModel.drawingRevisions.collectAsStateWithLifecycle()
     val drawingTransmittals by viewModel.drawingTransmittals.collectAsStateWithLifecycle()
+    val siteDocuments by viewModel.siteDocuments.collectAsStateWithLifecycle()
+    val materialOrders by viewModel.materialOrders.collectAsStateWithLifecycle()
     val consultancyProfile by viewModel.projectConsultancyProfile.collectAsStateWithLifecycle()
     val scopeItems by viewModel.projectScopeItems.collectAsStateWithLifecycle()
     val onboardingResponses by viewModel.projectOnboardingResponses.collectAsStateWithLifecycle()
@@ -93,6 +97,7 @@ fun ProjectWorkspaceScreen(
         ProjectSection.BRIEF_SCOPE -> "Brief & scope"
         ProjectSection.PLANNING -> "Planning"
         ProjectSection.MORE -> "Project tools"
+        ProjectSection.SITEMAN -> stringResource(R.string.siteman_title)
         ProjectSection.DRAWINGS -> "Drawings"
         ProjectSection.REPORTS -> "Site reports"
         ProjectSection.DECISIONS -> "Decisions"
@@ -169,6 +174,15 @@ fun ProjectWorkspaceScreen(
                     contractorCount = projectContractors.size,
                     controlCount = approvals.count { it.status != "APPROVED" } + backlog.count { it.status == "OPEN" },
                     onSelect = viewModel::setProjectSection
+                )
+                ProjectSection.SITEMAN -> SitemanScreen(
+                    viewModel = viewModel,
+                    dailyReports = dailySiteReports,
+                    documents = siteDocuments,
+                    drawings = projectDrawings,
+                    orders = materialOrders,
+                    measurements = projectMeasurements,
+                    projectName = currentProject?.name ?: "Project"
                 )
                 ProjectSection.DRAWINGS -> ProjectSecondarySection("Drawings") {
                     DrawingRegisterScreen(viewModel, projectDrawings, drawingRevisions, drawingTransmittals)
@@ -273,6 +287,13 @@ private fun ProjectMoreMenu(
         item { ProjectMoreRow("Planning", "Tasks, schedules and material selections", CarbonIcons.EventNote) { onSelect(ProjectSection.PLANNING) } }
         item { ProjectMoreRow("Onboarding & controls", "$controlCount open approvals and backlog actions", CarbonIcons.Rule) { onSelect(ProjectSection.CONTROLS) } }
         item { Text("DOCUMENTS & SITE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurfaceVariant, letterSpacing = 0.6.sp, modifier = Modifier.padding(top = 8.dp)) }
+        item {
+            ProjectMoreRow(
+                stringResource(R.string.siteman_title),
+                stringResource(R.string.siteman_more_row),
+                CarbonIcons.Foundation
+            ) { onSelect(ProjectSection.SITEMAN) }
+        }
         item { ProjectMoreRow("Drawings", "$drawingCount registered drawings, revisions and transmittals", CarbonIcons.Architecture) { onSelect(ProjectSection.DRAWINGS) } }
         item { ProjectMoreRow("Site reports", "$reportCount daily logs, snag/NCR, inspection and meeting records — with CSV/PDF export", CarbonIcons.Assignment) { onSelect(ProjectSection.REPORTS) } }
         item { ProjectMoreRow("Decisions", "$decisionCount decisions awaiting closure", CarbonIcons.Gavel) { onSelect(ProjectSection.DECISIONS) } }

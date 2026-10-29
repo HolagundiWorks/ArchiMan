@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">ArchiMan</string>
+    <string name="siteman_title">Siteman</string>
+    <string name="siteman_subtitle">Site-manager workspace for logs, HFC documents, quantities, orders and Archi Calc</string>
+    <string name="siteman_logs">Site logs</string>
+    <string name="siteman_hfc">HFC drawings &amp; docs</string>
+    <string name="siteman_hfc_help">Held-for-Construction package — tag controlled drawings and attach supporting site documents</string>
+    <string name="siteman_quantities">Running bill quantities</string>
+    <string name="siteman_quantities_help">Quantity-only abstract from the Measurement Book for site progress / valuation prep — no rates or money</string>
+    <string name="siteman_po">Purchase orders</string>
+    <string name="siteman_po_help">Issue quantity-and-specification material orders (no prices)</string>
+    <string name="siteman_calc">Archi Calc</string>
+    <string name="siteman_calc_help">Embedded architect calculator for length, area and volume (metric / imperial)</string>
+    <string name="siteman_more_row">Site-manager logs, HFC docs, quantities, POs and Archi Calc</string>
 </resources>

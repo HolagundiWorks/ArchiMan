@@ -229,6 +229,27 @@ class SiteRepository(private val database: AppDatabase) {
             drawingId
         }
 
+    fun getSiteDocuments(projectId: Long) = database.siteDocumentDao().observeByProject(projectId)
+    suspend fun insertSiteDocument(item: SiteDocumentEntity) = database.siteDocumentDao().insert(item)
+    suspend fun deleteSiteDocument(item: SiteDocumentEntity) = database.siteDocumentDao().delete(item)
+
+    fun getMaterialOrders(projectId: Long) = database.materialOrderDao().observeOrders(projectId)
+    fun getMaterialOrderLines(orderId: Long) = database.materialOrderDao().observeLines(orderId)
+    suspend fun createMaterialOrder(order: MaterialOrderEntity, lines: List<MaterialOrderLineEntity>): Long =
+        database.withTransaction {
+            val id = database.materialOrderDao().insertOrder(order)
+            lines.forEach { database.materialOrderDao().insertLine(it.copy(orderId = id)) }
+            id
+        }
+    suspend fun issueMaterialOrder(order: MaterialOrderEntity) {
+        require(order.status == "DRAFT") { "Only draft material orders can be issued." }
+        database.materialOrderDao().updateOrder(order.copy(status = "ISSUED", issuedAt = System.currentTimeMillis()))
+    }
+    suspend fun deleteMaterialOrder(order: MaterialOrderEntity) = database.withTransaction {
+        database.materialOrderDao().deleteLinesForOrder(order.id)
+        database.materialOrderDao().deleteOrder(order)
+    }
+
     // Client operations
     suspend fun insertClient(client: ClientEntity): Long =
         database.clientDao().insertClient(client)

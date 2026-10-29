@@ -33,6 +33,8 @@ enum class ProjectSection {
     BRIEF_SCOPE,
     PLANNING,
     MORE,
+    /** Site-manager surface: logs, HFC docs, quantity abstracts, material orders, Archi Calc. */
+    SITEMAN,
     DRAWINGS,
     REPORTS,
     DECISIONS,

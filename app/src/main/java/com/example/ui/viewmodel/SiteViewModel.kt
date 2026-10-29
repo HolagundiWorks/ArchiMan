@@ -200,6 +200,13 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         .flatMapLatest { it?.let(repository::getDrawingTransmittals) ?: flowOf(emptyList()) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val siteDocuments: StateFlow<List<SiteDocumentEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getSiteDocuments) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val materialOrders: StateFlow<List<MaterialOrderEntity>> = selectedProjectId
+        .flatMapLatest { it?.let(repository::getMaterialOrders) ?: flowOf(emptyList()) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val projectConsultancyProfile: StateFlow<ProjectConsultancyProfileEntity?> = selectedProjectId
         .flatMapLatest { it?.let(repository::getProjectConsultancyProfile) ?: flowOf(null) }
@@ -1068,6 +1075,78 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
             repository.updateProjectDrawing(drawing.copy(status = issueStatus, updatedAt = System.currentTimeMillis()))
         }
     }
+
+    fun setDrawingPackageTag(drawing: ProjectDrawingEntity, packageTag: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.updateProjectDrawing(
+                drawing.copy(packageTag = packageTag.trim().uppercase(), updatedAt = System.currentTimeMillis())
+            )
+        }
+    }
+
+    fun addSiteDocument(title: String, category: String, notes: String, linkedDrawingId: Long?, fileUri: String?) {
+        val projectId = selectedProjectId.value ?: return
+        if (title.isBlank()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.insertSiteDocument(
+                SiteDocumentEntity(
+                    projectId = projectId,
+                    title = title.trim(),
+                    category = category.trim().ifBlank { "HFC" },
+                    notes = notes.trim(),
+                    linkedDrawingId = linkedDrawingId,
+                    fileUri = fileUri
+                )
+            )
+        }
+    }
+
+    fun deleteSiteDocument(item: SiteDocumentEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteSiteDocument(item) }
+    }
+
+    fun createMaterialOrder(
+        reference: String,
+        title: String,
+        supplier: String,
+        notes: String,
+        lines: List<Triple<String, String, Pair<Double, String>>>
+    ) {
+        val projectId = selectedProjectId.value ?: return
+        if (reference.isBlank() || title.isBlank() || lines.isEmpty()) return
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.createMaterialOrder(
+                MaterialOrderEntity(
+                    projectId = projectId,
+                    referenceNumber = reference.trim(),
+                    title = title.trim(),
+                    supplier = supplier.trim(),
+                    notes = notes.trim()
+                ),
+                lines.mapNotNull { (name, spec, qtyUnit) ->
+                    if (name.isBlank() || qtyUnit.first <= 0) null
+                    else MaterialOrderLineEntity(
+                        orderId = 0,
+                        itemName = name.trim(),
+                        specification = spec.trim(),
+                        quantity = qtyUnit.first,
+                        unit = qtyUnit.second.trim().ifBlank { "Nos" }
+                    )
+                }
+            )
+        }
+    }
+
+    fun issueMaterialOrder(order: MaterialOrderEntity) {
+        viewModelScope.launch(Dispatchers.IO) { runCatching { repository.issueMaterialOrder(order) } }
+    }
+
+    fun deleteMaterialOrder(order: MaterialOrderEntity) {
+        viewModelScope.launch(Dispatchers.IO) { repository.deleteMaterialOrder(order) }
+    }
+
+    fun materialOrderLines(orderId: Long): Flow<List<MaterialOrderLineEntity>> =
+        repository.getMaterialOrderLines(orderId)
 
     /** Opens the single authoritative measurement editor using current project context. */
     fun openCanonicalMeasurement(): Boolean {
