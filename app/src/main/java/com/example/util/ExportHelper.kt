@@ -12,8 +12,12 @@ import android.print.PrintManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.FileProvider
+import com.example.data.local.entity.DailySiteReportEntity
 import com.example.data.local.entity.MeasurementEntity
+import com.example.data.local.entity.MeetingMinutesEntity
 import com.example.data.local.entity.ProjectSelectionItemEntity
+import com.example.data.local.entity.SiteInspectionEntity
+import com.example.data.local.entity.SiteIssueEntity
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.charset.StandardCharsets
@@ -50,6 +54,349 @@ object ExportHelper {
             putExtra(Intent.EXTRA_SUBJECT, "Purchase Order - $projectName")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }, "Export purchase order"))
+    }
+
+    data class SiteReportBundle(
+        val projectName: String,
+        val dailyReports: List<DailySiteReportEntity> = emptyList(),
+        val inspections: List<SiteInspectionEntity> = emptyList(),
+        val minutes: List<MeetingMinutesEntity> = emptyList(),
+        val siteIssues: List<SiteIssueEntity> = emptyList()
+    )
+
+    fun exportAndShareSiteReportsCsv(context: Context, bundle: SiteReportBundle) {
+        val safeName = bundle.projectName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val sdf = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        val sdfDateTime = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        fun String.csv() = "\"${replace("\"", "\"\"")}\""
+        val csv = buildString {
+            append("\uFEFF")
+            append("ARCHIMAN SITE REPORTS\n")
+            append("Project,").append(bundle.projectName.csv()).append('\n')
+            append("Generated,").append(SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date()).csv()).append("\n\n")
+
+            append("DAILY SITE LOGS\n")
+            append("Date,Weather,Manpower,Work completed,Materials,Delays / constraints,Safety,Next-day plan,Prepared by\n")
+            bundle.dailyReports.forEach { item ->
+                append(sdf.format(Date(item.reportDate)).csv()).append(',')
+                    .append(item.weather.csv()).append(',').append(item.manpower.csv()).append(',')
+                    .append(item.workCompleted.csv()).append(',').append(item.materialsReceived.csv()).append(',')
+                    .append(item.delaysOrConstraints.csv()).append(',').append(item.safetyObservations.csv()).append(',')
+                    .append(item.nextDayPlan.csv()).append(',').append(item.preparedBy.csv()).append('\n')
+            }
+            append('\n')
+
+            append("SITE INSPECTIONS\n")
+            append("Date,Location,Inspector,Observation,Severity,Corrective action,Status\n")
+            bundle.inspections.forEach { item ->
+                append(sdfDateTime.format(Date(item.inspectionAt)).csv()).append(',')
+                    .append(item.location.csv()).append(',').append(item.inspector.csv()).append(',')
+                    .append(item.observation.csv()).append(',').append(item.severity.csv()).append(',')
+                    .append(item.correctiveAction.csv()).append(',').append(item.status.csv()).append('\n')
+            }
+            append('\n')
+
+            append("MEETING MINUTES\n")
+            append("Date,Title,Location,Attendees,Discussion,Decisions,Action items\n")
+            bundle.minutes.forEach { item ->
+                append(sdfDateTime.format(Date(item.meetingAt)).csv()).append(',')
+                    .append(item.title.csv()).append(',').append(item.location.csv()).append(',')
+                    .append(item.attendees.csv()).append(',').append(item.discussion.csv()).append(',')
+                    .append(item.decisions.csv()).append(',').append(item.actionItems.csv()).append('\n')
+            }
+            append('\n')
+
+            append("SNAG / NCR REGISTER\n")
+            append("Reference,Type,Title,Location,Severity,Status,Description,Assigned to,Corrective action,Verification\n")
+            bundle.siteIssues.forEach { item ->
+                append(item.referenceNumber.csv()).append(',').append(item.type.csv()).append(',')
+                    .append(item.title.csv()).append(',').append(item.location.csv()).append(',')
+                    .append(item.severity.csv()).append(',').append(item.status.csv()).append(',')
+                    .append(item.description.csv()).append(',').append(item.assignedTo.csv()).append(',')
+                    .append(item.correctiveAction.csv()).append(',').append(item.verificationNote.csv()).append('\n')
+            }
+        }
+        shareTextFile(
+            context = context,
+            fileName = "ArchiMan_${safeName}_Site_Reports.csv",
+            content = csv,
+            mimeType = "text/csv",
+            subject = "ArchiMan Site Reports (CSV) - ${bundle.projectName}",
+            chooserTitle = "Export site reports (CSV)"
+        )
+    }
+
+    fun exportAndShareSiteReportsPdf(context: Context, bundle: SiteReportBundle) {
+        try {
+            val pdfDocument = PdfDocument()
+            val pageWidth = 595
+            val pageHeight = 842
+            var pageNumber = 1
+            var pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+            var page = pdfDocument.startPage(pageInfo)
+            var canvas = page.canvas
+
+            val titlePaint = Paint().apply {
+                isAntiAlias = true
+                textSize = 14f
+                isFakeBoldText = true
+                color = Color.rgb(15, 98, 254)
+            }
+            val sectionPaint = Paint().apply {
+                isAntiAlias = true
+                textSize = 11f
+                isFakeBoldText = true
+                color = Color.rgb(22, 22, 22)
+            }
+            val bodyPaint = Paint().apply {
+                isAntiAlias = true
+                textSize = 8.5f
+                color = Color.rgb(22, 22, 22)
+            }
+            val metaPaint = Paint().apply {
+                isAntiAlias = true
+                textSize = 9f
+                color = Color.rgb(82, 82, 82)
+            }
+            val linePaint = Paint().apply {
+                color = Color.rgb(224, 224, 224)
+                strokeWidth = 0.5f
+            }
+            val fillPaint = Paint()
+            val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
+            val sdfDateTime = SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault())
+            var y = 0f
+
+            fun newPage() {
+                cDrawPageFooter(canvas, pageNumber, fillPaint, metaPaint)
+                pdfDocument.finishPage(page)
+                pageNumber++
+                pageInfo = PdfDocument.PageInfo.Builder(pageWidth, pageHeight, pageNumber).create()
+                page = pdfDocument.startPage(pageInfo)
+                canvas = page.canvas
+                y = 45f
+            }
+
+            fun ensureSpace(needed: Float) {
+                if (y + needed > pageHeight - 50f) newPage()
+            }
+
+            fun drawWrapped(text: String, x: Float, maxWidth: Float, paint: Paint): Float {
+                val words = text.split(Regex("\\s+")).filter { it.isNotBlank() }
+                if (words.isEmpty()) return 0f
+                var line = ""
+                var used = 0f
+                fun flush() {
+                    if (line.isBlank()) return
+                    ensureSpace(12f)
+                    canvas.drawText(line, x, y, paint)
+                    y += 11f
+                    used += 11f
+                    line = ""
+                }
+                for (word in words) {
+                    val candidate = if (line.isBlank()) word else "$line $word"
+                    if (paint.measureText(candidate) > maxWidth && line.isNotBlank()) flush()
+                    line = if (line.isBlank()) word else "$line $word"
+                    if (paint.measureText(line) > maxWidth) {
+                        // Hard-break very long tokens
+                        while (paint.measureText(line) > maxWidth && line.length > 4) {
+                            var cut = line.length
+                            while (cut > 4 && paint.measureText(line.take(cut)) > maxWidth) cut--
+                            val chunk = line.take(cut)
+                            line = line.drop(cut)
+                            ensureSpace(12f)
+                            canvas.drawText(chunk, x, y, paint)
+                            y += 11f
+                            used += 11f
+                        }
+                    }
+                }
+                flush()
+                return used
+            }
+
+            fillPaint.color = Color.rgb(15, 98, 254)
+            canvas.drawRect(30f, 25f, 565f, 28f, fillPaint)
+            canvas.drawText("ARCHIMAN — SITE REPORTS", 30f, 45f, titlePaint)
+            canvas.drawText(
+                "Project: ${bundle.projectName} | Generated: ${sdfDateTime.format(Date())}",
+                30f,
+                58f,
+                metaPaint
+            )
+            y = 78f
+
+            fun section(title: String, count: Int) {
+                ensureSpace(28f)
+                fillPaint.color = Color.rgb(237, 245, 255)
+                canvas.drawRect(30f, y, 565f, y + 18f, fillPaint)
+                canvas.drawText("$title ($count)", 38f, y + 13f, sectionPaint)
+                y += 28f
+            }
+
+            section("1. DAILY SITE LOGS", bundle.dailyReports.size)
+            if (bundle.dailyReports.isEmpty()) {
+                drawWrapped("No daily site logs recorded.", 38f, 500f, bodyPaint)
+            } else {
+                bundle.dailyReports.forEach { item ->
+                    ensureSpace(40f)
+                    canvas.drawText(sdf.format(Date(item.reportDate)), 38f, y, sectionPaint)
+                    y += 12f
+                    drawWrapped(
+                        listOfNotNull(
+                            item.workCompleted.takeIf { it.isNotBlank() }?.let { "Work: $it" },
+                            item.weather.takeIf { it.isNotBlank() }?.let { "Weather: $it" },
+                            item.manpower.takeIf { it.isNotBlank() }?.let { "Manpower: $it" },
+                            item.materialsReceived.takeIf { it.isNotBlank() }?.let { "Materials: $it" },
+                            item.delaysOrConstraints.takeIf { it.isNotBlank() }?.let { "Constraints: $it" },
+                            item.safetyObservations.takeIf { it.isNotBlank() }?.let { "Safety: $it" },
+                            item.nextDayPlan.takeIf { it.isNotBlank() }?.let { "Next day: $it" },
+                            item.preparedBy.takeIf { it.isNotBlank() }?.let { "Prepared by: $it" }
+                        ).joinToString("  |  "),
+                        38f,
+                        500f,
+                        bodyPaint
+                    )
+                    canvas.drawLine(30f, y, 565f, y, linePaint)
+                    y += 8f
+                }
+            }
+
+            section("2. SITE INSPECTIONS", bundle.inspections.size)
+            if (bundle.inspections.isEmpty()) {
+                drawWrapped("No site inspections recorded.", 38f, 500f, bodyPaint)
+            } else {
+                bundle.inspections.forEach { item ->
+                    ensureSpace(40f)
+                    canvas.drawText(
+                        "${sdfDateTime.format(Date(item.inspectionAt))} · ${item.location} · ${item.severity} · ${item.status}",
+                        38f,
+                        y,
+                        sectionPaint
+                    )
+                    y += 12f
+                    drawWrapped(
+                        buildString {
+                            append(item.observation)
+                            if (item.inspector.isNotBlank()) append("  |  Inspector: ${item.inspector}")
+                            if (item.correctiveAction.isNotBlank()) append("  |  Corrective: ${item.correctiveAction}")
+                        },
+                        38f,
+                        500f,
+                        bodyPaint
+                    )
+                    canvas.drawLine(30f, y, 565f, y, linePaint)
+                    y += 8f
+                }
+            }
+
+            section("3. MEETING MINUTES", bundle.minutes.size)
+            if (bundle.minutes.isEmpty()) {
+                drawWrapped("No meeting minutes recorded.", 38f, 500f, bodyPaint)
+            } else {
+                bundle.minutes.forEach { item ->
+                    ensureSpace(40f)
+                    canvas.drawText(
+                        "${sdfDateTime.format(Date(item.meetingAt))} · ${item.title}",
+                        38f,
+                        y,
+                        sectionPaint
+                    )
+                    y += 12f
+                    drawWrapped(
+                        listOfNotNull(
+                            item.location.takeIf { it.isNotBlank() }?.let { "Location: $it" },
+                            item.attendees.takeIf { it.isNotBlank() }?.let { "Attendees: $it" },
+                            item.discussion.takeIf { it.isNotBlank() }?.let { "Discussion: $it" },
+                            item.decisions.takeIf { it.isNotBlank() }?.let { "Decisions: $it" },
+                            item.actionItems.takeIf { it.isNotBlank() }?.let { "Actions: $it" }
+                        ).joinToString("  |  "),
+                        38f,
+                        500f,
+                        bodyPaint
+                    )
+                    canvas.drawLine(30f, y, 565f, y, linePaint)
+                    y += 8f
+                }
+            }
+
+            section("4. SNAG / NCR REGISTER", bundle.siteIssues.size)
+            if (bundle.siteIssues.isEmpty()) {
+                drawWrapped("No snag or NCR records.", 38f, 500f, bodyPaint)
+            } else {
+                bundle.siteIssues.forEach { item ->
+                    ensureSpace(40f)
+                    canvas.drawText(
+                        "${item.referenceNumber} · ${item.type} · ${item.title} · ${item.status.replace('_', ' ')}",
+                        38f,
+                        y,
+                        sectionPaint
+                    )
+                    y += 12f
+                    drawWrapped(
+                        listOfNotNull(
+                            item.location.takeIf { it.isNotBlank() },
+                            item.description,
+                            item.assignedTo.takeIf { it.isNotBlank() }?.let { "Assigned: $it" },
+                            item.correctiveAction.takeIf { it.isNotBlank() }?.let { "Corrective: $it" },
+                            item.verificationNote.takeIf { it.isNotBlank() }?.let { "Verified: $it" },
+                            when {
+                                item.evidenceUri != null && item.afterEvidenceUri != null -> "Evidence: before + after"
+                                item.evidenceUri != null -> "Evidence: before"
+                                item.afterEvidenceUri != null -> "Evidence: after"
+                                else -> null
+                            }
+                        ).joinToString("  |  "),
+                        38f,
+                        500f,
+                        bodyPaint
+                    )
+                    canvas.drawLine(30f, y, 565f, y, linePaint)
+                    y += 8f
+                }
+            }
+
+            cDrawPageFooter(canvas, pageNumber, fillPaint, metaPaint)
+            pdfDocument.finishPage(page)
+
+            val safeName = bundle.projectName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+            val file = File(context.cacheDir, "ArchiMan_${safeName}_Site_Reports.pdf")
+            FileOutputStream(file).use { pdfDocument.writeTo(it) }
+            pdfDocument.close()
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                type = "application/pdf"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "ArchiMan Site Reports (PDF) - ${bundle.projectName}")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }, "Export site reports (PDF)"))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun shareTextFile(
+        context: Context,
+        fileName: String,
+        content: String,
+        mimeType: String,
+        subject: String,
+        chooserTitle: String
+    ) {
+        try {
+            val file = File(context.cacheDir, fileName)
+            FileOutputStream(file).use { it.write(content.toByteArray(StandardCharsets.UTF_8)) }
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, subject)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }, chooserTitle))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun shareSupportDiagnostics(context: Context, report: String) {

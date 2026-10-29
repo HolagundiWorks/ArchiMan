@@ -3,6 +3,7 @@ package com.example.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.attachments.SiteAttachmentStore
 import com.example.data.local.AppDatabase
 import com.example.data.local.entity.*
 import com.example.data.repository.SiteRepository
@@ -799,19 +800,69 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun deleteSiteInspection(item: SiteInspectionEntity) {
-        viewModelScope.launch(Dispatchers.IO) { repository.deleteSiteInspection(item) }
-    }
-
-    fun addDailySiteReport(workCompleted: String, weather: String, manpower: String, materials: String, delays: String, safety: String, nextPlan: String, preparedBy: String, photoUri: String?) {
-        val projectId = selectedProjectId.value ?: return
-        if (workCompleted.isBlank()) return
-        val day = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).run { parse(format(java.util.Date()))?.time ?: System.currentTimeMillis() }
         viewModelScope.launch(Dispatchers.IO) {
-            repository.upsertDailySiteReport(DailySiteReportEntity(projectId = projectId, reportDate = day, weather = weather.trim(), manpower = manpower.trim(), workCompleted = workCompleted.trim(), materialsReceived = materials.trim(), delaysOrConstraints = delays.trim(), safetyObservations = safety.trim(), nextDayPlan = nextPlan.trim(), preparedBy = preparedBy.trim(), photoUri = photoUri))
+            SiteAttachmentStore(getApplication()).deleteIfManaged(item.photoUri)
+            repository.deleteSiteInspection(item)
         }
     }
 
-    fun deleteDailySiteReport(item: DailySiteReportEntity) = viewModelScope.launch(Dispatchers.IO) { repository.deleteDailySiteReport(item) }
+    /**
+     * Upserts a day-keyed site log. [reportDate] is midnight-local of the chosen calendar day.
+     * When [existing] is supplied, its id/createdAt are preserved; replaced managed photos are deleted.
+     */
+    fun upsertDailySiteReport(
+        workCompleted: String,
+        weather: String,
+        manpower: String,
+        materials: String,
+        delays: String,
+        safety: String,
+        nextPlan: String,
+        preparedBy: String,
+        photoUri: String?,
+        reportDate: Long? = null,
+        existing: DailySiteReportEntity? = null
+    ) {
+        val projectId = selectedProjectId.value ?: return
+        if (workCompleted.isBlank()) return
+        val day = reportDate?.let { startOfLocalDay(it) }
+            ?: existing?.reportDate
+            ?: startOfLocalDay(System.currentTimeMillis())
+        viewModelScope.launch(Dispatchers.IO) {
+            val store = SiteAttachmentStore(getApplication())
+            if (existing?.photoUri != null && existing.photoUri != photoUri) {
+                store.deleteIfManaged(existing.photoUri)
+            }
+            repository.upsertDailySiteReport(
+                DailySiteReportEntity(
+                    id = existing?.id ?: 0,
+                    projectId = projectId,
+                    reportDate = day,
+                    weather = weather.trim(),
+                    manpower = manpower.trim(),
+                    workCompleted = workCompleted.trim(),
+                    materialsReceived = materials.trim(),
+                    delaysOrConstraints = delays.trim(),
+                    safetyObservations = safety.trim(),
+                    nextDayPlan = nextPlan.trim(),
+                    preparedBy = preparedBy.trim(),
+                    photoUri = photoUri,
+                    createdAt = existing?.createdAt ?: System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
+    fun deleteDailySiteReport(item: DailySiteReportEntity) = viewModelScope.launch(Dispatchers.IO) {
+        SiteAttachmentStore(getApplication()).deleteIfManaged(item.photoUri)
+        repository.deleteDailySiteReport(item)
+    }
+
+    private fun startOfLocalDay(epochMillis: Long): Long {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        return sdf.parse(sdf.format(Date(epochMillis)))?.time ?: epochMillis
+    }
 
     fun addProjectDecision(reference: String, title: String, context: String, required: String, impact: String, requestedFrom: String, owner: String) {
         val projectId = selectedProjectId.value ?: return
@@ -826,11 +877,46 @@ class SiteViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) { repository.updateProjectDecision(item.copy(finalDecision = finalDecision.trim(), status = "DECIDED", decidedAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis())) }
     }
 
-    fun addSiteIssue(reference: String, type: String, title: String, location: String, description: String, severity: String, assignedTo: String, correctiveAction: String, evidenceUri: String?) {
+    fun addSiteIssue(
+        reference: String,
+        type: String,
+        title: String,
+        location: String,
+        description: String,
+        severity: String,
+        assignedTo: String,
+        correctiveAction: String,
+        evidenceUri: String?,
+        afterEvidenceUri: String? = null
+    ) {
         val projectId = selectedProjectId.value ?: return
         if (reference.isBlank() || title.isBlank() || description.isBlank()) return
         viewModelScope.launch(Dispatchers.IO) {
-            repository.createSiteIssue(SiteIssueEntity(projectId = projectId, referenceNumber = reference.trim(), type = type, title = title.trim(), location = location.trim(), description = description.trim(), severity = severity, assignedTo = assignedTo.trim(), correctiveAction = correctiveAction.trim(), evidenceUri = evidenceUri))
+            repository.createSiteIssue(
+                SiteIssueEntity(
+                    projectId = projectId,
+                    referenceNumber = reference.trim(),
+                    type = type,
+                    title = title.trim(),
+                    location = location.trim(),
+                    description = description.trim(),
+                    severity = severity,
+                    assignedTo = assignedTo.trim(),
+                    correctiveAction = correctiveAction.trim(),
+                    evidenceUri = evidenceUri,
+                    afterEvidenceUri = afterEvidenceUri
+                )
+            )
+        }
+    }
+
+    fun attachSiteIssueAfterEvidence(item: SiteIssueEntity, afterEvidenceUri: String?) {
+        if (item.status == "CLOSED") return
+        viewModelScope.launch(Dispatchers.IO) {
+            if (item.afterEvidenceUri != null && item.afterEvidenceUri != afterEvidenceUri) {
+                SiteAttachmentStore(getApplication()).deleteIfManaged(item.afterEvidenceUri)
+            }
+            repository.updateSiteIssueEvidence(item.copy(afterEvidenceUri = afterEvidenceUri, updatedAt = System.currentTimeMillis()))
         }
     }
 

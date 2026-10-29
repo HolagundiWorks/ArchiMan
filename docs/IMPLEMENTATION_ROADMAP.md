@@ -2,7 +2,7 @@
 
 > ArchiMan is a field-first, quantity-only Measurement Book application. Rates, valuation, billing and accounting are outside the product boundary. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`.
 
-Current implementation baseline: Room schema 24, pure Material 3 UI, audited 13 September 2026.
+Current implementation baseline: Room schema 26, pure Material 3 UI, audited 29 October 2026.
 
 ## Phase 0 - Scope lock and safety
 
@@ -63,7 +63,7 @@ Exit criteria: one canonical work catalog with no unresolved duplicate candidate
 
 ## Phase 4 - Measurement sheet domain and safe schema migration
 
-Status: Completed through schema version 24 locally. The schema-22 migration removes the obsolete commercial schema while preserving every quantity and measurement-context field; schema 23 adds non-commercial project coordination registers; schema 24 adds decisions, daily reports and verified snag/NCR closure. A production backup/restore drill remains open.
+Status: Completed through schema version 26 locally. The schema-22 migration removes the obsolete commercial schema while preserving every quantity and measurement-context field; schema 23 adds non-commercial project coordination registers; schema 24 adds decisions, daily reports and verified snag/NCR closure; schema 25 adds drawing-revision source/severity; schema 26 adds snag/NCR after-evidence and managed site attachments for field photos. A production backup/restore drill remains open.
 
 - [x] Split measurement sheet headers from linked measurement rows while retaining compatibility snapshots.
 - [x] Introduce immutable formula code, formula version, UOM, item, contractor, floor, and date snapshots.
@@ -146,7 +146,7 @@ Status: Core registers implemented through schema 23; template administration an
 - [x] Add project schedules, structured meeting minutes and site inspection reports with optional photos in schema 15.
 - [x] Retain material selection and quantity-only purchase-order export under Project Planning.
 - [ ] Build a previewed, user-confirmed import from `/sdcard/Vishwakarma/os-bundle.json`; do not maintain two live project databases.
-- [ ] Add PDF/CSV exports for meeting minutes and inspection reports before retiring standalone Vishwakarma apps.
+- [x] Add PDF/CSV exports for meeting minutes, inspection reports and daily site logs (combined Site reports export under Project → More → Site reports).
 - [ ] Split the all-purpose ViewModel, repository, entities and DAOs into measurement, catalogue and project feature boundaries.
 - [x] Phased migration plan documented.
 - [x] Remove commercial values from contractor qualification UI.

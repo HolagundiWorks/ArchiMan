@@ -99,8 +99,8 @@ class LocalPortalServerTest {
             assertTrue(planning.contains("Formal decisions"))
             assertTrue(planning.contains("Add formal decision"))
             val site = request(uri.host, uri.port, "GET /?view=site&projectId=7 HTTP/1.1\r\nHost: ${uri.host}\r\nCookie: $cookie\r\nConnection: close\r\n\r\n")
-            assertTrue(site.contains("Daily reports"))
-            assertTrue(site.contains("Add daily site report"))
+            assertTrue(site.contains("Daily site logs"))
+            assertTrue(site.contains("Add daily site log"))
             assertTrue(site.contains("Add snag / NCR"))
 
             val rejected = post(uri, "/mutate", "csrf=invalid&action=ADD_TASK&projectId=7&title=Site+visit", cookie)

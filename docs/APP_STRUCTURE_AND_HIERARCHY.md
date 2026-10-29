@@ -2,7 +2,7 @@
 
 The Android app is the offline field client and authoritative local server. The authenticated Carbon-based web portal is the primary office ERP surface for portfolio administration, planning, registers, coordination, review and high-volume entry. Both surfaces use the same phone database; there is no browser-side replica.
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 24, reviewed 13 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 26, reviewed 29 October 2026.
 
 ## User-facing hierarchy
 
@@ -12,31 +12,31 @@ Portfolio
 │   └── Selected Project
 │       ├── Project Overview
 │       │   └── Project Profile
-│       ├── Work Catalogue
-│       ├── Record Measurement
-│       ├── Measurement Book
+│       ├── Work Catalogue          (bottom nav: Work)
+│       ├── Record Measurement      (bottom nav: Record)
+│       ├── Measurement Book        (bottom nav: M-Book)
 │       └── More
 │           ├── Brief / Scope
 │           ├── Planning
-│       │   │   ├── Tasks
-│       │   │   ├── Schedule
-│       │   │   └── Specification / Selection List
+│           │   ├── Tasks
+│           │   ├── Schedule
+│           │   └── Specification / Selection List
 │           ├── Onboarding / Approvals / Backlog
-│       │       ├── Drawings
-│       │       │   ├── DWG Viewer / Markup / Measurement
-│       │       │   ├── Drawing Register / Revisions
-│       │       │   └── Transmittals
-│       │       ├── Site Reports
-│       │       │   ├── Meeting Minutes
-│       │       │   └── Site Inspections
-│       │       ├── Team / Contractors
-│       │       ├── Coordination
-│       │       │   ├── RFIs / Submittals / Site Instructions
-│       │       │   └── Consultants / Responsibility Matrix
-│       │       ├── Field Control
-│       │       │   ├── Daily Reports
-│       │       │   └── Snags / NCRs
-│       │       └── Handover / As-built Package
+│           ├── Drawings
+│           │   ├── Drawing Register / Revisions
+│           │   ├── Transmittals
+│           │   └── Markup metadata (native DWG viewer is roadmap)
+│           ├── Site Reports
+│           │   ├── Daily Site Logs
+│           │   ├── Snags / NCRs (before + after evidence)
+│           │   ├── Site Inspections
+│           │   ├── Meeting Minutes
+│           │   └── CSV / PDF export
+│           ├── Decisions
+│           ├── Coordination
+│           │   ├── RFIs / Submittals / Site Instructions
+│           │   └── Consultants / Responsibility Matrix
+│           └── Project Team / Contractors
 ├── Contacts
 │   ├── Clients
 │   └── Contractors
@@ -45,15 +45,18 @@ Portfolio
 │   └── PWD SR → Work Type → Work Item → UOM / Formula
 └── Practice
     ├── Company / Practice Profile, Logo, Profile Transfer and Encrypted Company Database
+    ├── Company monitoring dashboard
     └── Local Wi-Fi Workspace / User Access / Support Diagnostics
 ```
 
+As-built / handover packaging is not a separate More destination today. Drawing revisions may be marked as-built (`isAsBuilt`); a dedicated handover package remains roadmap work.
+
 The bottom navigation represents stable hierarchy levels, not a second copy of project sections:
 
-- At portfolio level: Projects, Contacts, Library and Practice.
+- At portfolio level: Projects, Contacts, Library and Practice (`HomeTab` labels match this copy; enum names remain `DIRECTORY` / `WORK_LIBRARY` for code stability).
 - Inside a project: Project, Work, Record, M-Book and More. Portfolio exit uses the project header back action.
 - There is no competing project tab row. Brief, planning and specialist registers are grouped in one labelled More hierarchy.
-- Company profile, logo/profile transfer, encrypted whole-company database portability and the LAN workspace are grouped under Practice; measurement exports remain inside M-Book. Database import/export is intentionally unavailable through the browser workspace.
+- Company profile, logo/profile transfer, encrypted whole-company database portability and the LAN workspace are grouped under Practice; measurement exports remain inside M-Book; site-report CSV/PDF exports live under Site reports. Database import/export is intentionally unavailable through the browser workspace.
 - M-Book and Record remain persistent project actions and are not repeated inside the Overview menu.
 - Launcher, Pomodoro and calculator functionality belongs to the separate Archi Launcher application and is not part of ArchiMan.
 
@@ -66,7 +69,8 @@ Project creation establishes identity only: project name, optional project code,
 - PWD SR owns the canonical item identity, specification, unit and formula.
 - A measurement sheet owns member rows.
 - Each saved measurement snapshots dimensions, quantity, formula, UOM, work item, contractor, floor and date.
-- Schema 22 contains no commercial tables or measurement columns; older databases are upgraded through preserving migrations.
+- Managed media lives under `files/measurement_attachments/` and `files/site_attachments/` and travels with `.archimandb` company packages.
+- Schema 22 contains no commercial tables or measurement columns; older databases are upgraded through preserving migrations through schema 26.
 
 ## Code organization target
 
@@ -78,7 +82,7 @@ com.example
 │   │   ├── dao           one DAO per business area
 │   │   └── migration     versioned, tested migrations
 │   ├── repository        repositories split by feature
-│   └── attachments
+│   └── attachments       measurement + site managed stores
 ├── domain
 │   ├── catalog
 │   ├── measurement
@@ -113,7 +117,7 @@ com.example
 
 ## Incremental refactoring sequence
 
-1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model in the schema-24 baseline.
+1. Establish navigation hierarchy and remove duplicate project destinations. Completed and consolidated into one navigation model (orphan `ProjectsScreen` / `AppScreen.PROJECTS` alias removed).
 2. Split the monolithic `SiteViewModel` into project, measurement and catalogue coordinators.
 3. Split `ProjectWorkspaceScreen` into overview, planning and team feature files.
 4. Split `Entities.kt`, `SiteDaos.kt` and `SiteRepository.kt` by business area without changing the schema.

@@ -1,6 +1,6 @@
 # ArchiMan Architectural Practice Scope
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 24, reviewed 13 September 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 26, reviewed 29 October 2026.
 
 ## Product boundary
 
@@ -14,7 +14,7 @@ The approval/compliance matrix and jurisdiction-profile proposal is explicitly e
 
 ## Canonical project workspaces
 
-The schema-24 release implements expanded practice/client profiles, project site data, Brief & Scope, planning and formal decisions, quantity-only measurement, drawing-register foundations, daily reports, verified snag/NCR closure, RFI/submittal/site-instruction coordination, a consultant responsibility matrix and controlled LAN entry. Its current Room model contains no commercial tables or columns; preserving migrations upgrade older databases. Items below that require full DWG rendering, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
+The schema-26 release implements expanded practice/client profiles, project site data, Brief & Scope, planning and formal decisions, quantity-only measurement, drawing-register foundations, daily site logs, inspections, meeting minutes, verified snag/NCR closure with managed before/after evidence, combined site-report CSV/PDF export, RFI/submittal/site-instruction coordination, a consultant responsibility matrix and controlled LAN entry. Its current Room model contains no commercial tables or columns; preserving migrations upgrade older databases through schema 26. Items below that require full DWG rendering, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
 
 1. Drawings
    - DWG viewing, layers, pan, zoom and extents.
@@ -71,7 +71,7 @@ If a renderer is unavailable, ArchiMan must clearly report that the drawing is r
 ### Phase C - Construction administration
 
 - RFI, submittal and site-instruction workflows linked to drawing revisions and locations.
-- Daily reports, snagging and NCR verified closure.
+- Daily site logs, site inspections, meeting minutes, snagging and NCR verified closure with before/after evidence, and site-report CSV/PDF export.
 - Consultant directory and responsibility matrix.
 
 ### Phase D - Delivery control

@@ -10,18 +10,20 @@ enum class AppScreen(val title: String) {
     ROOM_WORKSPACE("Room Components"),
     MEASUREMENT_BOOK("Measurement Book"),
     REGISTER("Measurements Register"),
-    PROJECTS("Projects"),
     CLIENTS("Clients"),
     CONTRACTORS("Contractors"),
     MASTER_DATA("PWD SR Work Catalogue"),
     COMPANY_DASHBOARD("Company Dashboard")
 }
 
-/** Top-level portfolio directories. Project-specific features live below a selected project. */
+/**
+ * Top-level portfolio destinations.
+ * [label] matches the bottom-navigation copy users see (Contacts / Library / Practice).
+ */
 enum class HomeTab(val label: String) {
     PROJECTS("Projects"),
-    DIRECTORY("Directory"),
-    WORK_LIBRARY("Work Library"),
+    DIRECTORY("Contacts"),
+    WORK_LIBRARY("Library"),
     PRACTICE("Practice")
 }
 
