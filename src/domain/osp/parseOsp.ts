@@ -1,5 +1,4 @@
-import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js';
-import sqlWasmUrl from 'sql.js/dist/sql-wasm.wasm?url';
+import type { Database, SqlJsStatic } from 'sql.js';
 import {
   OSP_EXTENSION,
   OSP_FORMAT,
@@ -15,9 +14,27 @@ import {
 
 let sqlPromise: Promise<SqlJsStatic> | null = null;
 
-function getSql(): Promise<SqlJsStatic> {
+/**
+ * Load sql.js from /public/vendor (CJS UMD build) without Vite prebundling.
+ * The package "browser" export breaks as ESM default; this keeps .osp parsing reliable.
+ */
+async function getSql(): Promise<SqlJsStatic> {
   if (!sqlPromise) {
-    sqlPromise = initSqlJs({ locateFile: () => sqlWasmUrl });
+    sqlPromise = (async () => {
+      const res = await fetch('/vendor/sqljs/sql-wasm.js');
+      if (!res.ok) throw new Error(`Failed to load sql.js (${res.status})`);
+      const code = await res.text();
+      const module = { exports: {} as { default?: unknown } & Record<string, unknown> };
+      const fn = new Function('module', 'exports', code);
+      fn(module, module.exports);
+      const initSqlJs = (module.exports.default ?? module.exports) as (cfg?: {
+        locateFile?: (file: string) => string;
+      }) => Promise<SqlJsStatic>;
+      if (typeof initSqlJs !== 'function') {
+        throw new Error('sql.js did not export initSqlJs');
+      }
+      return initSqlJs({ locateFile: () => '/vendor/sqljs/sql-wasm.wasm' });
+    })();
   }
   return sqlPromise;
 }
@@ -258,7 +275,6 @@ export async function openDraftFile(file: File): Promise<OpenDraftResult> {
           'There is no .odraft file extension. O-Draft’s native project file is .osp (format osas-project). Drop a .osp or .dxf instead.',
       };
     }
-    // Heuristic: SQLite magic → try as .osp
     if (isSqlite(buf)) {
       const project = await parseOspBytes(buf, file.name);
       return { ok: true, project, kind: 'osp' };
