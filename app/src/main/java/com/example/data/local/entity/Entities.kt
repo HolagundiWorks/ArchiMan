@@ -468,9 +468,55 @@ data class ProjectDrawingEntity(
     val title: String,
     val discipline: String = "Architectural",
     val status: String = "WORKING",
+    /** Document package tag — e.g. blank, or HFC for Held-for-Construction (schema 27). */
+    val packageTag: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val archivedAt: Long? = null
+)
+
+/**
+ * Supporting site documents organized under Siteman (HFC pack notes, method statements, etc.).
+ * Quantity-only / document-control — no commercial fields.
+ */
+@Entity(tableName = "site_documents", indices = [Index("projectId"), Index("category"), Index("createdAt")])
+data class SiteDocumentEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val title: String,
+    val category: String = "HFC",
+    val notes: String = "",
+    val linkedDrawingId: Long? = null,
+    val fileUri: String? = null,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
+/** Quantity-and-specification material order header (Siteman purchase-order issue). */
+@Entity(
+    tableName = "material_orders",
+    indices = [Index("projectId"), Index("status"), Index(value = ["projectId", "referenceNumber"], unique = true)]
+)
+data class MaterialOrderEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val projectId: Long,
+    val referenceNumber: String,
+    val title: String,
+    val supplier: String = "",
+    val status: String = "DRAFT",
+    val notes: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val issuedAt: Long? = null
+)
+
+@Entity(tableName = "material_order_lines", indices = [Index("orderId")])
+data class MaterialOrderLineEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val orderId: Long,
+    val itemName: String,
+    val specification: String = "",
+    val quantity: Double = 1.0,
+    val unit: String = "Nos",
+    val remarks: String = ""
 )
 
 @Entity(

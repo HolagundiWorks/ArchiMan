@@ -499,6 +499,34 @@ interface DrawingDao {
 }
 
 @Dao
+interface SiteDocumentDao {
+    @Query("SELECT * FROM site_documents WHERE projectId=:projectId ORDER BY createdAt DESC, id DESC")
+    fun observeByProject(projectId: Long): Flow<List<SiteDocumentEntity>>
+
+    @Insert suspend fun insert(item: SiteDocumentEntity): Long
+    @Delete suspend fun delete(item: SiteDocumentEntity)
+}
+
+@Dao
+interface MaterialOrderDao {
+    @Query("SELECT * FROM material_orders WHERE projectId=:projectId ORDER BY CASE status WHEN 'ISSUED' THEN 1 ELSE 0 END, createdAt DESC")
+    fun observeOrders(projectId: Long): Flow<List<MaterialOrderEntity>>
+
+    @Query("SELECT * FROM material_order_lines WHERE orderId=:orderId ORDER BY id")
+    fun observeLines(orderId: Long): Flow<List<MaterialOrderLineEntity>>
+
+    @Query("SELECT * FROM material_order_lines WHERE orderId IN (:orderIds) ORDER BY orderId, id")
+    fun observeLinesForOrders(orderIds: List<Long>): Flow<List<MaterialOrderLineEntity>>
+
+    @Insert suspend fun insertOrder(item: MaterialOrderEntity): Long
+    @Update suspend fun updateOrder(item: MaterialOrderEntity)
+    @Insert suspend fun insertLine(item: MaterialOrderLineEntity): Long
+    @Delete suspend fun deleteOrder(item: MaterialOrderEntity)
+    @Query("DELETE FROM material_order_lines WHERE orderId=:orderId")
+    suspend fun deleteLinesForOrder(orderId: Long)
+}
+
+@Dao
 interface MeasurementDao {
     @Query("SELECT * FROM measurements ORDER BY date DESC, id DESC")
     fun getAllMeasurements(): Flow<List<MeasurementEntity>>

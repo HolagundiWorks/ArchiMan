@@ -1,6 +1,6 @@
 # ArchiMan complete demo company
 
-`ArchiMan-Demo-Company.archimandb` is a fictional, password-encrypted schema-24 company package generated through ArchiMan's production export path.
+`ArchiMan-Demo-Company.archimandb` is a fictional, password-encrypted schema-24 company package generated through ArchiMan's production export path. On import, Room upgrades it through the current schema (27) via preserving migrations.
 
 Package password: `ArchiMan-Demo-2026!`
 

@@ -13,6 +13,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.core.content.FileProvider
 import com.example.data.local.entity.DailySiteReportEntity
+import com.example.data.local.entity.MaterialOrderEntity
+import com.example.data.local.entity.MaterialOrderLineEntity
 import com.example.data.local.entity.MeasurementEntity
 import com.example.data.local.entity.MeetingMinutesEntity
 import com.example.data.local.entity.ProjectSelectionItemEntity
@@ -25,6 +27,43 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 object ExportHelper {
+
+    fun exportMaterialOrderCsv(
+        context: Context,
+        projectName: String,
+        order: MaterialOrderEntity,
+        lines: List<MaterialOrderLineEntity>
+    ) {
+        val safeName = projectName.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        val safeRef = order.referenceNumber.replace(Regex("[^A-Za-z0-9._-]"), "_")
+        fun String.csv() = "\"${replace("\"", "\"\"")}\""
+        val csv = buildString {
+            append("\uFEFFPURCHASE ORDER\n")
+            append("Project,").append(projectName.csv()).append('\n')
+            append("Reference,").append(order.referenceNumber.csv()).append('\n')
+            append("Title,").append(order.title.csv()).append('\n')
+            append("Supplier,").append(order.supplier.csv()).append('\n')
+            append("Status,").append(order.status.csv()).append('\n')
+            append("Note,Quantity and specification only - no prices or commercial values\n\n")
+            append("Sr No,Item,Specification,Quantity,Unit,Remarks\n")
+            lines.forEachIndexed { index, line ->
+                append(index + 1).append(',')
+                    .append(line.itemName.csv()).append(',')
+                    .append(line.specification.csv()).append(',')
+                    .append(line.quantity).append(',')
+                    .append(line.unit.csv()).append(',')
+                    .append(line.remarks.csv()).append('\n')
+            }
+        }
+        shareTextFile(
+            context = context,
+            fileName = "PO_${safeRef}_${safeName}_${System.currentTimeMillis()}.csv",
+            content = csv,
+            mimeType = "text/csv",
+            subject = "Purchase Order ${order.referenceNumber} - $projectName",
+            chooserTitle = "Export purchase order"
+        )
+    }
 
     fun exportSelectionListAsPurchaseOrder(
         context: Context,

@@ -22,13 +22,14 @@
 | Tasks, schedule, selections and meetings | Implemented foundation | Retain; add dependencies and reminders later. |
 | Measurement Book and controlled review | Implemented | Retain as the core field workflow. |
 | Drawing register, revisions and transmittals | Implemented foundation | Retain; licensed DWG rendering remains separate. |
-| Consultant responsibility matrix | Missing | Implement in schema 23 with discipline, phase, responsibility and RACI role. |
-| RFI register | Missing | Implement in schema 23 with reference, question, discipline, location, priority, due date, ball-in-court and controlled status. |
-| Submittal review | Missing | Implement in schema 23 with received, review, approval and revise/resubmit states. |
-| Site instructions | Missing | Implement in schema 23 with draft, issue, acknowledgement, compliance and closure states. |
-| Coordination audit trail | Missing | Append an immutable event for creation, every status transition and archive action. |
+| Consultant responsibility matrix | Implemented (schema 23+) | Discipline, phase, responsibility and RACI role under Coordination. |
+| RFI register | Implemented (schema 23+) | Reference, question, discipline, location, priority, due date, ball-in-court and controlled status. |
+| Submittal review | Implemented (schema 23+) | Received, review, approval and revise/resubmit states. |
+| Site instructions | Implemented (schema 23+) | Draft, issue, acknowledgement, compliance and closure states. |
+| Coordination audit trail | Implemented (schema 23+) | Immutable events for creation, status transitions and archive actions. |
 | Snag/NCR verified closure | Implemented (schema 24–26) | Verified closure with immutable events; managed before (`evidenceUri`) and after (`afterEvidenceUri`) evidence under Site reports. |
 | Daily reports | Implemented (schema 24+) | Daily site logs under Site reports with dated create/edit, managed photos and CSV/PDF export. |
+| Siteman site-manager hub | Implemented (schema 27) | Phone hub for logs, HFC docs, quantity abstracts, qty/spec POs and Archi Calc. |
 | Programme dependencies and baselines | Missing | Later planning milestone; do not overload the simple schedule list. |
 | Handover package manifest | Missing | Later controlled-document milestone. |
 | Practice staffing and workload | Missing | Later firm-management milestone, intentionally without rates, fees or payroll. |

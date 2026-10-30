@@ -1,6 +1,6 @@
 # ArchiMan Architectural Practice Scope
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 26, reviewed 29 October 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 27, reviewed 29 October 2026.
 
 ## Product boundary
 
@@ -14,7 +14,7 @@ The approval/compliance matrix and jurisdiction-profile proposal is explicitly e
 
 ## Canonical project workspaces
 
-The schema-26 release implements expanded practice/client profiles, project site data, Brief & Scope, planning and formal decisions, quantity-only measurement, drawing-register foundations, daily site logs, inspections, meeting minutes, verified snag/NCR closure with managed before/after evidence, combined site-report CSV/PDF export, RFI/submittal/site-instruction coordination, a consultant responsibility matrix and controlled LAN entry. Its current Room model contains no commercial tables or columns; preserving migrations upgrade older databases through schema 26. Items below that require full DWG rendering, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
+The schema-27 release keeps the expanded practice/client profiles, project site data, Brief & Scope, planning and formal decisions, quantity-only measurement, drawing-register foundations, daily site logs, inspections, meeting minutes, verified snag/NCR closure with managed before/after evidence, combined site-report CSV/PDF export, RFI/submittal/site-instruction coordination, a consultant responsibility matrix and controlled LAN entry from earlier schemas, and adds **Siteman** — the site-manager hub for daily logs, HFC drawing package tags and site documents, Measurement Book quantity abstracts, quantity-and-specification material purchase orders, and the embedded Archi Calc. Its current Room model contains no commercial tables or columns; preserving migrations upgrade older databases through schema 27. Siteman HFC / POs / Archi Calc are phone-primary (LAN portal still centres on Site reports). Items below that require full DWG rendering, organisation identity or synchronisation are approved roadmap scope, not claims about the current APK.
 
 1. Drawings
    - DWG viewing, layers, pan, zoom and extents.
@@ -30,6 +30,7 @@ The schema-26 release implements expanded practice/client profiles, project site
    - Daily progress reports.
    - Snags, defects and NCRs with assignment, before/after evidence and verified closure.
    - Existing inspections, meeting minutes and Measurement Book.
+   - Siteman: HFC document control, quantity abstracts, material POs (qty/spec), Archi Calc.
 4. Programme
    - Activities, milestones, dependencies, baseline and current dates.
    - Progress updates, look-ahead view and delay reasons.

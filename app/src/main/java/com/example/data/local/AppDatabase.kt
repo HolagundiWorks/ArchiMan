@@ -12,7 +12,7 @@ import com.example.data.local.dao.*
 import com.example.data.local.entity.*
 import com.example.domain.WorkCatalog
 
-const val DATABASE_SCHEMA_VERSION = 26
+const val DATABASE_SCHEMA_VERSION = 27
 
 @Database(
     entities = [
@@ -43,6 +43,9 @@ const val DATABASE_SCHEMA_VERSION = 26
         DrawingTransmittalEntity::class,
         DrawingTransmittalItemEntity::class,
         DrawingMarkupEntity::class,
+        SiteDocumentEntity::class,
+        MaterialOrderEntity::class,
+        MaterialOrderLineEntity::class,
         FloorEntity::class,
         RoomEntity::class,
         ComponentEntity::class,
@@ -73,6 +76,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun siteControlDao(): SiteControlDao
     abstract fun coordinationDao(): CoordinationDao
     abstract fun drawingDao(): DrawingDao
+    abstract fun siteDocumentDao(): SiteDocumentDao
+    abstract fun materialOrderDao(): MaterialOrderDao
     abstract fun floorDao(): FloorDao
     abstract fun roomDao(): RoomDao
     abstract fun componentDao(): ComponentDao
@@ -95,7 +100,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "site_measurement.db"
                 )
-                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26)
+                .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21, MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24, MIGRATION_24_25, MIGRATION_25_26, MIGRATION_26_27)
                 .addCallback(object : Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
                         super.onCreate(db)
@@ -517,6 +522,22 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_25_26 = object : Migration(25, 26) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `site_issues` ADD COLUMN `afterEvidenceUri` TEXT")
+            }
+        }
+
+        val MIGRATION_26_27 = object : Migration(26, 27) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `project_drawings` ADD COLUMN `packageTag` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `site_documents` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `title` TEXT NOT NULL, `category` TEXT NOT NULL, `notes` TEXT NOT NULL, `linkedDrawingId` INTEGER, `fileUri` TEXT, `createdAt` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_site_documents_projectId` ON `site_documents` (`projectId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_site_documents_category` ON `site_documents` (`category`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_site_documents_createdAt` ON `site_documents` (`createdAt`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `material_orders` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `projectId` INTEGER NOT NULL, `referenceNumber` TEXT NOT NULL, `title` TEXT NOT NULL, `supplier` TEXT NOT NULL, `status` TEXT NOT NULL, `notes` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `issuedAt` INTEGER)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_material_orders_projectId` ON `material_orders` (`projectId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_material_orders_status` ON `material_orders` (`status`)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_material_orders_projectId_referenceNumber` ON `material_orders` (`projectId`, `referenceNumber`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `material_order_lines` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `orderId` INTEGER NOT NULL, `itemName` TEXT NOT NULL, `specification` TEXT NOT NULL, `quantity` REAL NOT NULL, `unit` TEXT NOT NULL, `remarks` TEXT NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_material_order_lines_orderId` ON `material_order_lines` (`orderId`)")
             }
         }
 

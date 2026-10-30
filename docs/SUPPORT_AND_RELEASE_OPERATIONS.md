@@ -1,6 +1,6 @@
 # Support and Release Operations
 
-> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 26, reviewed 29 October 2026.
+> Current baseline: ArchiMan — Architectural Consultancy Management App, Room schema 27, reviewed 29 October 2026.
 
 ## Scope
 
@@ -37,7 +37,7 @@ From the repository root, run:
 
 The first boundary check rejects active commercial terminology, unapproved network/cloud dependencies, or outbound cleartext configuration. It verifies the permissions required by the approved local Wi-Fi workspace. The second invocation also checks the merged debug manifest produced by the build.
 
-The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, profile, consultancy-scope, coordination, site-control, portal-security and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`. The schema-26 baseline includes preserving 20→21, 21→22, 22→23, 23→24, 24→25 and 25→26 migration tests, immutable portal/coordination/site-issue audit verification, site-attachment packaging and explicit removal of the obsolete commercial schema.
+The build must pass all formula, catalog, draft, attachment, duplicate-merge, migration, foreign-key, workflow, lock, archive, profile, consultancy-scope, coordination, site-control, portal-security and diagnostic-report tests. The resulting local milestone is `app/build/outputs/apk/debug/app-debug.apk`. CI uses JDK 21 (required for Robolectric against compileSdk 36). The schema-27 baseline includes preserving 20→21, 21→22, 22→23, 23→24, 24→25, 25→26 and 26→27 migration tests, immutable portal/coordination/site-issue audit verification, site-attachment packaging, Siteman tables and explicit removal of the obsolete commercial schema.
 
 ## Continuous integration
 

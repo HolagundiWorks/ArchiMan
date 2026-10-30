@@ -2,7 +2,7 @@
 
 - Audit updated: 29 October 2026
 - Product: ArchiMan — Architectural Consultancy Management App
-- Current database target: Room schema 26
+- Current database target: Room schema 27
 - Source baseline: current ArchiMan UX, company portability, site-report export and secure LAN-workspace implementation
 
 ## Release identity
@@ -12,17 +12,18 @@
 | User-facing brand | ArchiMan and full Architectural Consultancy Management App descriptor across app, portal, exports and diagnostics | Pass |
 | Android upgrade identity | Package `com.aistudio.sitemeasure.qvtrpl` retained | Pass; intentional data-preservation decision |
 | Database identity | `site_measurement.db` retained | Pass; intentional migration compatibility |
-| Database version | Explicit migrations through schema 26, with no destructive fallback | Pass locally |
+| Database version | Explicit migrations through schema 27, with no destructive fallback | Pass locally |
 
 ## Implemented product areas
 
 | Area | Evidence in current implementation | Status |
 |---|---|---|
 | Portfolio and navigation | Projects, Contacts, Library and Practice; selected project uses Project, Work, Record, M-Book and More | Implemented |
-| Profiles and portability | Expanded company/practice and client profiles, company logo/JSON transfer, plus password-encrypted whole-company `.archimandb` portability with a consistent SQLite snapshot, managed files (`company`, `measurement_attachments`, `site_attachments`), checksums, preview and staged rollback-safe restore | Implemented through schema 26; production restore drill remains open |
+| Profiles and portability | Expanded company/practice and client profiles, company logo/JSON transfer, plus password-encrypted whole-company `.archimandb` portability with a consistent SQLite snapshot, managed files (`company`, `measurement_attachments`, `site_attachments`), checksums, preview and staged rollback-safe restore | Implemented through schema 27; production restore drill remains open |
 | Project brief, scope and site data | Consultancy profile, phase/stage/status, brief narratives, structured scope rows and collapsible site-data capture | Implemented foundation |
 | Project planning | Tasks, schedule, formal decision register and specification/selection list with quantity-only purchase-order export | Implemented foundation |
 | Site reporting | Daily site logs, structured meeting minutes, inspections, snag/NCR before/after evidence with verified closure, managed site attachments, and combined CSV/PDF export | Implemented through schema 26 |
+| Siteman | Site-manager hub: daily logs, HFC package tags + site documents, quantity abstract exports, quantity-only material POs, embedded Archi Calc | Implemented through schema 27 (phone-primary; portal Site reports unchanged) |
 | Drawing control | Drawing register, immutable revision records, transmittals and markup metadata | Implemented foundation; native DWG rendering is future work |
 | Coordination | Consultant responsibility matrix plus RFI, submittal and site-instruction registers with due dates, ball-in-court, exact drawing-revision links, controlled transitions, archive and an in-app immutable activity timeline | Implemented foundation in schema 23 |
 | Contractor and catalogue | Existing-contractor selection, standard contractor types, work hierarchy, PWD SR starter catalogue, qualification import and duplicate controls | Implemented foundation |
@@ -47,7 +48,7 @@
 
 ## Verification evidence
 
-- The schema-26 baseline preserves decisions, daily logs and snag/NCR closure from schema 24, adds drawing-revision metadata (25) and after-evidence / site attachment packaging (26); the current test count is recorded after the full verification run below.
+- The schema-27 baseline preserves decisions, daily logs and snag/NCR closure from schema 24, adds drawing-revision metadata (25) and after-evidence / site attachment packaging (26); the current test count is recorded after the full verification run below.
 - Migration coverage includes a 21→22 preservation test proving every quantity-bearing measurement field survives while obsolete commercial tables and columns are removed.
 - Migration 22→23 adds coordination tables without rewriting existing projects or measurements; immutable-event triggers and workflow state machines are tested.
 - A clean-install seeding policy test proves only reference catalogue masters are added; clients, contractors, projects, project structure and measurements start empty.
@@ -74,4 +75,4 @@
 
 ## Decision
 
-The repository is a schema-26 development baseline: the quantity-only Measurement Book, coordination, formal decisions, daily site logs, inspections, verified snag/NCR closure with before/after evidence, site-report CSV/PDF export, encrypted company portability and broad local-browser entry foundation are implemented. It is not yet marked production-released because populated restore drills, full interaction/accessibility testing, browser concurrency/security acceptance and signed distribution evidence remain outstanding.
+The repository is a schema-27 development baseline: the quantity-only Measurement Book, coordination, formal decisions, daily site logs, inspections, verified snag/NCR closure with before/after evidence, site-report CSV/PDF export, encrypted company portability and broad local-browser entry foundation are implemented. It is not yet marked production-released because populated restore drills, full interaction/accessibility testing, browser concurrency/security acceptance and signed distribution evidence remain outstanding.

@@ -1,7 +1,7 @@
 # Comparative UX case study: field and construction applications
 
 Reviewed: 9 September 2026
-Applied baseline: ArchiMan schema 26
+Applied baseline: ArchiMan schema 27
 
 ## Objective
 
