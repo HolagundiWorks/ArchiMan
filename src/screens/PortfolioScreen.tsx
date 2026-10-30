@@ -20,17 +20,16 @@ import {
   Upload,
   CheckCircle,
   AlertCircle,
-  FileText,
   MapPin,
   Compass,
   ArrowRight,
   Shield,
-  Layers,
   Database,
   Activity,
-  Trash2,
+  FileBox,
 } from 'lucide-react';
-import { Button, StatusChip } from '../components/ui';
+import { Button } from '../components/ui';
+import { ODraftReaderView } from './ODraftReaderView';
 
 interface PortfolioScreenProps {
   onSelectProject: (project: ProjectEntity) => void;
@@ -266,61 +265,45 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
       )}
 
       {/* Portfolio Top Bar */}
-      <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30">
+      <header className="bg-sidebar border-b border-outline-variant sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-12">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary text-on-primary rounded-md elevation-1">
-                <Compass className="w-5 h-5" />
+              <div className="p-1.5 bg-primary text-on-primary rounded-sm elevation-1">
+                <Compass className="w-4 h-4" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-on-surface leading-tight">
+                <h1 className="text-[13px] font-semibold text-on-surface leading-tight tracking-tight">
                   {store.companyProfile.practiceName || 'ArchiMan'}
                 </h1>
                 <div className="text-[11px] text-on-surface-variant flex items-center gap-1.5">
-                  <span>CoA: {store.companyProfile.coaRegistrationNumber || 'Architect Practice'}</span>
+                  <span>OSAS · field / site</span>
                   <span>•</span>
-                  <span>Schema 27 Local DB</span>
+                  <span>CoA: {store.companyProfile.coaRegistrationNumber || 'Practice'}</span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               {activeTab === 'PROJECTS' && (
-                <button
-                  type="button"
-                  onClick={() => setShowNewProjectModal(true)}
-                  className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
-                >
-                  <Plus className="w-4 h-4" /> New Project
-                </button>
+                <Button size="sm" leadingIcon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowNewProjectModal(true)}>
+                  New Project
+                </Button>
               )}
               {activeTab === 'DIRECTORY' && directoryTab === 'CLIENTS' && (
-                <button
-                  type="button"
-                  onClick={() => setShowNewClientModal(true)}
-                  className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
-                >
-                  <Plus className="w-4 h-4" /> Add Client
-                </button>
+                <Button size="sm" leadingIcon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowNewClientModal(true)}>
+                  Add Client
+                </Button>
               )}
               {activeTab === 'DIRECTORY' && directoryTab === 'CONTRACTORS' && (
-                <button
-                  type="button"
-                  onClick={() => setShowNewContractorModal(true)}
-                  className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
-                >
-                  <Plus className="w-4 h-4" /> Add Contractor
-                </button>
+                <Button size="sm" leadingIcon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowNewContractorModal(true)}>
+                  Add Contractor
+                </Button>
               )}
               {activeTab === 'WORK_LIBRARY' && (
-                <button
-                  type="button"
-                  onClick={() => setShowNewCatalogModal(true)}
-                  className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
-                >
-                  <Plus className="w-4 h-4" /> Add Work Item
-                </button>
+                <Button size="sm" leadingIcon={<Plus className="w-3.5 h-3.5" />} onClick={() => setShowNewCatalogModal(true)}>
+                  Add Work Item
+                </Button>
               )}
             </div>
           </div>
@@ -331,6 +314,7 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
               { id: 'PROJECTS', label: 'Projects', icon: Building2, count: store.projects.length },
               { id: 'DIRECTORY', label: 'Contacts', icon: Users, count: store.clients.length + store.contractors.length },
               { id: 'WORK_LIBRARY', label: 'Library', icon: BookOpen, count: store.standardWorkItems.length },
+              { id: 'ODRAFT', label: 'O-Draft', icon: FileBox },
               { id: 'PRACTICE', label: 'Practice', icon: Briefcase },
             ].map((tab) => {
               const Icon = tab.icon;
@@ -614,6 +598,11 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB: O-Draft project reader */}
+        {activeTab === 'ODRAFT' && (
+          <ODraftReaderView title="O-Draft · project file reader" />
         )}
 
         {/* TAB 4: PRACTICE (Company Profile, Backup, Dashboard) */}

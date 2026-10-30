@@ -14,11 +14,11 @@ export function AppShell({
 }) {
   return (
     <div className={cn('min-h-screen bg-surface flex flex-col text-on-surface', className)}>
-      <div className="sticky top-0 z-30 bg-surface-container-lowest/95 backdrop-blur border-b border-outline-variant">
+      <div className="sticky top-0 z-30 bg-sidebar/95 backdrop-blur border-b border-outline-variant">
         {header}
         {nav}
       </div>
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
         {children}
       </main>
     </div>
@@ -85,7 +85,7 @@ export function BottomNav({
             >
               <span
                 className={cn(
-                  'inline-flex items-center justify-center w-14 h-8 rounded-xl transition',
+                  'inline-flex items-center justify-center w-12 h-7 rounded-sm transition',
                   active && 'bg-primary-container text-on-primary-container'
                 )}
               >
@@ -118,8 +118,8 @@ export function Fab({
       aria-label={label}
       className={cn(
         'fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40',
-        'inline-flex items-center gap-2 h-14 px-5 rounded-xl',
-        'bg-primary-container text-on-primary-container font-semibold elevation-3',
+        'inline-flex items-center gap-2 h-10 px-4 rounded-sm',
+        'bg-primary-container text-on-primary-container font-semibold elevation-3 text-[12px]',
         'hover:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
         className
       )}

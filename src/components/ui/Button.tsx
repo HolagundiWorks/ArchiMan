@@ -23,10 +23,11 @@ const variantClass: Record<Variant, string> = {
     'bg-error text-on-error hover:brightness-95 border border-transparent elevation-1',
 };
 
+/* Suite compact density: control height ≈ 26–32px, radius 4px */
 const sizeClass: Record<Size, string> = {
-  sm: 'h-9 px-3 text-xs gap-1.5 rounded-sm',
-  md: 'h-10 px-4 text-sm gap-2 rounded-md',
-  lg: 'h-12 px-5 text-sm gap-2 rounded-md',
+  sm: 'h-[26px] px-2.5 text-[11px] gap-1.5 rounded-sm',
+  md: 'h-8 px-3 text-[12px] gap-1.5 rounded-sm',
+  lg: 'h-9 px-4 text-[12px] gap-2 rounded-sm',
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

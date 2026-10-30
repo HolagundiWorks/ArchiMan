@@ -45,7 +45,7 @@ export function Surface({
   return (
     <div
       className={cn(
-        'rounded-md text-on-surface',
+        'rounded-sm text-on-surface',
         toneClass[tone],
         elevationClass[elevation],
         outlined && 'border border-outline-variant',

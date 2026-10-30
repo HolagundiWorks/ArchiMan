@@ -11,7 +11,6 @@ import { PlanningView } from './PlanningView';
 import {
   ArrowLeft,
   Building2,
-  Calendar,
   Layers,
   Ruler,
   BookOpen,
@@ -21,13 +20,12 @@ import {
   FileCode2,
   ShieldAlert,
   MessageSquare,
-  Scale,
   MapPin,
-  CheckCircle,
   Briefcase,
-  Users,
+  FileBox,
 } from 'lucide-react';
 import { StatusChip, Surface, Button } from '../components/ui';
+import { ODraftReaderView } from './ODraftReaderView';
 
 interface ProjectWorkspaceScreenProps {
   project: ProjectEntity;
@@ -82,7 +80,7 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       {/* Project Top Breadcrumb & Header Bar */}
-      <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30">
+      <header className="bg-sidebar border-b border-outline-variant sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Top Breadcrumb Trail */}
           <div className="flex items-center gap-2 py-2 text-[11px] text-on-surface-variant border-b border-outline-variant/60 font-medium">
@@ -378,10 +376,11 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
         {activeSection === 'MORE' && (
           <div className="space-y-6">
             {/* Sub-navigation bar under More */}
-            <div className="flex overflow-x-auto gap-2 bg-surface-container-lowest p-2 rounded-md border border-outline-variant elevation-1">
+            <div className="flex overflow-x-auto gap-2 bg-surface-container-lowest p-1.5 rounded-sm border border-outline-variant elevation-1">
               {[
                 { id: 'SITEMAN', label: 'Siteman Hub', icon: Briefcase },
                 { id: 'DRAWINGS', label: 'Drawings & Revisions', icon: FileCode2 },
+                { id: 'ODRAFT', label: 'O-Draft .osp', icon: FileBox },
                 { id: 'REPORTS', label: 'Site Reports & Snags', icon: ShieldAlert },
                 { id: 'COORDINATION', label: 'Coordination (RFIs)', icon: MessageSquare },
                 { id: 'PLANNING', label: 'Planning & Decisions', icon: Compass },
@@ -393,13 +392,13 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
                     key={sub.id}
                     type="button"
                     onClick={() => setActiveMoreSection(sub.id as MoreSection)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-sm text-[12px] font-semibold transition whitespace-nowrap ${
                       isActive
                         ? 'bg-primary text-on-primary elevation-1'
                         : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                     <span>{sub.label}</span>
                   </button>
                 );
@@ -411,9 +410,21 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
               <SitemanView
                 project={project}
                 onNavigateToMBook={() => setActiveSection('M_BOOK')}
+                onOpenODraft={() => setActiveMoreSection('ODRAFT')}
               />
             )}
-            {activeMoreSection === 'DRAWINGS' && <DrawingsView project={project} />}
+            {activeMoreSection === 'DRAWINGS' && (
+              <DrawingsView
+                project={project}
+                onOpenODraft={() => setActiveMoreSection('ODRAFT')}
+              />
+            )}
+            {activeMoreSection === 'ODRAFT' && (
+              <ODraftReaderView
+                compact
+                title={`O-Draft reader · ${project.projectCode}`}
+              />
+            )}
             {activeMoreSection === 'REPORTS' && <SiteReportsView project={project} />}
             {activeMoreSection === 'COORDINATION' && <CoordinationView project={project} />}
             {activeMoreSection === 'PLANNING' && <PlanningView project={project} />}

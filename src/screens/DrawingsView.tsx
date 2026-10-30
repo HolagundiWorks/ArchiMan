@@ -5,20 +5,21 @@ import { ExportHelper } from '../domain/WorkCatalog';
 import {
   FileCode2,
   Plus,
-  Send,
   History,
   Tag,
   CheckCircle,
   AlertCircle,
-  FileText,
   Download,
+  FileBox,
 } from 'lucide-react';
+import { Button } from '../components/ui';
 
 interface DrawingsViewProps {
   project: ProjectEntity;
+  onOpenODraft?: () => void;
 }
 
-export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
+export const DrawingsView: React.FC<DrawingsViewProps> = ({ project, onOpenODraft }) => {
   const [activeTab, setActiveTab] = useState<'REGISTER' | 'TRANSMITTALS'>('REGISTER');
   const [showDrawingModal, setShowDrawingModal] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState<number | null>(null);
@@ -116,21 +117,32 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
+        <div className="flex items-center gap-2 flex-wrap">
+          {onOpenODraft && (
+            <Button
+              size="sm"
+              variant="outlined"
+              leadingIcon={<FileBox className="w-3.5 h-3.5" />}
+              onClick={onOpenODraft}
+            >
+              Open .osp / .dxf
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="tonal"
+            leadingIcon={<Download className="w-3.5 h-3.5" />}
             onClick={handleExportTransmittal}
-            className="px-3 py-2 bg-surface-container-low hover:bg-surface-container-high text-on-surface rounded-lg text-xs font-semibold flex items-center gap-1.5"
           >
-            <Download className="w-4 h-4" /> Export Transmittal CSV
-          </button>
-          <button
-            type="button"
+            Export CSV
+          </Button>
+          <Button
+            size="sm"
+            leadingIcon={<Plus className="w-3.5 h-3.5" />}
             onClick={() => setShowDrawingModal(true)}
-            className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
           >
-            <Plus className="w-4 h-4" /> Register Drawing
-          </button>
+            Register Drawing
+          </Button>
         </div>
       </div>
 

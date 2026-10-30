@@ -17,6 +17,7 @@ import {
   Layers,
   FileText,
   AlertCircle,
+  FileBox,
 } from 'lucide-react';
 import {
   Button,
@@ -30,9 +31,14 @@ import {
 interface SitemanViewProps {
   project: ProjectEntity;
   onNavigateToMBook: () => void;
+  onOpenODraft?: () => void;
 }
 
-export const SitemanView: React.FC<SitemanViewProps> = ({ project, onNavigateToMBook }) => {
+export const SitemanView: React.FC<SitemanViewProps> = ({
+  project,
+  onNavigateToMBook,
+  onOpenODraft,
+}) => {
   const [activeTab, setActiveTab] = useState<'LOGS' | 'HFC' | 'ABSTRACT' | 'POS' | 'CALC'>('LOGS');
 
   // Logs state
@@ -205,7 +211,21 @@ export const SitemanView: React.FC<SitemanViewProps> = ({ project, onNavigateToM
           eyebrow="Site operations · quantity-only"
           title="Siteman"
           description="Daily logs, Held-for-Construction drawings and documents, quantity abstracts, material purchase orders, and Archi Calc."
-          actions={primaryAction}
+          actions={
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+              {onOpenODraft && (
+                <Button
+                  size="sm"
+                  variant="outlined"
+                  leadingIcon={<FileBox className="w-3.5 h-3.5" />}
+                  onClick={onOpenODraft}
+                >
+                  Read .osp
+                </Button>
+              )}
+              {primaryAction}
+            </div>
+          }
         />
         <SegmentedTabs
           value={activeTab}

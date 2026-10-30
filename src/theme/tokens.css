@@ -1,31 +1,34 @@
 /*
- * ArchiMan Material Design 3 tokens
- * Seed: architectural blue (#185ABC) — professional, not purple/demo chrome.
- * Surfaces follow MD3 tonal elevation (surface → surface-container-* → lowest).
+ * ArchiMan × OSAS Soft-UI (O-UI / O-Studio visual contract)
+ * Neutrals from Hcw.Ui SuiteColors; accent = O-Studio Orange (#FF6B00).
+ * Density follows suite compact CAD-polished scale (4px radius, 26px controls).
+ * MD3-style role names retained for existing component APIs.
  */
 @import "tailwindcss";
 
 @theme {
-  /* Brand / primary */
-  --color-primary: #185abc;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #d6e3ff;
-  --color-on-primary-container: #001b3d;
-  --color-primary-fixed: #d6e3ff;
-  --color-on-primary-fixed: #001b3d;
+  /* O-Studio accent (SuiteAccent.Orange) */
+  --color-primary: #ff6b00;
+  --color-on-primary: #1a2332;
+  --color-primary-container: #ffdcc2;
+  --color-on-primary-container: #a83f00;
+  --color-primary-fixed: #ffdcc2;
+  --color-on-primary-fixed: #a83f00;
+  --color-primary-hover: #f26400;
+  --color-primary-pressed: #e65f00;
 
-  /* Secondary / tertiary (neutral professional) */
-  --color-secondary: #545f71;
+  /* Secondary = suite ink soft / CoreOp blue for info chips */
+  --color-secondary: #1f5fd1;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #d8e3f8;
-  --color-on-secondary-container: #111c2b;
-  --color-tertiary: #6b5778;
-  --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #f3daff;
-  --color-on-tertiary-container: #251431;
+  --color-secondary-container: #d3e3ff;
+  --color-on-secondary-container: #1a52b8;
 
-  /* Error / status */
-  --color-error: #ba1a1a;
+  --color-tertiary: #1a2332;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #d8dee8;
+  --color-on-tertiary-container: #1a2332;
+
+  --color-error: #c42b1c;
   --color-on-error: #ffffff;
   --color-error-container: #ffdad6;
   --color-on-error-container: #410002;
@@ -33,49 +36,45 @@
   --color-on-success: #ffffff;
   --color-success-container: #a6f2b8;
   --color-on-success-container: #00210c;
-  --color-warning: #7d5700;
+  --color-warning: #a83f00;
   --color-on-warning: #ffffff;
-  --color-warning-container: #ffdea8;
+  --color-warning-container: #ffdcc2;
   --color-on-warning-container: #271900;
 
-  /* Surfaces (MD3 light scheme) */
-  --color-surface: #f8f9fc;
-  --color-surface-dim: #d9dade;
-  --color-surface-bright: #f8f9fc;
+  /* Soft-UI glass surfaces (SuiteColors light) */
+  --color-surface: #e4eaf2;
+  --color-surface-dim: #d8dee8;
+  --color-surface-bright: #eef2f8;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f2f3f7;
-  --color-surface-container: #eceef3;
-  --color-surface-container-high: #e6e8ed;
-  --color-surface-container-highest: #e1e2e6;
-  --color-on-surface: #191c20;
-  --color-on-surface-variant: #43474e;
-  --color-inverse-surface: #2e3135;
-  --color-inverse-on-surface: #eff0f4;
-  --color-inverse-primary: #a9c7ff;
+  --color-surface-container-low: #eef2f8;
+  --color-surface-container: #e4eaf2;
+  --color-surface-container-high: #f1f5fa;
+  --color-surface-container-highest: #d8dee8;
+  --color-on-surface: #1a2332;
+  --color-on-surface-variant: #64748b;
+  --color-inverse-surface: #1a2332;
+  --color-inverse-on-surface: #eef2f8;
+  --color-inverse-primary: #ffdcc2;
 
-  /* Outline */
-  --color-outline: #73777f;
-  --color-outline-variant: #c3c6cf;
-
-  /* Scrim / shadow helpers */
+  --color-outline: #94a3b8;
+  --color-outline-variant: #d8dee8;
   --color-scrim: #000000;
+  --color-sidebar: #eef2f8;
 
-  /* Typography */
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* MD3 shape scale (dp ≈ px at 1x) */
+  /* Suite radius = 4px everywhere */
   --radius-xs: 4px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 28px;
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
   --radius-full: 9999px;
 
-  /* Elevation (ambient + key, MD3-ish soft) */
-  --shadow-elevation-1: 0 1px 2px rgb(25 28 32 / 0.08), 0 1px 3px rgb(25 28 32 / 0.06);
-  --shadow-elevation-2: 0 1px 2px rgb(25 28 32 / 0.08), 0 2px 6px rgb(25 28 32 / 0.08);
-  --shadow-elevation-3: 0 4px 8px rgb(25 28 32 / 0.1), 0 1px 3px rgb(25 28 32 / 0.06);
+  --shadow-elevation-1: 0 1px 2px rgb(26 35 50 / 0.06);
+  --shadow-elevation-2: 0 2px 6px rgb(26 35 50 / 0.08);
+  --shadow-elevation-3: 0 4px 12px rgb(26 35 50 / 0.1);
 }
 
 @layer base {
@@ -102,7 +101,6 @@
     font-feature-settings: "tnum" 1;
   }
 
-  /* Enterprise form density: consistent 48dp touch targets via min-height on controls */
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]) {
     cursor: pointer;
@@ -124,26 +122,27 @@
     box-shadow: var(--shadow-elevation-3);
   }
 
+  /* Suite type ramp (DIP → px): caption 11 / body 12 / section 13 / title 18 */
   .type-display-sm {
-    @apply text-3xl font-bold tracking-tight text-on-surface;
+    @apply text-[22px] font-semibold tracking-tight text-on-surface;
   }
   .type-headline-sm {
-    @apply text-xl font-semibold tracking-tight text-on-surface;
+    @apply text-[18px] font-semibold tracking-tight text-on-surface;
   }
   .type-title-md {
-    @apply text-base font-semibold text-on-surface;
+    @apply text-[13px] font-semibold text-on-surface;
   }
   .type-title-sm {
-    @apply text-sm font-semibold text-on-surface;
+    @apply text-[12px] font-semibold text-on-surface;
   }
   .type-body-md {
-    @apply text-sm text-on-surface;
+    @apply text-[12px] text-on-surface;
   }
   .type-body-sm {
-    @apply text-xs text-on-surface-variant;
+    @apply text-[11px] text-on-surface-variant;
   }
   .type-label-md {
-    @apply text-xs font-semibold tracking-wide text-on-surface-variant uppercase;
+    @apply text-[11px] font-semibold tracking-wide text-on-surface-variant uppercase;
   }
   .type-label-sm {
     @apply text-[11px] font-medium text-on-surface-variant;
