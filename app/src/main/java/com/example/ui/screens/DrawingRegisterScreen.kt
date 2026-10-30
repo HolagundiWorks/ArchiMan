@@ -179,7 +179,12 @@ private fun DrawingRegisterCard(
                     Text(drawing.title, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                     Text("${drawing.discipline} · ${revisions.size} revision(s)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
                 }
-                AssistChip(onClick = {}, label = { Text(latest?.issueStatus ?: drawing.status) })
+                Text(
+                    latest?.issueStatus ?: drawing.status,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
             latest?.let { revision ->
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

@@ -1,6 +1,6 @@
 # ArchiMan Database Migration Backup and Rollback Runbook
 
-> Current database target: Room schema 26. Package ID and database filename remain unchanged to preserve upgrades and field data.
+> Current database target: Room schema 27. Package ID and database filename remain unchanged to preserve upgrades and field data.
 
 ## Purpose
 
@@ -53,8 +53,9 @@ After first launch, verify:
 - schema 24 adds formal decisions, daily site reports, snag/NCR records and immutable issue events without rewriting existing project or measurement data;
 - schema 25 adds drawing-revision source and severity metadata without rewriting existing revisions;
 - schema 26 adds snag/NCR `afterEvidenceUri` and requires managed site attachments to restore with the package;
+- schema 27 adds drawing `packageTag`, `site_documents`, and quantity-only `material_orders` / `material_order_lines` for Siteman;
 - managed photo paths referenced by measurements and site reports exist;
-- the application opens the M-Book, Site reports and canonical editor without a fatal error.
+- the application opens the M-Book, Site reports, Siteman and canonical editor without a fatal error.
 
 Do not approve deployment based only on a successful APK installation.
 

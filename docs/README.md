@@ -1,6 +1,8 @@
 # ArchiMan documentation
 
-This directory contains only maintained documentation for the current ArchiMan schema-26 product and its approved roadmap.
+This directory contains only maintained documentation for the current ArchiMan schema-27 product (including Siteman) and its approved roadmap.
+
+ArchiMan is open source under the MIT License — see the repository root `LICENSE`, `NOTICE` and `THIRD_PARTY_NOTICES.md`.
 
 The current market comparison and implemented coordination response are documented in `ARCHITECTURE_PRACTICE_APP_CASE_STUDY.md`.
 The source-level AORMS comparison and AI-free implementation response are documented in `AORMS_PORTAL_CASE_STUDY.md`.

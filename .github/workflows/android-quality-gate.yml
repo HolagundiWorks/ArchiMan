@@ -22,7 +22,8 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          # Robolectric 4.16 + compileSdk 36 require JDK 21 (SDK 36 jars are Java 21).
+          java-version: "21"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5

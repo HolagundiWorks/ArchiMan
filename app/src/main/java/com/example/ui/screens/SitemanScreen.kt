@@ -184,6 +184,7 @@ private fun SitemanLogsTab(viewModel: SiteViewModel, reports: List<DailySiteRepo
                                     if (item.preparedBy.isNotBlank()) {
                                         Text("Prepared by: ${item.preparedBy}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
+                                    AttachmentLink(item.photoUri, "View photo")
                                 }
                                 IconButton(onClick = { viewModel.deleteDailySiteReport(item) }) {
                                     Icon(CarbonIcons.DeleteOutline, "Delete")
@@ -275,9 +276,7 @@ private fun SitemanHfcTab(
                                 Text(doc.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 Text(doc.category, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                 if (doc.notes.isNotBlank()) Text(doc.notes, style = MaterialTheme.typography.bodySmall)
-                                if (!doc.fileUri.isNullOrBlank()) {
-                                    Text("Attachment on file", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+                                AttachmentLink(doc.fileUri, "Open attachment")
                             }
                             IconButton(onClick = { viewModel.deleteSiteDocument(doc) }) {
                                 Icon(CarbonIcons.DeleteOutline, "Delete document")

@@ -89,7 +89,6 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                 AppScreen.MASTER_DATA -> viewModel.navigateTo(
                     if (homeTab == HomeTab.PRACTICE || selectedProjectId == null) AppScreen.HOME else AppScreen.PROJECT_WORKSPACE
                 )
-                AppScreen.REGISTER -> viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE)
                 else -> viewModel.navigateTo(AppScreen.HOME)
             }
         }
@@ -99,7 +98,6 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
     val showProjectNavigation = currentScreen == AppScreen.PROJECT_WORKSPACE ||
         currentScreen == AppScreen.ROOM_WORKSPACE ||
         currentScreen == AppScreen.MEASUREMENT_BOOK ||
-        currentScreen == AppScreen.REGISTER ||
         (currentScreen == AppScreen.MASTER_DATA && homeTab != HomeTab.PRACTICE)
 
     Scaffold(
@@ -161,7 +159,7 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                 NavigationBar(modifier = Modifier.testTag("inside_project_bottom_navigation")) {
                     val isWorkspaceActive = (currentScreen == AppScreen.PROJECT_WORKSPACE && projectSection != ProjectSection.MORE) || currentScreen == AppScreen.ROOM_WORKSPACE
                     val isMoreActive = currentScreen == AppScreen.PROJECT_WORKSPACE && projectSection == ProjectSection.MORE
-                    val isMBookActive = currentScreen == AppScreen.MEASUREMENT_BOOK || currentScreen == AppScreen.REGISTER
+                    val isMBookActive = currentScreen == AppScreen.MEASUREMENT_BOOK
                     val isWorkListActive = currentScreen == AppScreen.MASTER_DATA
 
                     // 1. Project overview
@@ -245,7 +243,6 @@ fun MainAppNavigation(viewModel: SiteViewModel) {
                         viewModel = viewModel,
                         onNavigateBack = { viewModel.navigateTo(AppScreen.PROJECT_WORKSPACE) }
                     )
-                    AppScreen.REGISTER -> MeasurementRegisterScreen(viewModel = viewModel)
                     AppScreen.MASTER_DATA -> MasterDataScreen(viewModel = viewModel)
                     // Handled by the full-screen early return above; never reached here.
                     AppScreen.COMPANY_DASHBOARD -> Unit

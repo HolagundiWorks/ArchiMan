@@ -9,7 +9,6 @@ enum class AppScreen(val title: String) {
     DEDICATED_MEASUREMENT("Record Measurement"),
     ROOM_WORKSPACE("Room Components"),
     MEASUREMENT_BOOK("Measurement Book"),
-    REGISTER("Measurements Register"),
     CLIENTS("Clients"),
     CONTRACTORS("Contractors"),
     MASTER_DATA("PWD SR Work Catalogue"),

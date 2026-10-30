@@ -2,7 +2,7 @@
 
 > ArchiMan is a field-first, quantity-only Measurement Book application. Rates, valuation, billing and accounting are outside the product boundary. The approved scope and delivery order are defined in `ARCHITECT_PRACTICE_SCOPE.md`.
 
-Current implementation baseline: Room schema 26, pure Material 3 UI, audited 29 October 2026.
+Current implementation baseline: Room schema 27, pure Material 3 UI, audited 29 October 2026.
 
 ## Phase 0 - Scope lock and safety
 
@@ -63,7 +63,7 @@ Exit criteria: one canonical work catalog with no unresolved duplicate candidate
 
 ## Phase 4 - Measurement sheet domain and safe schema migration
 
-Status: Completed through schema version 26 locally. The schema-22 migration removes the obsolete commercial schema while preserving every quantity and measurement-context field; schema 23 adds non-commercial project coordination registers; schema 24 adds decisions, daily reports and verified snag/NCR closure; schema 25 adds drawing-revision source/severity; schema 26 adds snag/NCR after-evidence and managed site attachments for field photos. A production backup/restore drill remains open.
+Status: Completed through schema version 27 locally. The schema-22 migration removes the obsolete commercial schema while preserving every quantity and measurement-context field; schema 23 adds non-commercial project coordination registers; schema 24 adds decisions, daily reports and verified snag/NCR closure; schema 25 adds drawing-revision source/severity; schema 26 adds snag/NCR after-evidence and managed site attachments for field photos; schema 27 adds Siteman support (`packageTag`, `site_documents`, quantity-only `material_orders`). A production backup/restore drill remains open.
 
 - [x] Split measurement sheet headers from linked measurement rows while retaining compatibility snapshots.
 - [x] Introduce immutable formula code, formula version, UOM, item, contractor, floor, and date snapshots.

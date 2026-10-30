@@ -35,7 +35,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-private fun AttachmentLink(uriString: String?, label: String) {
+internal fun AttachmentLink(uriString: String?, label: String) {
     if (uriString.isNullOrBlank()) return
     val context = LocalContext.current
     var preview by remember(uriString) { mutableStateOf(false) }
