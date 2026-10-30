@@ -1,0 +1,8 @@
+{
+  "name": "ArchiMan",
+  "description": "Architectural consultancy management system for projects, quantity-only measurement books, site reports, coordination, drawing registers, and site-manager operations.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
