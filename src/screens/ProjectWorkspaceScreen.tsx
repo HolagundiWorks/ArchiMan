@@ -27,6 +27,7 @@ import {
   Briefcase,
   Users,
 } from 'lucide-react';
+import { StatusChip, Surface, Button } from '../components/ui';
 
 interface ProjectWorkspaceScreenProps {
   project: ProjectEntity;
@@ -79,25 +80,25 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col">
       {/* Project Top Breadcrumb & Header Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
+      <header className="bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Top Breadcrumb Trail */}
-          <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500 border-b border-slate-100 font-medium">
+          <div className="flex items-center gap-2 py-2 text-[11px] text-on-surface-variant border-b border-outline-variant/60 font-medium">
             <button
               type="button"
               onClick={onBackToPortfolio}
-              className="hover:text-indigo-600 transition flex items-center gap-1"
+              className="hover:text-primary transition flex items-center gap-1"
             >
               <span>Portfolio</span>
             </button>
-            <span className="text-slate-300">/</span>
-            <span className="font-mono text-slate-700">{project.projectCode}</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-900 font-semibold truncate max-w-xs">{project.name}</span>
-            <span className="text-slate-300">/</span>
-            <span className="text-indigo-600 uppercase tracking-wider text-[10px] font-bold">
+            <span className="text-on-surface-variant/60">/</span>
+            <span className="font-mono text-on-surface">{project.projectCode}</span>
+            <span className="text-on-surface-variant/60">/</span>
+            <span className="text-on-surface font-semibold truncate max-w-xs">{project.name}</span>
+            <span className="text-on-surface-variant/60">/</span>
+            <span className="text-primary uppercase tracking-wider text-[10px] font-bold">
               {activeSection === 'MORE' ? activeMoreSection : activeSection}
             </span>
           </div>
@@ -107,29 +108,26 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
               <button
                 type="button"
                 onClick={onBackToPortfolio}
-                className="p-1.5 -ml-1 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition"
+                className="p-1.5 -ml-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded-lg transition"
                 title="Back to Portfolio"
               >
                 <ArrowLeft className="w-4 h-4" />
               </button>
 
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-semibold text-slate-600 tracking-wide">
+                <span className="font-mono text-xs font-semibold text-on-surface-variant tracking-wide">
                   {project.projectCode}
                 </span>
-                <h1 className="text-base sm:text-lg font-bold text-slate-900 truncate max-w-xs sm:max-w-md">
+                <h1 className="text-base sm:text-lg font-bold text-on-surface truncate max-w-xs sm:max-w-md">
                   {project.name}
                 </h1>
-                <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-emerald-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                  <span>{project.status}</span>
-                </div>
+                <StatusChip tone="success">{project.status}</StatusChip>
               </div>
             </div>
 
-            <div className="hidden sm:flex items-center text-xs text-slate-500 gap-4">
-              <span>Client: <strong className="text-slate-700 font-medium">{project.client}</strong></span>
-              <span>Architect: <strong className="text-slate-700 font-medium">{project.architectInCharge}</strong></span>
+            <div className="hidden sm:flex items-center text-xs text-on-surface-variant gap-4">
+              <span>Client: <strong className="text-on-surface font-medium">{project.client}</strong></span>
+              <span>Architect: <strong className="text-on-surface font-medium">{project.architectInCharge}</strong></span>
             </div>
           </div>
 
@@ -151,14 +149,14 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
                   onClick={() => setActiveSection(tab.id as ProjectSection)}
                   className={`flex items-center gap-2 px-3 sm:px-4 py-2.5 text-xs font-semibold border-b-2 transition whitespace-nowrap ${
                     isActive
-                      ? 'border-indigo-600 text-indigo-600'
-                      : 'border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300'
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-on-surface-variant hover:text-on-surface hover:border-outline'
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   <span>{tab.label}</span>
                   {tab.count !== undefined && (
-                    <span className="text-[11px] font-mono font-medium text-slate-400">
+                    <span className="text-[11px] font-mono font-medium text-on-surface-variant/70">
                       ({tab.count})
                     </span>
                   )}
@@ -176,64 +174,64 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
           <div className="space-y-6">
             {/* Project Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Area & Scale</div>
-                <div className="text-xl font-mono font-bold text-slate-900 mt-1">
-                  {project.builtUpArea || 0} <span className="text-xs font-normal text-slate-500">m² BUA</span>
+              <div className="bg-surface-container-lowest p-5 rounded-md border border-outline-variant elevation-1">
+                <div className="text-xs text-on-surface-variant/70 font-medium uppercase tracking-wider">Area & Scale</div>
+                <div className="text-xl font-mono font-bold text-on-surface mt-1">
+                  {project.builtUpArea || 0} <span className="text-xs font-normal text-on-surface-variant">m² BUA</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1">Plot Area: {project.plotArea || '-'} m²</div>
+                <div className="text-xs text-on-surface-variant mt-1">Plot Area: {project.plotArea || '-'} m²</div>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Site Location</div>
-                <div className="text-sm font-semibold text-slate-900 mt-1 line-clamp-1 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+              <div className="bg-surface-container-lowest p-5 rounded-md border border-outline-variant elevation-1">
+                <div className="text-xs text-on-surface-variant/70 font-medium uppercase tracking-wider">Site Location</div>
+                <div className="text-sm font-semibold text-on-surface mt-1 line-clamp-1 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
                   {project.siteLocation || 'Not specified'}
                 </div>
-                <div className="text-xs text-slate-500 mt-1">Type: {project.projectType}</div>
+                <div className="text-xs text-on-surface-variant mt-1">Type: {project.projectType}</div>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Floors & Levels</div>
-                <div className="text-xl font-bold text-slate-900 mt-1">
-                  {floors.length} <span className="text-xs font-normal text-slate-500">Levels defined</span>
+              <div className="bg-surface-container-lowest p-5 rounded-md border border-outline-variant elevation-1">
+                <div className="text-xs text-on-surface-variant/70 font-medium uppercase tracking-wider">Floors & Levels</div>
+                <div className="text-xl font-bold text-on-surface mt-1">
+                  {floors.length} <span className="text-xs font-normal text-on-surface-variant">Levels defined</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1">{rooms.length} individual room spaces</div>
+                <div className="text-xs text-on-surface-variant mt-1">{rooms.length} individual room spaces</div>
               </div>
 
-              <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                <div className="text-xs text-slate-400 font-medium uppercase tracking-wider">Measurement Book</div>
-                <div className="text-xl font-bold text-slate-900 mt-1">
-                  {measurements.length} <span className="text-xs font-normal text-slate-500">measurements</span>
+              <div className="bg-surface-container-lowest p-5 rounded-md border border-outline-variant elevation-1">
+                <div className="text-xs text-on-surface-variant/70 font-medium uppercase tracking-wider">Measurement Book</div>
+                <div className="text-xl font-bold text-on-surface mt-1">
+                  {measurements.length} <span className="text-xs font-normal text-on-surface-variant">measurements</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1">{sheets.length} active contractor sheets</div>
+                <div className="text-xs text-on-surface-variant mt-1">{sheets.length} active contractor sheets</div>
               </div>
             </div>
 
             {/* Description & Floor Hierarchy */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column: Project Profile Details */}
-              <div className="lg:col-span-1 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider border-b pb-2">
+              <div className="lg:col-span-1 bg-surface-container-lowest p-5 rounded-md border border-outline-variant elevation-1 space-y-4">
+                <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider border-b pb-2">
                   Project Profile
                 </h3>
 
                 <div className="space-y-3 text-xs">
                   <div>
-                    <span className="text-slate-400 block">Description:</span>
-                    <p className="text-slate-700 leading-relaxed mt-0.5">{project.description || 'No description provided.'}</p>
+                    <span className="text-on-surface-variant/70 block">Description:</span>
+                    <p className="text-on-surface leading-relaxed mt-0.5">{project.description || 'No description provided.'}</p>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Client:</span>
-                    <p className="font-semibold text-slate-800">{project.client}</p>
+                    <span className="text-on-surface-variant/70 block">Client:</span>
+                    <p className="font-semibold text-on-surface">{project.client}</p>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Architect In Charge:</span>
-                    <p className="font-semibold text-slate-800">{project.architectInCharge}</p>
+                    <span className="text-on-surface-variant/70 block">Architect In Charge:</span>
+                    <p className="font-semibold text-on-surface">{project.architectInCharge}</p>
                   </div>
                   <div>
-                    <span className="text-slate-400 block">Target Completion:</span>
-                    <p className="text-slate-700">
+                    <span className="text-on-surface-variant/70 block">Target Completion:</span>
+                    <p className="text-on-surface">
                       {project.targetCompletionDate
                         ? new Date(project.targetCompletionDate).toLocaleDateString(undefined, { dateStyle: 'medium' })
                         : 'On Schedule'}
@@ -243,20 +241,20 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
               </div>
 
               {/* Right Column: Levels & Room Space Hierarchy */}
-              <div className="lg:col-span-2 bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+              <div className="lg:col-span-2 bg-surface-container-lowest p-5 rounded-md border border-outline-variant elevation-1 space-y-4">
                 <div className="flex items-center justify-between border-b pb-2">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                    <h3 className="text-sm font-bold text-on-surface uppercase tracking-wider">
                       Building Levels & Rooms
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-on-surface-variant">
                       Created with Ground Floor baseline; add levels and spaces for measurement tagging.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowFloorModal(true)}
-                    className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold flex items-center gap-1"
+                    className="px-3 py-1.5 bg-primary-container hover:bg-primary-container text-primary rounded-lg text-xs font-semibold flex items-center gap-1"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Level
                   </button>
@@ -267,23 +265,23 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
                     const floorRooms = rooms.filter((r) => r.floorId === floor.id);
 
                     return (
-                      <div key={floor.id} className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                      <div key={floor.id} className="p-3.5 bg-surface rounded-lg border border-outline-variant space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-xs text-slate-900 flex items-center gap-1.5">
-                            <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                          <span className="font-bold text-xs text-on-surface flex items-center gap-1.5">
+                            <Layers className="w-3.5 h-3.5 text-primary" />
                             {floor.name}
                           </span>
                           <button
                             type="button"
                             onClick={() => setShowRoomModal(floor.id)}
-                            className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                            className="text-[11px] font-semibold text-primary hover:text-primary flex items-center gap-1"
                           >
                             <Plus className="w-3 h-3" /> Add Room Space
                           </button>
                         </div>
 
                         {floorRooms.length === 0 ? (
-                          <div className="text-[11px] text-slate-400 italic pl-5">
+                          <div className="text-[11px] text-on-surface-variant/70 italic pl-5">
                             No specific rooms added (measurements apply to Whole Floor).
                           </div>
                         ) : (
@@ -291,7 +289,7 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
                             {floorRooms.map((room) => (
                               <span
                                 key={room.id}
-                                className="px-2.5 py-1 bg-white border border-slate-200 text-slate-700 rounded text-xs font-medium"
+                                className="px-2.5 py-1 bg-surface-container-lowest border border-outline-variant text-on-surface rounded text-xs font-medium"
                               >
                                 {room.name}
                               </span>
@@ -310,10 +308,10 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
         {/* TAB 2: WORK (Work Catalogue & Scope) */}
         {activeSection === 'WORK' && (
           <div className="space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="bg-surface-container-lowest p-5 rounded-lg border border-outline-variant elevation-1 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">Project Trade Works & Contractors</h2>
-                <p className="text-xs text-slate-500 mt-1">
+                <h2 className="text-xl font-bold text-on-surface">Project Trade Works & Contractors</h2>
+                <p className="text-xs text-on-surface-variant mt-1">
                   Active contractor trades and qualified work items available for measurement recording.
                 </p>
               </div>
@@ -323,30 +321,30 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
               {contractors.map((contractor) => {
                 const qualified = store.contractorQualifiedItems.filter((q) => q.contractorId === contractor.id);
                 return (
-                  <div key={contractor.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+                  <div key={contractor.id} className="bg-surface-container-lowest rounded-md border border-outline-variant p-5 elevation-1 space-y-3">
                     <div className="flex items-center justify-between border-b pb-2">
-                      <h3 className="font-bold text-sm text-slate-900">{contractor.name}</h3>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
+                      <h3 className="font-bold text-sm text-on-surface">{contractor.name}</h3>
+                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-primary-container text-primary rounded-full">
                         {contractor.contractorType}
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-600">
+                    <div className="text-xs text-on-surface-variant">
                       <div>Contact: {contractor.contactNo || contractor.phone}</div>
                     </div>
 
                     <div>
-                      <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                      <div className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider mb-1.5">
                         Qualified Trade Items ({qualified.length}):
                       </div>
                       <div className="space-y-1">
                         {qualified.map((q) => (
                           <div
                             key={q.id}
-                            className="p-1.5 bg-slate-50 rounded border border-slate-100 flex items-center justify-between text-xs"
+                            className="p-1.5 bg-surface rounded border border-outline-variant/60 flex items-center justify-between text-xs"
                           >
-                            <span className="text-slate-800 font-medium">{q.itemName}</span>
-                            <span className="text-[10px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">
+                            <span className="text-on-surface font-medium">{q.itemName}</span>
+                            <span className="text-[10px] font-mono bg-surface-container-lowest px-1.5 py-0.5 rounded border border-outline-variant text-on-surface-variant">
                               {q.uom}
                             </span>
                           </div>
@@ -380,7 +378,7 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
         {activeSection === 'MORE' && (
           <div className="space-y-6">
             {/* Sub-navigation bar under More */}
-            <div className="flex overflow-x-auto gap-2 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex overflow-x-auto gap-2 bg-surface-container-lowest p-2 rounded-md border border-outline-variant elevation-1">
               {[
                 { id: 'SITEMAN', label: 'Siteman Hub', icon: Briefcase },
                 { id: 'DRAWINGS', label: 'Drawings & Revisions', icon: FileCode2 },
@@ -397,8 +395,8 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
                     onClick={() => setActiveMoreSection(sub.id as MoreSection)}
                     className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition whitespace-nowrap ${
                       isActive
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        ? 'bg-primary text-on-primary elevation-1'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -425,12 +423,12 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
 
       {/* Modal: Add Floor */}
       {showFloorModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-slate-800">Add Building Level</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-lg max-w-sm w-full p-6 shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-on-surface">Add Building Level</h3>
             <form onSubmit={handleAddFloor} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Level Name</label>
+                <label className="block font-medium text-on-surface mb-1">Level Name</label>
                 <input
                   type="text"
                   required
@@ -438,20 +436,20 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
                   value={newFloorName}
                   onChange={(e) => setNewFloorName(e.target.value)}
                   placeholder="e.g. Second Floor or Basement 1"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 border border-outline rounded-lg text-xs"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowFloorModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50"
+                  className="px-4 py-2 border border-outline-variant rounded-lg text-on-surface-variant font-medium hover:bg-surface"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg font-semibold"
                 >
                   Add Level
                 </button>
@@ -463,12 +461,12 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
 
       {/* Modal: Add Room */}
       {showRoomModal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
-            <h3 className="text-base font-bold text-slate-800">Add Room / Space</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-lg max-w-sm w-full p-6 shadow-xl space-y-4">
+            <h3 className="text-base font-bold text-on-surface">Add Room / Space</h3>
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Room Space Name</label>
+                <label className="block font-medium text-on-surface mb-1">Room Space Name</label>
                 <input
                   type="text"
                   required
@@ -476,21 +474,21 @@ export const ProjectWorkspaceScreen: React.FC<ProjectWorkspaceScreenProps> = ({
                   value={newRoomName}
                   onChange={(e) => setNewRoomName(e.target.value)}
                   placeholder="e.g. Kitchen, Conference Room, Balcony"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                  className="w-full px-3 py-2 border border-outline rounded-lg text-xs"
                 />
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowRoomModal(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50"
+                  className="px-4 py-2 border border-outline-variant rounded-lg text-on-surface-variant font-medium hover:bg-surface"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => handleAddRoom(showRoomModal)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg font-semibold"
                 >
                   Add Space
                 </button>

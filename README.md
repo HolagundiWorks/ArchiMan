@@ -27,7 +27,7 @@ It manages practice projects, client and contractor registries, coordination wor
 This project is built with:
 - **React 18** + **TypeScript**
 - **Vite** bundler
-- **Tailwind CSS**
+- **Tailwind CSS v4** with a **Material Design 3** token layer (`src/theme/tokens.css`) and shared UI primitives (`src/components/ui`)
 - **Lucide React** iconography
 
 ### Running Locally

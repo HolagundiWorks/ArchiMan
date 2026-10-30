@@ -1,0 +1,151 @@
+/*
+ * ArchiMan Material Design 3 tokens
+ * Seed: architectural blue (#185ABC) — professional, not purple/demo chrome.
+ * Surfaces follow MD3 tonal elevation (surface → surface-container-* → lowest).
+ */
+@import "tailwindcss";
+
+@theme {
+  /* Brand / primary */
+  --color-primary: #185abc;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #d6e3ff;
+  --color-on-primary-container: #001b3d;
+  --color-primary-fixed: #d6e3ff;
+  --color-on-primary-fixed: #001b3d;
+
+  /* Secondary / tertiary (neutral professional) */
+  --color-secondary: #545f71;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d8e3f8;
+  --color-on-secondary-container: #111c2b;
+  --color-tertiary: #6b5778;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #f3daff;
+  --color-on-tertiary-container: #251431;
+
+  /* Error / status */
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #410002;
+  --color-success: #1b6b3a;
+  --color-on-success: #ffffff;
+  --color-success-container: #a6f2b8;
+  --color-on-success-container: #00210c;
+  --color-warning: #7d5700;
+  --color-on-warning: #ffffff;
+  --color-warning-container: #ffdea8;
+  --color-on-warning-container: #271900;
+
+  /* Surfaces (MD3 light scheme) */
+  --color-surface: #f8f9fc;
+  --color-surface-dim: #d9dade;
+  --color-surface-bright: #f8f9fc;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f2f3f7;
+  --color-surface-container: #eceef3;
+  --color-surface-container-high: #e6e8ed;
+  --color-surface-container-highest: #e1e2e6;
+  --color-on-surface: #191c20;
+  --color-on-surface-variant: #43474e;
+  --color-inverse-surface: #2e3135;
+  --color-inverse-on-surface: #eff0f4;
+  --color-inverse-primary: #a9c7ff;
+
+  /* Outline */
+  --color-outline: #73777f;
+  --color-outline-variant: #c3c6cf;
+
+  /* Scrim / shadow helpers */
+  --color-scrim: #000000;
+
+  /* Typography */
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* MD3 shape scale (dp ≈ px at 1x) */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 28px;
+  --radius-full: 9999px;
+
+  /* Elevation (ambient + key, MD3-ish soft) */
+  --shadow-elevation-1: 0 1px 2px rgb(25 28 32 / 0.08), 0 1px 3px rgb(25 28 32 / 0.06);
+  --shadow-elevation-2: 0 1px 2px rgb(25 28 32 / 0.08), 0 2px 6px rgb(25 28 32 / 0.08);
+  --shadow-elevation-3: 0 4px 8px rgb(25 28 32 / 0.1), 0 1px 3px rgb(25 28 32 / 0.06);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased min-h-screen;
+    font-feature-settings: "ss01" 1, "kern" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1;
+  }
+
+  /* Enterprise form density: consistent 48dp touch targets via min-height on controls */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 28%, transparent);
+  }
+}
+
+@layer utilities {
+  .elevation-1 {
+    box-shadow: var(--shadow-elevation-1);
+  }
+  .elevation-2 {
+    box-shadow: var(--shadow-elevation-2);
+  }
+  .elevation-3 {
+    box-shadow: var(--shadow-elevation-3);
+  }
+
+  .type-display-sm {
+    @apply text-3xl font-bold tracking-tight text-on-surface;
+  }
+  .type-headline-sm {
+    @apply text-xl font-semibold tracking-tight text-on-surface;
+  }
+  .type-title-md {
+    @apply text-base font-semibold text-on-surface;
+  }
+  .type-title-sm {
+    @apply text-sm font-semibold text-on-surface;
+  }
+  .type-body-md {
+    @apply text-sm text-on-surface;
+  }
+  .type-body-sm {
+    @apply text-xs text-on-surface-variant;
+  }
+  .type-label-md {
+    @apply text-xs font-semibold tracking-wide text-on-surface-variant uppercase;
+  }
+  .type-label-sm {
+    @apply text-[11px] font-medium text-on-surface-variant;
+  }
+}
