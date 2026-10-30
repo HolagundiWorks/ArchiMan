@@ -164,13 +164,13 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-container-lowest p-5 rounded-lg border border-outline-variant elevation-1">
         <div>
           <div className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-xl font-bold text-slate-900">Coordination & Consultants Matrix</h2>
+            <MessageSquare className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold text-on-surface">Coordination & Consultants Matrix</h2>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-on-surface-variant mt-1">
             Manage Requests for Information (RFIs), Submittals, Site Instructions, and RACI Responsibility Matrix.
           </p>
         </div>
@@ -181,14 +181,14 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
               <button
                 type="button"
                 onClick={handleExportCoordination}
-                className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                className="px-3 py-2 bg-surface-container-low hover:bg-surface-container-high text-on-surface rounded-lg text-xs font-semibold flex items-center gap-1.5"
               >
                 <Download className="w-4 h-4" /> Export CSV
               </button>
               <button
                 type="button"
                 onClick={() => setShowItemModal(true)}
-                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+                className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
               >
                 <Plus className="w-4 h-4" /> New RFI / Instruction
               </button>
@@ -198,7 +198,7 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
             <button
               type="button"
               onClick={() => setShowConsultantModal(true)}
-              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+              className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
             >
               <Plus className="w-4 h-4" /> Add Consultant
             </button>
@@ -207,14 +207,14 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-slate-200 gap-6">
+      <div className="flex border-b border-outline-variant gap-6">
         <button
           type="button"
           onClick={() => setActiveTab('ITEMS')}
           className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
             activeTab === 'ITEMS'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-on-surface-variant hover:text-on-surface'
           }`}
         >
           <FileCheck className="w-4 h-4" />
@@ -226,8 +226,8 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
           onClick={() => setActiveTab('CONSULTANTS')}
           className={`pb-3 text-sm font-semibold flex items-center gap-2 border-b-2 transition ${
             activeTab === 'CONSULTANTS'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-on-surface-variant hover:text-on-surface'
           }`}
         >
           <Users className="w-4 h-4" />
@@ -247,8 +247,8 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                 onClick={() => setItemTypeFilter(filter)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                   itemTypeFilter === filter
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                    ? 'bg-primary text-on-primary'
+                    : 'bg-surface-container-lowest border border-outline-variant text-on-surface-variant hover:bg-surface'
                 }`}
               >
                 {filter === 'ALL' ? 'All Records' : filter === 'SITE_INSTRUCTION' ? 'Site Instructions' : filter}
@@ -258,10 +258,10 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
 
           <div className="space-y-3">
             {filteredItems.length === 0 ? (
-              <div className="bg-white p-12 text-center rounded-xl border border-dashed border-slate-300">
-                <MessageSquare className="w-10 h-10 text-slate-400 mx-auto mb-2" />
-                <h3 className="text-sm font-semibold text-slate-700">No Coordination Records</h3>
-                <p className="text-xs text-slate-500 mt-1">
+              <div className="bg-surface-container-lowest p-12 text-center rounded-md border border-dashed border-outline">
+                <MessageSquare className="w-10 h-10 text-on-surface-variant/70 mx-auto mb-2" />
+                <h3 className="text-sm font-semibold text-on-surface">No Coordination Records</h3>
+                <p className="text-xs text-on-surface-variant mt-1">
                   Log RFIs, material submittals or architect site instructions to streamline multidisciplinary coordination.
                 </p>
               </div>
@@ -273,29 +273,29 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                 return (
                   <div
                     key={item.id}
-                    className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3 hover:border-slate-300 transition"
+                    className="bg-surface-container-lowest rounded-md border border-outline-variant p-5 elevation-1 space-y-3 hover:border-outline transition"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-outline-variant/60 pb-3">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs font-semibold text-slate-700">
+                        <span className="font-mono text-xs font-semibold text-on-surface">
                           {item.referenceNumber}
                         </span>
-                        <span className="text-slate-300">·</span>
-                        <span className="text-xs font-semibold text-slate-800">
+                        <span className="text-on-surface-variant/60">·</span>
+                        <span className="text-xs font-semibold text-on-surface">
                           {item.type.replace(/_/g, ' ')}
                         </span>
-                        <span className="text-slate-300">·</span>
-                        <span className="text-xs text-slate-500">Discipline: {item.discipline}</span>
+                        <span className="text-on-surface-variant/60">·</span>
+                        <span className="text-xs text-on-surface-variant">Discipline: {item.discipline}</span>
                       </div>
 
-                      <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-slate-700">
+                      <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-on-surface">
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
                             isClosed
-                              ? 'bg-emerald-500'
+                              ? 'bg-success'
                               : item.status === 'ANSWERED'
-                              ? 'bg-blue-500'
-                              : 'bg-amber-500'
+                              ? 'bg-primary'
+                              : 'bg-warning'
                           }`}
                         ></span>
                         <span>{item.status}</span>
@@ -303,22 +303,22 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                     </div>
 
                     <div>
-                      <h3 className="text-base font-bold text-slate-900">{item.subject}</h3>
-                      <div className="flex flex-wrap gap-x-4 text-xs text-slate-500 mt-1">
-                        <span>Raised By: <strong className="text-slate-700">{item.raisedBy || '-'}</strong></span>
-                        <span>Assigned To: <strong className="text-slate-700">{item.assignedTo || '-'}</strong></span>
-                        {item.location && <span>Location: <strong className="text-slate-700">{item.location}</strong></span>}
+                      <h3 className="text-base font-bold text-on-surface">{item.subject}</h3>
+                      <div className="flex flex-wrap gap-x-4 text-xs text-on-surface-variant mt-1">
+                        <span>Raised By: <strong className="text-on-surface">{item.raisedBy || '-'}</strong></span>
+                        <span>Assigned To: <strong className="text-on-surface">{item.assignedTo || '-'}</strong></span>
+                        {item.location && <span>Location: <strong className="text-on-surface">{item.location}</strong></span>}
                       </div>
 
-                      <div className="mt-2 text-xs text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-relaxed">
-                        <span className="font-semibold text-slate-900 block mb-0.5">
+                      <div className="mt-2 text-xs text-on-surface bg-surface p-3 rounded-lg border border-outline-variant/60 leading-relaxed">
+                        <span className="font-semibold text-on-surface block mb-0.5">
                           {item.type === 'RFI' ? 'Clarification Required:' : item.type === 'SITE_INSTRUCTION' ? 'Site Directive:' : 'Submittal Requirement:'}
                         </span>
                         {item.questionOrRequirement}
                       </div>
 
                       {item.response && (
-                        <div className="mt-2 text-xs text-emerald-900 bg-emerald-50/60 p-3 rounded-lg border border-emerald-100 leading-relaxed">
+                        <div className="mt-2 text-xs text-emerald-900 bg-success-container/60 p-3 rounded-lg border border-emerald-100 leading-relaxed">
                           <span className="font-semibold text-emerald-950 block mb-0.5">Formal Technical Response:</span>
                           {item.response}
                         </div>
@@ -327,13 +327,13 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
 
                     {/* Allowed transitions */}
                     {allowed.length > 0 && (
-                      <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                      <div className="pt-2 border-t border-outline-variant/60 flex items-center justify-end gap-2">
                         {allowed.map((next) => (
                           <button
                             key={next}
                             type="button"
                             onClick={() => handleTransitionStatus(item, next)}
-                            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold"
+                            className="px-3 py-1.5 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold"
                           >
                             Move to {next.replace(/_/g, ' ')}
                           </button>
@@ -351,10 +351,10 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
       {/* View: Consultants RACI Matrix */}
       {activeTab === 'CONSULTANTS' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="bg-surface-container-lowest rounded-md border border-outline-variant overflow-hidden elevation-1">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                <thead className="bg-surface text-on-surface-variant font-semibold border-b border-outline-variant uppercase tracking-wider text-[11px]">
                   <tr>
                     <th className="px-4 py-3">Consultant / Practice</th>
                     <th className="px-4 py-3">Discipline</th>
@@ -363,14 +363,14 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                     <th className="px-4 py-3">Contact</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-outline-variant/60">
                   {consultants.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/70">
+                    <tr key={c.id} className="hover:bg-surface/70">
                       <td className="px-4 py-3">
-                        <div className="font-bold text-slate-900">{c.name}</div>
-                        <div className="text-slate-500 text-[11px]">{c.organisation}</div>
+                        <div className="font-bold text-on-surface">{c.name}</div>
+                        <div className="text-on-surface-variant text-[11px]">{c.organisation}</div>
                       </td>
-                      <td className="px-4 py-3 font-medium text-slate-800">{c.discipline}</td>
+                      <td className="px-4 py-3 font-medium text-on-surface">{c.discipline}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`px-2 py-0.5 rounded font-bold text-[10px] ${
@@ -380,14 +380,14 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                               ? 'bg-purple-100 text-purple-800'
                               : c.raciRole === 'CONSULTED'
                               ? 'bg-amber-100 text-amber-800'
-                              : 'bg-slate-100 text-slate-700'
+                              : 'bg-surface-container-low text-on-surface'
                           }`}
                         >
                           {c.raciRole}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 max-w-xs">{c.responsibility}</td>
-                      <td className="px-4 py-3 text-slate-500">
+                      <td className="px-4 py-3 text-on-surface-variant max-w-xs">{c.responsibility}</td>
+                      <td className="px-4 py-3 text-on-surface-variant">
                         <div>{c.email}</div>
                         <div>{c.phone}</div>
                       </td>
@@ -402,14 +402,14 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
 
       {/* Modal: Add Coordination Item */}
       {showItemModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 my-8">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-800">New Coordination Item</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-surface-container-lowest rounded-lg max-w-lg w-full p-6 shadow-xl space-y-4 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
+              <h3 className="text-base font-bold text-on-surface">New Coordination Item</h3>
               <button
                 type="button"
                 onClick={() => setShowItemModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                className="text-on-surface-variant/70 hover:text-on-surface-variant text-sm font-semibold"
               >
                 ✕
               </button>
@@ -418,11 +418,11 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
             <form onSubmit={handleCreateItem} className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">Item Type</label>
+                  <label className="block font-medium text-on-surface mb-1">Item Type</label>
                   <select
                     value={itemForm.type}
                     onChange={(e) => setItemForm({ ...itemForm, type: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                    className="w-full px-3 py-2 border border-outline rounded-lg bg-surface-container-lowest"
                   >
                     <option value="RFI">RFI (Request for Information)</option>
                     <option value="SUBMITTAL">Material / Sample Submittal</option>
@@ -430,11 +430,11 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                   </select>
                 </div>
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">Priority</label>
+                  <label className="block font-medium text-on-surface mb-1">Priority</label>
                   <select
                     value={itemForm.priority}
                     onChange={(e) => setItemForm({ ...itemForm, priority: e.target.value as any })}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                    className="w-full px-3 py-2 border border-outline rounded-lg bg-surface-container-lowest"
                   >
                     <option value="NORMAL">Normal</option>
                     <option value="HIGH">High Priority</option>
@@ -444,73 +444,73 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Subject / Query Title</label>
+                <label className="block font-medium text-on-surface mb-1">Subject / Query Title</label>
                 <input
                   type="text"
                   required
                   value={itemForm.subject}
                   onChange={(e) => setItemForm({ ...itemForm, subject: e.target.value })}
                   placeholder="e.g. Sanitary pipe run coordination with structural beam B-12"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-outline rounded-lg"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">Discipline</label>
+                  <label className="block font-medium text-on-surface mb-1">Discipline</label>
                   <input
                     type="text"
                     value={itemForm.discipline}
                     onChange={(e) => setItemForm({ ...itemForm, discipline: e.target.value })}
                     placeholder="e.g. Structural / MEP"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-outline rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">Raised By</label>
+                  <label className="block font-medium text-on-surface mb-1">Raised By</label>
                   <input
                     type="text"
                     value={itemForm.raisedBy}
                     onChange={(e) => setItemForm({ ...itemForm, raisedBy: e.target.value })}
                     placeholder="e.g. Site Engineer"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-outline rounded-lg"
                   />
                 </div>
                 <div>
-                  <label className="block font-medium text-slate-700 mb-1">Assigned To</label>
+                  <label className="block font-medium text-on-surface mb-1">Assigned To</label>
                   <input
                     type="text"
                     value={itemForm.assignedTo}
                     onChange={(e) => setItemForm({ ...itemForm, assignedTo: e.target.value })}
                     placeholder="e.g. Structural Consultant"
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    className="w-full px-3 py-2 border border-outline rounded-lg"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Question / Requirement Details</label>
+                <label className="block font-medium text-on-surface mb-1">Question / Requirement Details</label>
                 <textarea
                   rows={3}
                   required
                   value={itemForm.questionOrRequirement}
                   onChange={(e) => setItemForm({ ...itemForm, questionOrRequirement: e.target.value })}
                   placeholder="Detail the technical query or directive..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-outline rounded-lg"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-outline-variant/60">
                 <button
                   type="button"
                   onClick={() => setShowItemModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50"
+                  className="px-4 py-2 border border-outline-variant rounded-lg text-on-surface-variant font-medium hover:bg-surface"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg font-semibold"
                 >
                   Save Item
                 </button>
@@ -522,39 +522,39 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
 
       {/* Modal: Enter Technical Response */}
       {showResponseModal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
+              <h3 className="text-base font-bold text-on-surface">
                 Provide Technical Response ({showResponseModal.referenceNumber})
               </h3>
               <button
                 type="button"
                 onClick={() => setShowResponseModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                className="text-on-surface-variant/70 hover:text-on-surface-variant text-sm font-semibold"
               >
                 ✕
               </button>
             </div>
-            <div className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded">
+            <div className="text-xs text-on-surface-variant bg-surface p-2.5 rounded">
               <strong>Query:</strong> {showResponseModal.questionOrRequirement}
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Formal Technical Clarification</label>
+              <label className="block text-xs font-semibold text-on-surface mb-1">Formal Technical Clarification</label>
               <textarea
                 rows={4}
                 required
                 value={responseText}
                 onChange={(e) => setResponseText(e.target.value)}
                 placeholder="Enter architectural/engineering directive, reference drawings, or approvals..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-outline rounded-lg text-xs"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setShowResponseModal(null)}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
+                className="px-4 py-2 border border-outline-variant rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface"
               >
                 Cancel
               </button>
@@ -562,7 +562,7 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                 type="button"
                 disabled={!responseText.trim()}
                 onClick={() => handleSaveResponse(showResponseModal)}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+                className="px-4 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold disabled:opacity-50"
               >
                 Submit Response
               </button>

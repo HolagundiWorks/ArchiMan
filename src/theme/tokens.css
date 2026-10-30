@@ -1,0 +1,150 @@
+/*
+ * ArchiMan × OSAS Soft-UI (O-UI / O-Studio visual contract)
+ * Neutrals from Hcw.Ui SuiteColors; accent = O-Studio Orange (#FF6B00).
+ * Density follows suite compact CAD-polished scale (4px radius, 26px controls).
+ * MD3-style role names retained for existing component APIs.
+ */
+@import "tailwindcss";
+
+@theme {
+  /* O-Studio accent (SuiteAccent.Orange) */
+  --color-primary: #ff6b00;
+  --color-on-primary: #1a2332;
+  --color-primary-container: #ffdcc2;
+  --color-on-primary-container: #a83f00;
+  --color-primary-fixed: #ffdcc2;
+  --color-on-primary-fixed: #a83f00;
+  --color-primary-hover: #f26400;
+  --color-primary-pressed: #e65f00;
+
+  /* Secondary = suite ink soft / CoreOp blue for info chips */
+  --color-secondary: #1f5fd1;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d3e3ff;
+  --color-on-secondary-container: #1a52b8;
+
+  --color-tertiary: #1a2332;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #d8dee8;
+  --color-on-tertiary-container: #1a2332;
+
+  --color-error: #c42b1c;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #410002;
+  --color-success: #1b6b3a;
+  --color-on-success: #ffffff;
+  --color-success-container: #a6f2b8;
+  --color-on-success-container: #00210c;
+  --color-warning: #a83f00;
+  --color-on-warning: #ffffff;
+  --color-warning-container: #ffdcc2;
+  --color-on-warning-container: #271900;
+
+  /* Soft-UI glass surfaces (SuiteColors light) */
+  --color-surface: #e4eaf2;
+  --color-surface-dim: #d8dee8;
+  --color-surface-bright: #eef2f8;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eef2f8;
+  --color-surface-container: #e4eaf2;
+  --color-surface-container-high: #f1f5fa;
+  --color-surface-container-highest: #d8dee8;
+  --color-on-surface: #1a2332;
+  --color-on-surface-variant: #64748b;
+  --color-inverse-surface: #1a2332;
+  --color-inverse-on-surface: #eef2f8;
+  --color-inverse-primary: #ffdcc2;
+
+  --color-outline: #94a3b8;
+  --color-outline-variant: #d8dee8;
+  --color-scrim: #000000;
+  --color-sidebar: #eef2f8;
+
+  --font-sans: "Plus Jakarta Sans", "Segoe UI Variable", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Suite radius = 4px everywhere */
+  --radius-xs: 4px;
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
+  --radius-xl: 4px;
+  --radius-full: 9999px;
+
+  --shadow-elevation-1: 0 1px 2px rgb(26 35 50 / 0.06);
+  --shadow-elevation-2: 0 2px 6px rgb(26 35 50 / 0.08);
+  --shadow-elevation-3: 0 4px 12px rgb(26 35 50 / 0.1);
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-surface text-on-surface font-sans antialiased min-h-screen;
+    font-feature-settings: "ss01" 1, "kern" 1;
+    text-rendering: optimizeLegibility;
+  }
+
+  code,
+  kbd,
+  samp,
+  pre,
+  .font-mono {
+    font-family: var(--font-mono);
+    font-feature-settings: "tnum" 1;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--color-primary) 28%, transparent);
+  }
+}
+
+@layer utilities {
+  .elevation-1 {
+    box-shadow: var(--shadow-elevation-1);
+  }
+  .elevation-2 {
+    box-shadow: var(--shadow-elevation-2);
+  }
+  .elevation-3 {
+    box-shadow: var(--shadow-elevation-3);
+  }
+
+  /* Suite type ramp (DIP → px): caption 11 / body 12 / section 13 / title 18 */
+  .type-display-sm {
+    @apply text-[22px] font-semibold tracking-tight text-on-surface;
+  }
+  .type-headline-sm {
+    @apply text-[18px] font-semibold tracking-tight text-on-surface;
+  }
+  .type-title-md {
+    @apply text-[13px] font-semibold text-on-surface;
+  }
+  .type-title-sm {
+    @apply text-[12px] font-semibold text-on-surface;
+  }
+  .type-body-md {
+    @apply text-[12px] text-on-surface;
+  }
+  .type-body-sm {
+    @apply text-[11px] text-on-surface-variant;
+  }
+  .type-label-md {
+    @apply text-[11px] font-semibold tracking-wide text-on-surface-variant uppercase;
+  }
+  .type-label-sm {
+    @apply text-[11px] font-medium text-on-surface-variant;
+  }
+}

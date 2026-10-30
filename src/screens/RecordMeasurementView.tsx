@@ -201,21 +201,21 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="bg-surface-container-lowest p-5 sm:p-6 rounded-lg border border-outline-variant elevation-1">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 mb-6 gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-outline-variant/60 mb-6 gap-2">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
+            <div className="p-2.5 bg-primary-container text-primary rounded-md">
               <Ruler className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Record Site Measurement</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-lg font-bold text-on-surface">Record Site Measurement</h2>
+              <p className="text-xs text-on-surface-variant">
                 Contractor-first entry workflow with standard PWD dimension formulas.
               </p>
             </div>
           </div>
-          <div className="text-xs font-mono font-semibold text-slate-500 self-start sm:self-auto">
+          <div className="text-xs font-mono font-semibold text-on-surface-variant self-start sm:self-auto">
             {project.projectCode} · {project.name}
           </div>
         </div>
@@ -224,13 +224,13 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
           {/* Step 1: Contractor & Location */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-indigo-600" /> 1. Contractor (First)
+              <label className="block text-xs font-semibold text-on-surface mb-1.5 flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-primary" /> 1. Contractor (First)
               </label>
               <select
                 value={selectedContractorId}
                 onChange={(e) => setSelectedContractorId(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-surface border border-outline rounded-lg text-xs font-medium text-on-surface focus:bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 {contractors.map((c) => (
                   <option key={c.id} value={c.id}>
@@ -241,13 +241,13 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
-                <Building className="w-3.5 h-3.5 text-indigo-600" /> 2. Floor Level
+              <label className="block text-xs font-semibold text-on-surface mb-1.5 flex items-center gap-1">
+                <Building className="w-3.5 h-3.5 text-primary" /> 2. Floor Level
               </label>
               <select
                 value={selectedFloorId}
                 onChange={(e) => setSelectedFloorId(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-surface border border-outline rounded-lg text-xs font-medium text-on-surface focus:bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 {floors.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -258,13 +258,13 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5 text-indigo-600" /> 3. Room / Area
+              <label className="block text-xs font-semibold text-on-surface mb-1.5 flex items-center gap-1">
+                <Layers className="w-3.5 h-3.5 text-primary" /> 3. Room / Area
               </label>
               <select
                 value={selectedRoomId}
                 onChange={(e) => setSelectedRoomId(parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 bg-surface border border-outline rounded-lg text-xs font-medium text-on-surface focus:bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary"
               >
                 <option value={0}>Whole Floor Level (Common)</option>
                 {currentRooms.map((r) => (
@@ -279,11 +279,11 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
           {/* Step 2: Work Item Selection with Catalogue Search & Mode Toggle */}
           <div className="space-y-2">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="block text-xs font-semibold text-slate-700">
+              <label className="block text-xs font-semibold text-on-surface">
                 4. Select Work Item:
               </label>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 p-0.5 bg-slate-100 rounded-lg">
+                <div className="flex items-center gap-1 p-0.5 bg-surface-container-low rounded-lg">
                   <button
                     type="button"
                     onClick={() => {
@@ -292,8 +292,8 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                     }}
                     className={`px-2.5 py-1 text-xs font-medium rounded-md transition ${
                       itemMode === 'QUALIFIED'
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-surface-container-lowest text-on-surface elevation-1'
+                        : 'text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     Contractor Qualified ({qualifiedItems.length})
@@ -306,8 +306,8 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                     }}
                     className={`px-2.5 py-1 text-xs font-medium rounded-md transition ${
                       itemMode === 'CATALOG'
-                        ? 'bg-white text-slate-900 shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
+                        ? 'bg-surface-container-lowest text-on-surface elevation-1'
+                        : 'text-on-surface-variant hover:text-on-surface'
                     }`}
                   >
                     Full PWD Catalogue ({allMasterItems.length})
@@ -318,19 +318,19 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
 
             {/* Quick search input */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <Search className="w-3.5 h-3.5 text-on-surface-variant/70 absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search work item, specification, trade..."
                 value={itemSearchQuery}
                 onChange={(e) => setItemSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full pl-8 pr-3 py-1.5 bg-surface border border-outline-variant rounded-lg text-xs focus:bg-surface-container-lowest focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
               {visibleItems.length === 0 ? (
-                <div className="col-span-full text-center py-6 text-xs text-slate-400">
+                <div className="col-span-full text-center py-6 text-xs text-on-surface-variant/70">
                   No matching work items found. Switch to Full PWD Catalogue or refine search.
                 </div>
               ) : (
@@ -341,16 +341,16 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                       key={idx}
                       type="button"
                       onClick={() => handleSelectItem(item.name)}
-                      className={`p-3 rounded-xl border text-left transition flex flex-col justify-between ${
+                      className={`p-3 rounded-md border text-left transition flex flex-col justify-between ${
                         isSelected
-                          ? 'border-indigo-600 bg-indigo-50/70 ring-1 ring-indigo-600'
-                          : 'border-slate-200 bg-white hover:border-slate-300'
+                          ? 'border-primary bg-primary-container/70 ring-1 ring-primary'
+                          : 'border-outline-variant bg-surface-container-lowest hover:border-outline'
                       }`}
                     >
-                      <div className="font-semibold text-xs text-slate-900 leading-snug">{item.name}</div>
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2 font-mono">
-                        <span className="text-slate-600">{item.calculationType}</span>
-                        <span className="font-semibold text-slate-800">{item.unit}</span>
+                      <div className="font-semibold text-xs text-on-surface leading-snug">{item.name}</div>
+                      <div className="flex items-center justify-between text-[11px] text-on-surface-variant mt-2 font-mono">
+                        <span className="text-on-surface-variant">{item.calculationType}</span>
+                        <span className="font-semibold text-on-surface">{item.unit}</span>
                       </div>
                     </button>
                   );
@@ -360,18 +360,18 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
           </div>
 
           {/* Step 3: Dimension Inputs & Live Formula Calculator */}
-          <div className="bg-slate-50 p-4 sm:p-5 rounded-xl border border-slate-200 space-y-4">
+          <div className="bg-surface p-4 sm:p-5 rounded-md border border-outline-variant space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-indigo-600" />
-                <span className="text-xs font-bold text-slate-800 tracking-wide">
+                <Calculator className="w-4 h-4 text-primary" />
+                <span className="text-xs font-bold text-on-surface tracking-wide">
                   Dimension Inputs ({calculationType})
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCalcInline(!showCalcInline)}
-                className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 self-start sm:self-auto"
+                className="text-xs text-primary hover:text-primary font-semibold flex items-center gap-1 self-start sm:self-auto"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 {showCalcInline ? 'Hide Calculator' : 'Use Archi Calc to compute dimension'}
@@ -380,8 +380,8 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
 
             {/* Inline Archi Calc Pad */}
             {showCalcInline && (
-              <div className="p-4 bg-white rounded-xl border border-indigo-200 shadow-xs">
-                <div className="text-xs text-slate-600 mb-2 font-medium">
+              <div className="p-4 bg-surface-container-lowest rounded-md border border-primary-container elevation-1">
+                <div className="text-xs text-on-surface-variant mb-2 font-medium">
                   Select which input to insert calculated value into:
                   <div className="flex gap-2 mt-1.5">
                     {(['length', 'breadth', 'height'] as const).map((t) => (
@@ -391,8 +391,8 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                         onClick={() => setActiveCalcTarget(t)}
                         className={`px-3 py-1 rounded text-xs uppercase font-bold transition ${
                           activeCalcTarget === t
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            ? 'bg-primary text-on-primary'
+                            : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
                         }`}
                       >
                         Target: {t}
@@ -406,7 +406,7 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">Nos (Multiplier)</label>
+                <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Nos (Multiplier)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -415,13 +415,13 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                   value={nos}
                   placeholder="1"
                   onChange={(e) => setNos(e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 bg-surface-container-lowest border border-outline rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
                 />
               </div>
 
               {['RUNNING_LENGTH', 'AREA', 'WALL_PLASTER', 'VOLUME'].includes(calculationType) && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Length (m)</label>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Length (m)</label>
                   <input
                     type="number"
                     step="0.001"
@@ -430,14 +430,14 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                     value={length}
                     placeholder="0.000"
                     onChange={(e) => setLength(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 bg-surface-container-lowest border border-outline rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               )}
 
               {['AREA', 'VOLUME'].includes(calculationType) && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Breadth / Width (m)</label>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Breadth / Width (m)</label>
                   <input
                     type="number"
                     step="0.001"
@@ -446,14 +446,14 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                     value={breadth}
                     placeholder="0.000"
                     onChange={(e) => setBreadth(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 bg-surface-container-lowest border border-outline rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               )}
 
               {['WALL_PLASTER', 'VOLUME'].includes(calculationType) && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Height / Depth (m)</label>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Height / Depth (m)</label>
                   <input
                     type="number"
                     step="0.001"
@@ -462,14 +462,14 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                     value={height}
                     placeholder="0.000"
                     onChange={(e) => setHeight(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 bg-surface-container-lowest border border-outline rounded-lg text-xs font-mono font-semibold focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
               )}
 
               {calculationType === 'WALL_PLASTER' && (
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-600 mb-1">Deduction (m²)</label>
+                  <label className="block text-[11px] font-semibold text-on-surface-variant mb-1">Deduction (m²)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -477,21 +477,21 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
                     value={deduction}
                     placeholder="0.00"
                     onChange={(e) => setDeduction(e.target.value)}
-                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-mono font-semibold text-rose-600 focus:outline-none focus:ring-1 focus:ring-rose-500"
+                    className="w-full px-3 py-2 bg-surface-container-lowest border border-outline rounded-lg text-xs font-mono font-semibold text-rose-600 focus:outline-none focus:ring-1 focus:ring-rose-500"
                   />
                 </div>
               )}
             </div>
 
             {/* Live Result Banner */}
-            <div className="bg-white p-3.5 rounded-lg border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <span className="text-xs text-slate-500 font-medium">Computed Executed Quantity:</span>
-                <div className="text-2xl font-mono font-extrabold text-indigo-700 tabular-nums">
+                <span className="text-xs text-on-surface-variant font-medium">Computed Executed Quantity:</span>
+                <div className="text-2xl font-mono font-extrabold text-primary tabular-nums">
                   {computedQuantity.toFixed(2)} <span className="text-sm font-semibold">{unit}</span>
                 </div>
               </div>
-              <div className="text-left sm:text-right text-[11px] text-slate-500 font-mono">
+              <div className="text-left sm:text-right text-[11px] text-on-surface-variant font-mono">
                 {calculationType === 'VOLUME' && 'Formula: Nos × L × B × H'}
                 {calculationType === 'AREA' && 'Formula: Nos × L × B'}
                 {calculationType === 'WALL_PLASTER' && 'Formula: (Nos × L × H) - Deduction'}
@@ -504,51 +504,51 @@ export const RecordMeasurementView: React.FC<RecordMeasurementViewProps> = ({ pr
           {/* Step 4: Descriptive Details */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Item Description / Specifics</label>
+              <label className="block text-xs font-semibold text-on-surface mb-1">Item Description / Specifics</label>
               <input
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="e.g. Beam B-02 bottom and sides shuttering"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-outline rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Location Details / Grid Ref</label>
+              <label className="block text-xs font-semibold text-on-surface mb-1">Location Details / Grid Ref</label>
               <input
                 type="text"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
                 placeholder="e.g. Grid 2-3 / North Balcony"
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-outline rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">Site Remarks / Quality Notes</label>
+            <label className="block text-xs font-semibold text-on-surface mb-1">Site Remarks / Quality Notes</label>
             <input
               type="text"
               value={remarks}
               onChange={(e) => setRemarks(e.target.value)}
               placeholder="e.g. Verified with joint measurement tape; deshuttered after 7 days"
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="w-full px-3 py-2 border border-outline rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
 
           {/* Form Actions */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-outline-variant">
             <button
               type="button"
               onClick={onDone}
-              className="px-4 py-2 border border-slate-300 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition"
+              className="px-4 py-2 border border-outline rounded-lg text-xs font-semibold text-on-surface-variant hover:bg-surface transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={computedQuantity <= 0}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-2 disabled:opacity-50 transition"
+              className="px-5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-bold elevation-1 flex items-center gap-2 disabled:opacity-50 transition"
             >
               <Check className="w-4 h-4" /> Save to Measurement Book
             </button>

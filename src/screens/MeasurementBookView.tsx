@@ -95,7 +95,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
     switch (status) {
       case 'APPROVED':
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
             <CheckCircle2 className="w-3.5 h-3.5" /> Approved
           </span>
         );
@@ -107,7 +107,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
         );
       case 'SUBMITTED':
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-warning">
             <Send className="w-3.5 h-3.5" /> Submitted
           </span>
         );
@@ -120,7 +120,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
       case 'DRAFT':
       default:
         return (
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
             Draft
           </span>
         );
@@ -130,13 +130,13 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-container-lowest p-5 rounded-lg border border-outline-variant elevation-1">
         <div>
           <div className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-xl font-bold text-slate-900">Measurement Book (M-Book)</h2>
+            <BookOpen className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold text-on-surface">Measurement Book (M-Book)</h2>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-on-surface-variant mt-1">
             Quantity-only audit sheets with formal verification lifecycle. Strict architectural boundary: no rates or commercial invoices.
           </p>
         </div>
@@ -145,7 +145,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
           <button
             type="button"
             onClick={onNavigateToRecord}
-            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
+            className="px-3.5 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg text-xs font-semibold flex items-center gap-1.5 elevation-1"
           >
             <Plus className="w-4 h-4" /> Record Measurement
           </button>
@@ -153,8 +153,8 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
-        <div className="flex overflow-x-auto gap-1 p-0.5 bg-slate-100 rounded-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface-container-lowest p-3 rounded-md border border-outline-variant elevation-1">
+        <div className="flex overflow-x-auto gap-1 p-0.5 bg-surface-container-low rounded-lg">
           {(['ALL', 'DRAFT', 'SUBMITTED', 'CHECKED', 'APPROVED', 'RETURNED'] as const).map((status) => {
             const count = status === 'ALL' ? allSheets.length : allSheets.filter((s) => s.status === status).length;
             const isActive = statusFilter === status;
@@ -165,12 +165,12 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                 onClick={() => setStatusFilter(status)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-md transition whitespace-nowrap flex items-center gap-1.5 ${
                   isActive
-                    ? 'bg-white text-slate-900 shadow-xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-surface-container-lowest text-on-surface elevation-1 font-semibold'
+                    : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
                 <span>{status === 'ALL' ? 'All Sheets' : status}</span>
-                <span className="text-[11px] font-mono font-medium text-slate-400">
+                <span className="text-[11px] font-mono font-medium text-on-surface-variant/70">
                   ({count})
                 </span>
               </button>
@@ -179,22 +179,22 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
         </div>
 
         <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+          <Search className="w-3.5 h-3.5 text-on-surface-variant/70 absolute left-3 top-2.5" />
           <input
             type="text"
             placeholder="Search sheets, items, trades..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white"
+            className="w-full pl-8 pr-3 py-1.5 bg-surface border border-outline-variant rounded-lg text-xs focus:bg-surface-container-lowest"
           />
         </div>
       </div>
 
       {sheets.length === 0 ? (
-        <div className="bg-white p-12 text-center rounded-xl border border-dashed border-slate-300">
-          <BookOpen className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-          <h3 className="text-sm font-semibold text-slate-700">No Measurement Sheets Found</h3>
-          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+        <div className="bg-surface-container-lowest p-12 text-center rounded-md border border-dashed border-outline">
+          <BookOpen className="w-12 h-12 text-on-surface-variant/70 mx-auto mb-2" />
+          <h3 className="text-sm font-semibold text-on-surface">No Measurement Sheets Found</h3>
+          <p className="text-xs text-on-surface-variant mt-1 max-w-sm mx-auto">
             {allSheets.length === 0
               ? 'Use "Record Measurement" to enter physical dimensions and generate your first contractor sheet.'
               : 'No sheets matched your current filter criteria.'}
@@ -203,7 +203,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
             <button
               type="button"
               onClick={onNavigateToRecord}
-              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-semibold"
+              className="mt-4 px-4 py-2 bg-primary text-on-primary rounded-lg text-xs font-semibold"
             >
               Record Measurement Now
             </button>
@@ -220,21 +220,21 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
             return (
               <div
                 key={sheet.id}
-                className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm transition hover:border-slate-300"
+                className="bg-surface-container-lowest rounded-md border border-outline-variant overflow-hidden elevation-1 transition hover:border-outline"
               >
                 {/* Sheet Card Header */}
                 <div
-                  className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer bg-gradient-to-r from-white to-slate-50/50"
+                  className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer bg-gradient-to-r from-surface-container-lowest to-surface-container-low"
                   onClick={() => setSelectedSheetId(isExpanded ? null : sheet.id)}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="mt-1 text-slate-400">
+                    <div className="mt-1 text-on-surface-variant/70">
                       {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
                     </div>
 
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2.5 text-xs text-slate-500">
-                        <span className="font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                      <div className="flex items-center gap-2.5 text-xs text-on-surface-variant">
+                        <span className="font-mono font-bold text-primary bg-primary-container px-2 py-0.5 rounded">
                           {sheet.sheetCode}
                         </span>
                         <span aria-hidden="true">·</span>
@@ -242,32 +242,32 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                         {sheet.lockedAt && (
                           <>
                             <span aria-hidden="true">·</span>
-                            <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                            <span className="text-[11px] text-on-surface-variant flex items-center gap-1">
                               <Lock className="w-3 h-3" /> Locked
                             </span>
                           </>
                         )}
                       </div>
 
-                      <h3 className="text-base font-bold text-slate-900">{sheet.itemNameSnapshot}</h3>
+                      <h3 className="text-base font-bold text-on-surface">{sheet.itemNameSnapshot}</h3>
 
-                      <div className="flex flex-wrap items-center gap-x-3 text-xs text-slate-500">
-                        <span>Contractor: <strong className="text-slate-700">{sheet.contractorNameSnapshot}</strong></span>
+                      <div className="flex flex-wrap items-center gap-x-3 text-xs text-on-surface-variant">
+                        <span>Contractor: <strong className="text-on-surface">{sheet.contractorNameSnapshot}</strong></span>
                         <span aria-hidden="true">·</span>
-                        <span>Level: <strong className="text-slate-700">{sheet.floorNameSnapshot}</strong></span>
+                        <span>Level: <strong className="text-on-surface">{sheet.floorNameSnapshot}</strong></span>
                         <span aria-hidden="true">·</span>
-                        <span>Formula: <span className="font-mono text-slate-700">{sheet.formulaCode}</span></span>
+                        <span>Formula: <span className="font-mono text-on-surface">{sheet.formulaCode}</span></span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between md:justify-end gap-4 border-t md:border-t-0 pt-3 md:pt-0">
                     <div className="text-right">
-                      <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Executed Quantity</div>
-                      <div className="text-lg font-mono font-bold text-slate-900 tabular-nums">
-                        {total.toFixed(2)} <span className="text-xs font-normal text-slate-500">{sheet.uomSnapshot}</span>
+                      <div className="text-[10px] text-on-surface-variant/70 font-medium uppercase tracking-wider">Executed Quantity</div>
+                      <div className="text-lg font-mono font-bold text-on-surface tabular-nums">
+                        {total.toFixed(2)} <span className="text-xs font-normal text-on-surface-variant">{sheet.uomSnapshot}</span>
                       </div>
-                      <div className="text-[11px] text-slate-400">{list.length} entries</div>
+                      <div className="text-[11px] text-on-surface-variant/70">{list.length} entries</div>
                     </div>
 
                     <button
@@ -276,7 +276,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                         e.stopPropagation();
                         handleExportSheet(sheet);
                       }}
-                      className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                      className="p-2 text-on-surface-variant hover:text-primary hover:bg-primary-container rounded-lg transition"
                       title="Export CSV"
                     >
                       <Download className="w-4 h-4" />
@@ -286,12 +286,12 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
 
                 {/* Expanded Sheet Table & Workflow Actions */}
                 {isExpanded && (
-                  <div className="border-t border-slate-100 p-5 bg-slate-50/50 space-y-4">
+                  <div className="border-t border-outline-variant/60 p-5 bg-surface/50 space-y-4">
                     {/* Workflow status bar */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-lg border border-slate-200">
-                      <div className="text-xs text-slate-600">
-                        <span className="font-semibold text-slate-800">Review Status: </span>
-                        <span className="font-medium text-slate-900">{sheet.status}</span>
+                    <div className="flex flex-wrap items-center justify-between gap-3 bg-surface-container-lowest p-3.5 rounded-lg border border-outline-variant">
+                      <div className="text-xs text-on-surface-variant">
+                        <span className="font-semibold text-on-surface">Review Status: </span>
+                        <span className="font-medium text-on-surface">{sheet.status}</span>
                         {sheet.status === 'APPROVED' && ' (Verified & locked for record)'}
                       </div>
 
@@ -303,10 +303,10 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                             onClick={() => handleTransition(sheet, next)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition ${
                               next === 'APPROVED'
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                                ? 'bg-success hover:brightness-95 text-on-success'
                                 : next === 'RETURNED'
                                 ? 'bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100'
-                                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                                : 'bg-primary hover:bg-primary text-on-primary'
                             }`}
                           >
                             {next === 'SUBMITTED' && <Send className="w-3 h-3" />}
@@ -320,10 +320,10 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                     </div>
 
                     {/* Table of measurements */}
-                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-xs">
+                    <div className="bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden elevation-1">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">
-                          <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200 text-[11px] uppercase tracking-wider">
+                          <thead className="bg-surface-container-low text-on-surface-variant font-semibold border-b border-outline-variant text-[11px] uppercase tracking-wider">
                             <tr>
                               <th className="px-3 py-2.5">#</th>
                               <th className="px-3 py-2.5">Description & Location</th>
@@ -337,20 +337,20 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                               <th className="px-3 py-2.5 text-center">Actions</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-100">
+                          <tbody className="divide-y divide-outline-variant/60">
                             {list.length === 0 ? (
                               <tr>
-                                <td colSpan={10} className="px-3 py-6 text-center text-slate-400">
+                                <td colSpan={10} className="px-3 py-6 text-center text-on-surface-variant/70">
                                   No entries in this sheet yet.
                                 </td>
                               </tr>
                             ) : (
                               list.map((m, idx) => (
-                                <tr key={m.id} className="hover:bg-slate-50/80">
-                                  <td className="px-3 py-2 text-slate-400 font-mono">{idx + 1}</td>
-                                  <td className="px-3 py-2 font-medium text-slate-900">
+                                <tr key={m.id} className="hover:bg-surface/80">
+                                  <td className="px-3 py-2 text-on-surface-variant/70 font-mono">{idx + 1}</td>
+                                  <td className="px-3 py-2 font-medium text-on-surface">
                                     <div>{m.description || 'General measurement entry'}</div>
-                                    {m.location && <div className="text-[11px] text-slate-400 font-normal">{m.location}</div>}
+                                    {m.location && <div className="text-[11px] text-on-surface-variant/70 font-normal">{m.location}</div>}
                                   </td>
                                   <td className="px-3 py-2 text-right font-mono tabular-nums">{m.nos}</td>
                                   <td className="px-3 py-2 text-right font-mono tabular-nums">{m.length || '-'}</td>
@@ -359,22 +359,22 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                                   <td className="px-3 py-2 text-right font-mono tabular-nums text-rose-600">
                                     {m.deduction ? `-${m.deduction}` : '-'}
                                   </td>
-                                  <td className="px-3 py-2 text-right font-mono font-bold text-slate-900 tabular-nums">
+                                  <td className="px-3 py-2 text-right font-mono font-bold text-on-surface tabular-nums">
                                     {m.quantity.toFixed(2)}
                                   </td>
-                                  <td className="px-3 py-2 text-slate-500">{m.remarks || '-'}</td>
+                                  <td className="px-3 py-2 text-on-surface-variant">{m.remarks || '-'}</td>
                                   <td className="px-3 py-2 text-center">
                                     {sheet.status !== 'APPROVED' ? (
                                       <button
                                         type="button"
                                         onClick={() => store.deleteMeasurement(m.id)}
-                                        className="p-1 text-slate-400 hover:text-rose-600"
+                                        className="p-1 text-on-surface-variant/70 hover:text-rose-600"
                                         title="Delete entry"
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     ) : (
-                                      <span className="text-[10px] text-slate-400">Locked</span>
+                                      <span className="text-[10px] text-on-surface-variant/70">Locked</span>
                                     )}
                                   </td>
                                 </tr>
@@ -394,24 +394,24 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
 
       {/* Return Sheet Modal */}
       {showReturnModal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center gap-2 text-rose-600 pb-2 border-b border-slate-100">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-2 text-rose-600 pb-2 border-b border-outline-variant/60">
               <AlertTriangle className="w-5 h-5" />
-              <h3 className="text-base font-bold text-slate-800">Return Sheet for Rectification</h3>
+              <h3 className="text-base font-bold text-on-surface">Return Sheet for Rectification</h3>
             </div>
-            <p className="text-xs text-slate-600">
+            <p className="text-xs text-on-surface-variant">
               Per practice audit rules, returning a measurement sheet requires an explanatory comment for the contractor / site team.
             </p>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Return Reason / Required Correction</label>
+              <label className="block text-xs font-semibold text-on-surface mb-1">Return Reason / Required Correction</label>
               <textarea
                 rows={3}
                 required
                 value={returnComment}
                 onChange={(e) => setReturnComment(e.target.value)}
                 placeholder="e.g. Deductions for opening D1 missing in Wall Plaster measurement..."
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs"
+                className="w-full px-3 py-2 border border-outline rounded-lg text-xs"
               />
             </div>
             <div className="flex justify-end gap-2 pt-2">
@@ -421,7 +421,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                   setShowReturnModal(null);
                   setReturnComment('');
                 }}
-                className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
+                className="px-4 py-2 border border-outline-variant rounded-lg text-xs font-medium text-on-surface-variant hover:bg-surface"
               >
                 Cancel
               </button>
@@ -429,7 +429,7 @@ export const MeasurementBookView: React.FC<MeasurementBookViewProps> = ({ projec
                 type="button"
                 disabled={!returnComment.trim()}
                 onClick={() => handleConfirmReturn(showReturnModal)}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+                className="px-4 py-2 bg-error hover:brightness-95 text-on-error rounded-lg text-xs font-semibold disabled:opacity-50"
               >
                 Return Sheet
               </button>

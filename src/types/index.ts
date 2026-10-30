@@ -578,7 +578,7 @@ export type AppScreen =
   | 'COMPANY_PROFILE'
   | 'COMPANY_DASHBOARD';
 
-export type HomeTab = 'PROJECTS' | 'DIRECTORY' | 'WORK_LIBRARY' | 'PRACTICE';
+export type HomeTab = 'PROJECTS' | 'DIRECTORY' | 'WORK_LIBRARY' | 'PRACTICE' | 'ODRAFT';
 
 export type ProjectSection =
   | 'OVERVIEW'
@@ -590,6 +590,7 @@ export type ProjectSection =
 export type MoreSection =
   | 'SITEMAN'
   | 'DRAWINGS'
+  | 'ODRAFT'
   | 'REPORTS'
   | 'DECISIONS'
   | 'COORDINATION'

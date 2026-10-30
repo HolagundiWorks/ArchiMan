@@ -5,20 +5,21 @@ import { ExportHelper } from '../domain/WorkCatalog';
 import {
   FileCode2,
   Plus,
-  Send,
   History,
   Tag,
   CheckCircle,
   AlertCircle,
-  FileText,
   Download,
+  FileBox,
 } from 'lucide-react';
+import { Button } from '../components/ui';
 
 interface DrawingsViewProps {
   project: ProjectEntity;
+  onOpenODraft?: () => void;
 }
 
-export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
+export const DrawingsView: React.FC<DrawingsViewProps> = ({ project, onOpenODraft }) => {
   const [activeTab, setActiveTab] = useState<'REGISTER' | 'TRANSMITTALS'>('REGISTER');
   const [showDrawingModal, setShowDrawingModal] = useState(false);
   const [showRevisionModal, setShowRevisionModal] = useState<number | null>(null);
@@ -105,32 +106,43 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface-container-lowest p-5 rounded-lg border border-outline-variant elevation-1">
         <div>
           <div className="flex items-center gap-2">
-            <FileCode2 className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-xl font-bold text-slate-900">Drawing Register & Transmittals</h2>
+            <FileCode2 className="w-5 h-5 text-primary" />
+            <h2 className="text-xl font-bold text-on-surface">Drawing Register & Transmittals</h2>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-on-surface-variant mt-1">
             Maintain revision genealogy, HFC package tags, transmittal logs, and as-built flags.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
+        <div className="flex items-center gap-2 flex-wrap">
+          {onOpenODraft && (
+            <Button
+              size="sm"
+              variant="outlined"
+              leadingIcon={<FileBox className="w-3.5 h-3.5" />}
+              onClick={onOpenODraft}
+            >
+              Open .osp / .dxf
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="tonal"
+            leadingIcon={<Download className="w-3.5 h-3.5" />}
             onClick={handleExportTransmittal}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1.5"
           >
-            <Download className="w-4 h-4" /> Export Transmittal CSV
-          </button>
-          <button
-            type="button"
+            Export CSV
+          </Button>
+          <Button
+            size="sm"
+            leadingIcon={<Plus className="w-3.5 h-3.5" />}
             onClick={() => setShowDrawingModal(true)}
-            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm"
           >
-            <Plus className="w-4 h-4" /> Register Drawing
-          </button>
+            Register Drawing
+          </Button>
         </div>
       </div>
 
@@ -141,9 +153,9 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
           const isHFC = drg.packageTag === 'HFC';
 
           return (
-            <div key={drg.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
+            <div key={drg.id} className="bg-surface-container-lowest rounded-md border border-outline-variant p-5 elevation-1 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-mono text-xs font-semibold text-slate-700">
+                <span className="font-mono text-xs font-semibold text-on-surface">
                   {drg.drawingNumber}
                 </span>
 
@@ -153,8 +165,8 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
                     onClick={() => handleToggleHFC(drg)}
                     className={`text-xs font-medium px-2.5 py-1 rounded-md transition ${
                       isHFC
-                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+                        ? 'bg-success-container text-emerald-800 border border-emerald-200'
+                        : 'text-on-surface-variant hover:text-on-surface hover:bg-surface'
                     }`}
                   >
                     {isHFC ? '✓ HFC Tagged' : '+ Tag HFC'}
@@ -163,37 +175,37 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
               </div>
 
               <div>
-                <h3 className="text-base font-bold text-slate-900">{drg.title}</h3>
-                <div className="text-xs text-slate-500 mt-0.5">Discipline: {drg.discipline}</div>
+                <h3 className="text-base font-bold text-on-surface">{drg.title}</h3>
+                <div className="text-xs text-on-surface-variant mt-0.5">Discipline: {drg.discipline}</div>
               </div>
 
               {/* Revision history info */}
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs space-y-1">
+              <div className="bg-surface p-2.5 rounded-lg border border-outline-variant/60 text-xs space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-slate-700 flex items-center gap-1">
-                    <History className="w-3.5 h-3.5 text-indigo-600" />
+                  <span className="font-semibold text-on-surface flex items-center gap-1">
+                    <History className="w-3.5 h-3.5 text-primary" />
                     Latest: {latest?.revisionCode || 'REV-0'}
                   </span>
-                  <span className="text-xs font-mono font-medium text-slate-500">
+                  <span className="text-xs font-mono font-medium text-on-surface-variant">
                     {latest?.issueStatus || 'WORKING'}
                   </span>
                 </div>
                 {latest && (
-                  <p className="text-[11px] text-slate-600 line-clamp-2 italic">
+                  <p className="text-[11px] text-on-surface-variant line-clamp-2 italic">
                     "{latest.revisionNotes || 'Initial baseline'}"
                   </p>
                 )}
                 {latest?.isAsBuilt && (
-                  <span className="text-[11px] text-emerald-700 font-medium block">✓ As-Built Certified</span>
+                  <span className="text-[11px] text-success font-medium block">✓ As-Built Certified</span>
                 )}
               </div>
 
-              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">{revs.length} revisions</span>
+              <div className="pt-2 border-t border-outline-variant/60 flex items-center justify-between">
+                <span className="text-[11px] text-on-surface-variant/70">{revs.length} revisions</span>
                 <button
                   type="button"
                   onClick={() => setShowRevisionModal(drg.id)}
-                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                  className="text-xs font-semibold text-primary hover:text-primary flex items-center gap-1"
                 >
                   <Plus className="w-3.5 h-3.5" /> Issue Revision
                 </button>
@@ -205,47 +217,47 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
 
       {/* Modal: Register Drawing */}
       {showDrawingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-800">Register New Drawing</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
+              <h3 className="text-base font-bold text-on-surface">Register New Drawing</h3>
               <button
                 type="button"
                 onClick={() => setShowDrawingModal(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                className="text-on-surface-variant/70 hover:text-on-surface-variant text-sm font-semibold"
               >
                 ✕
               </button>
             </div>
             <form onSubmit={handleCreateDrawing} className="space-y-3 text-xs">
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Drawing Number</label>
+                <label className="block font-medium text-on-surface mb-1">Drawing Number</label>
                 <input
                   type="text"
                   required
                   value={drgForm.drawingNumber}
                   onChange={(e) => setDrgForm({ ...drgForm, drawingNumber: e.target.value })}
                   placeholder="e.g. A-102 or S-301"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono"
+                  className="w-full px-3 py-2 border border-outline rounded-lg font-mono"
                 />
               </div>
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Title</label>
+                <label className="block font-medium text-on-surface mb-1">Title</label>
                 <input
                   type="text"
                   required
                   value={drgForm.title}
                   onChange={(e) => setDrgForm({ ...drgForm, title: e.target.value })}
                   placeholder="e.g. First Floor Electrical Layout"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-outline rounded-lg"
                 />
               </div>
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Discipline</label>
+                <label className="block font-medium text-on-surface mb-1">Discipline</label>
                 <select
                   value={drgForm.discipline}
                   onChange={(e) => setDrgForm({ ...drgForm, discipline: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                  className="w-full px-3 py-2 border border-outline rounded-lg bg-surface-container-lowest"
                 >
                   <option value="Architectural">Architectural</option>
                   <option value="Structural">Structural</option>
@@ -261,24 +273,24 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
                   id="hfcTag"
                   checked={drgForm.packageTag === 'HFC'}
                   onChange={(e) => setDrgForm({ ...drgForm, packageTag: e.target.checked ? 'HFC' : '' })}
-                  className="rounded text-indigo-600"
+                  className="rounded text-primary"
                 />
-                <label htmlFor="hfcTag" className="text-slate-700 font-medium">
+                <label htmlFor="hfcTag" className="text-on-surface font-medium">
                   Tag as Held-for-Construction (HFC)
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-outline-variant/60">
                 <button
                   type="button"
                   onClick={() => setShowDrawingModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50"
+                  className="px-4 py-2 border border-outline-variant rounded-lg text-on-surface-variant font-medium hover:bg-surface"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg font-semibold"
                 >
                   Save to Register
                 </button>
@@ -290,14 +302,14 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
 
       {/* Modal: Issue Revision */}
       {showRevisionModal !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-800">Issue Drawing Revision</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-inverse-surface/50 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-lg max-w-md w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-outline-variant/60">
+              <h3 className="text-base font-bold text-on-surface">Issue Drawing Revision</h3>
               <button
                 type="button"
                 onClick={() => setShowRevisionModal(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm font-semibold"
+                className="text-on-surface-variant/70 hover:text-on-surface-variant text-sm font-semibold"
               >
                 ✕
               </button>
@@ -310,23 +322,23 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
               className="space-y-3 text-xs"
             >
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Revision Code</label>
+                <label className="block font-medium text-on-surface mb-1">Revision Code</label>
                 <input
                   type="text"
                   required
                   value={revForm.revisionCode}
                   onChange={(e) => setRevForm({ ...revForm, revisionCode: e.target.value })}
                   placeholder="e.g. REV-B or REV-C"
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg font-mono font-bold"
+                  className="w-full px-3 py-2 border border-outline rounded-lg font-mono font-bold"
                 />
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Revision Source / Trigger</label>
+                <label className="block font-medium text-on-surface mb-1">Revision Source / Trigger</label>
                 <select
                   value={revForm.revisionSource}
                   onChange={(e) => setRevForm({ ...revForm, revisionSource: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white"
+                  className="w-full px-3 py-2 border border-outline rounded-lg bg-surface-container-lowest"
                 >
                   <option value="CLIENT_REQUEST">Client Request / Program Change</option>
                   <option value="SITE_CONDITION">Site Condition / Field Clarification</option>
@@ -337,14 +349,14 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
               </div>
 
               <div>
-                <label className="block font-medium text-slate-700 mb-1">Revision Notes & Changes</label>
+                <label className="block font-medium text-on-surface mb-1">Revision Notes & Changes</label>
                 <textarea
                   rows={3}
                   required
                   value={revForm.revisionNotes}
                   onChange={(e) => setRevForm({ ...revForm, revisionNotes: e.target.value })}
                   placeholder="Describe exact architectural or structural changes introduced in this revision..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  className="w-full px-3 py-2 border border-outline rounded-lg"
                 />
               </div>
 
@@ -354,24 +366,24 @@ export const DrawingsView: React.FC<DrawingsViewProps> = ({ project }) => {
                   id="asBuiltCheck"
                   checked={revForm.isAsBuilt}
                   onChange={(e) => setRevForm({ ...revForm, isAsBuilt: e.target.checked })}
-                  className="rounded text-indigo-600"
+                  className="rounded text-primary"
                 />
-                <label htmlFor="asBuiltCheck" className="text-slate-700 font-medium">
+                <label htmlFor="asBuiltCheck" className="text-on-surface font-medium">
                   Mark as As-Built / Handover Revision
                 </label>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-2 pt-3 border-t border-outline-variant/60">
                 <button
                   type="button"
                   onClick={() => setShowRevisionModal(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50"
+                  className="px-4 py-2 border border-outline-variant rounded-lg text-on-surface-variant font-medium hover:bg-surface"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary text-on-primary rounded-lg font-semibold"
                 >
                   Issue Revision
                 </button>

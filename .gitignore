@@ -18,3 +18,9 @@ local.properties
 .env
 debug.keystore
 /gradle/gradle-daemon-jvm.properties
+
+# Node / Vite
+node_modules/
+dist/
+.vite/
+*.local
