@@ -173,18 +173,14 @@ export const PlanningView: React.FC<PlanningViewProps> = ({ project }) => {
               <div key={dec.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                    <span className="font-mono text-xs font-semibold text-slate-700">
                       {dec.referenceNumber}
                     </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        dec.status === 'DECIDED'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
-                    >
-                      {dec.status}
-                    </span>
+                    <span className="text-slate-300">·</span>
+                    <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-slate-700">
+                      <span className={`w-1.5 h-1.5 rounded-full ${dec.status === 'DECIDED' ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                      <span>{dec.status}</span>
+                    </div>
                   </div>
                   {dec.decidedAt && (
                     <span className="text-[11px] text-slate-400">

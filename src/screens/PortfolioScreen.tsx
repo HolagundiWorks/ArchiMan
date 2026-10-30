@@ -44,6 +44,8 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
   const [showNewClientModal, setShowNewClientModal] = useState(false);
   const [showNewContractorModal, setShowNewContractorModal] = useState(false);
   const [showNewCatalogModal, setShowNewCatalogModal] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   // Search & Filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -215,7 +217,8 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
     store.updateCompanyProfile(profileForm);
-    alert('Company profile updated successfully.');
+    setFeedbackMessage({ text: 'Company profile updated successfully.', type: 'success' });
+    setTimeout(() => setFeedbackMessage(null), 4000);
   };
 
   const handleExportDB = () => {
@@ -224,6 +227,8 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
       `ArchiMan_Practice_Backup_${new Date().toISOString().slice(0, 10)}.archimandb.json`,
       data
     );
+    setFeedbackMessage({ text: 'Company database backup downloaded.', type: 'success' });
+    setTimeout(() => setFeedbackMessage(null), 4000);
   };
 
   const handleImportDB = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -235,16 +240,30 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
       try {
         const json = JSON.parse(event.target?.result as string);
         store.importDatabase(json);
-        alert('Practice database restored successfully.');
-      } catch (err) {
-        alert('Failed to parse database file: ' + err);
+        setFeedbackMessage({ text: 'Practice database restored successfully.', type: 'success' });
+        setTimeout(() => setFeedbackMessage(null), 4000);
+      } catch (err: any) {
+        setFeedbackMessage({ text: 'Failed to parse database file: ' + (err?.message || err), type: 'error' });
+        setTimeout(() => setFeedbackMessage(null), 5000);
       }
     };
     reader.readAsText(file);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col relative">
+      {/* Toast Feedback Notification */}
+      {feedbackMessage && (
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-xl shadow-lg bg-slate-900 text-white text-xs font-medium border border-slate-700 animate-fade-in">
+          {feedbackMessage.type === 'success' ? (
+            <CheckCircle className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+          )}
+          <span>{feedbackMessage.text}</span>
+        </div>
+      )}
+
       {/* Portfolio Top Bar */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -329,12 +348,8 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.count !== undefined && (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.2 rounded-full ${
-                        isActive ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {tab.count}
+                    <span className="text-[11px] font-mono font-medium text-slate-400">
+                      ({tab.count})
                     </span>
                   )}
                 </button>
@@ -390,18 +405,13 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                          <span className="font-mono text-xs font-semibold text-slate-700">
                             {proj.projectCode}
                           </span>
-                          <span
-                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                              proj.status === 'ACTIVE'
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {proj.status}
-                          </span>
+                          <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-emerald-700">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span>{proj.status}</span>
+                          </div>
                         </div>
 
                         <div>
@@ -476,9 +486,9 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {store.clients.map((c) => (
                   <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between border-b pb-2">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                       <h3 className="font-bold text-sm text-slate-900">{c.name}</h3>
-                      <span className="text-[10px] font-semibold px-2 py-0.5 bg-slate-100 text-slate-600 rounded">
+                      <span className="text-xs text-slate-500 font-medium">
                         {c.clientType}
                       </span>
                     </div>
@@ -504,9 +514,9 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
                   const qualified = store.contractorQualifiedItems.filter((q) => q.contractorId === c.id);
                   return (
                     <div key={c.id} className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-3">
-                      <div className="flex items-center justify-between border-b pb-2">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                         <h3 className="font-bold text-sm text-slate-900">{c.name}</h3>
-                        <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
+                        <span className="text-xs font-mono font-medium text-indigo-700">
                           {c.contractorType}
                         </span>
                       </div>
@@ -776,13 +786,7 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm('Are you sure you want to reset the practice database to initial seed data?')) {
-                          store.resetToDefault();
-                          setProfileForm({ ...store.companyProfile });
-                          alert('Database reset to defaults.');
-                        }
-                      }}
+                      onClick={() => setShowResetConfirm(true)}
                       className="w-full py-2 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold transition"
                     >
                       Reset to Default Demo Database
@@ -1184,6 +1188,43 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onSelectProjec
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirm Reset */}
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center gap-2 text-rose-600 pb-2 border-b border-slate-100">
+              <AlertCircle className="w-5 h-5" />
+              <h3 className="text-base font-bold text-slate-800">Reset Database</h3>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to reset the practice database to initial seed data? All custom projects and entries will be restored to defaults.
+            </p>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowResetConfirm(false)}
+                className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 font-medium hover:bg-slate-50 text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  store.resetToDefault();
+                  setProfileForm({ ...store.companyProfile });
+                  setShowResetConfirm(false);
+                  setFeedbackMessage({ text: 'Database reset to default seed records.', type: 'success' });
+                  setTimeout(() => setFeedbackMessage(null), 4000);
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold"
+              >
+                Reset Database
+              </button>
+            </div>
           </div>
         </div>
       )}

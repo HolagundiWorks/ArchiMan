@@ -637,3 +637,35 @@ export const initialConsultants: ProjectConsultantEntity[] = [
     createdAt: Date.now() - 40 * 86400000,
   },
 ];
+
+export const initialSiteInspections: SiteInspectionEntity[] = [
+  {
+    id: 1,
+    projectId: 1,
+    inspectionAt: Date.now() - 4 * 86400000,
+    location: 'Ground Floor Column C-1 to C-6',
+    inspector: 'Ar. Vishwabhiram Holagundi',
+    observation: 'Pre-pour shuttering inspection. Formwork plumb and diagonal bracing verified.',
+    severity: 'NORMAL',
+    correctiveAction: 'Clean out sawdust from column base cleanout pocket before closing shutter.',
+    dueAt: Date.now() - 3 * 86400000,
+    status: 'RESOLVED',
+    photoUri: null,
+    createdAt: Date.now() - 4 * 86400000,
+  },
+];
+
+export const initialMeetingMinutes: MeetingMinutesEntity[] = [
+  {
+    id: 1,
+    projectId: 1,
+    title: 'Site Progress & Finishes Review Meeting #04',
+    meetingAt: Date.now() - 7 * 86400000,
+    location: 'Project Site Office, Jubilee Hills',
+    attendees: 'Ar. Vishwabhiram (Principal Arch), Dr. Ananya Rao (Client), Er. Somasekhar (Apex Civil), Er. Ramesh (Structural)',
+    discussion: 'Reviewed brickwork quality, MEP sleeve clearances, and window frame delivery timeline. Confirmed wire-cut terracotta brick samples.',
+    decisions: 'Approved terracotta sample Batch B. MEP contractor to complete core cutting by Friday.',
+    actionItems: 'Apex Civil to submit revised plastering schedule; AquaFlow to submit pipe pressure test report.',
+    createdAt: Date.now() - 7 * 86400000,
+  },
+];

@@ -20,6 +20,8 @@ import {
   ProjectDecisionEntity,
   ProjectTaskEntity,
   ProjectConsultantEntity,
+  MeetingMinutesEntity,
+  SiteInspectionEntity,
 } from '../types';
 import {
   initialCompanyProfile,
@@ -43,6 +45,8 @@ import {
   initialProjectDecisions,
   initialTasks,
   initialConsultants,
+  initialSiteInspections,
+  initialMeetingMinutes,
 } from './seedData';
 
 const STORAGE_PREFIX = 'archiman_v27_';
@@ -94,6 +98,8 @@ export class PracticeStore {
   projectDecisions: ProjectDecisionEntity[] = getOrInit('projectDecisions', initialProjectDecisions);
   projectTasks: ProjectTaskEntity[] = getOrInit('projectTasks', initialTasks);
   projectConsultants: ProjectConsultantEntity[] = getOrInit('projectConsultants', initialConsultants);
+  siteInspections: SiteInspectionEntity[] = getOrInit('siteInspections', initialSiteInspections);
+  meetingMinutes: MeetingMinutesEntity[] = getOrInit('meetingMinutes', initialMeetingMinutes);
 
   private listeners: (() => void)[] = [];
 
@@ -288,6 +294,32 @@ export class PracticeStore {
     );
     save('siteIssues', this.siteIssues);
     this.notify();
+  }
+
+  // --- Site Inspections ---
+  addSiteInspection(data: Omit<SiteInspectionEntity, 'id' | 'createdAt'>) {
+    const id = Date.now();
+    const item: SiteInspectionEntity = { ...data, id, createdAt: id };
+    this.siteInspections.push(item);
+    save('siteInspections', this.siteInspections);
+    this.notify();
+    return item;
+  }
+
+  updateSiteInspection(id: number, data: Partial<SiteInspectionEntity>) {
+    this.siteInspections = this.siteInspections.map((i) => (i.id === id ? { ...i, ...data } : i));
+    save('siteInspections', this.siteInspections);
+    this.notify();
+  }
+
+  // --- Meeting Minutes ---
+  addMeetingMinutes(data: Omit<MeetingMinutesEntity, 'id' | 'createdAt'>) {
+    const id = Date.now();
+    const item: MeetingMinutesEntity = { ...data, id, createdAt: id };
+    this.meetingMinutes.push(item);
+    save('meetingMinutes', this.meetingMinutes);
+    this.notify();
+    return item;
   }
 
   // --- Coordination (RFIs, Submittals, Site Instructions) ---

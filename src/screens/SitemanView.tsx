@@ -177,11 +177,8 @@ export const SitemanView: React.FC<SitemanViewProps> = ({ project, onNavigateToM
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl p-6 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-                Site Operations
-              </span>
-              <span className="text-xs text-slate-400">Strictly Quantity-Only</span>
+            <div className="text-xs font-mono text-indigo-300 font-medium">
+              Site Operations · Strictly Quantity-Only
             </div>
             <h2 className="text-2xl font-bold mt-1 text-white">Siteman Workspace</h2>
             <p className="text-sm text-slate-300 mt-1 max-w-2xl">
@@ -255,12 +252,8 @@ export const SitemanView: React.FC<SitemanViewProps> = ({ project, onNavigateToM
                 <Icon className="w-4 h-4" />
                 <span>{tab.label}</span>
                 {tab.count !== undefined && (
-                  <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] ${
-                      isActive ? 'bg-slate-200 text-slate-800' : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    {tab.count}
+                  <span className="text-[11px] font-mono font-medium text-slate-400">
+                    ({tab.count})
                   </span>
                 )}
               </button>

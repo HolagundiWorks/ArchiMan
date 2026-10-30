@@ -277,27 +277,28 @@ export const CoordinationView: React.FC<CoordinationViewProps> = ({ project }) =
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded">
+                        <span className="font-mono text-xs font-semibold text-slate-700">
                           {item.referenceNumber}
                         </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-slate-100 text-slate-700">
+                        <span className="text-slate-300">·</span>
+                        <span className="text-xs font-semibold text-slate-800">
                           {item.type.replace(/_/g, ' ')}
                         </span>
+                        <span className="text-slate-300">·</span>
                         <span className="text-xs text-slate-500">Discipline: {item.discipline}</span>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-xs font-mono font-medium text-slate-700">
                         <span
-                          className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
+                          className={`w-1.5 h-1.5 rounded-full ${
                             isClosed
-                              ? 'bg-emerald-100 text-emerald-800'
+                              ? 'bg-emerald-500'
                               : item.status === 'ANSWERED'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-amber-100 text-amber-800'
+                              ? 'bg-blue-500'
+                              : 'bg-amber-500'
                           }`}
-                        >
-                          {item.status}
-                        </span>
+                        ></span>
+                        <span>{item.status}</span>
                       </div>
                     </div>
 
