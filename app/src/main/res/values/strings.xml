@@ -10,6 +10,9 @@
     <string name="nav_my_work">My Work</string>
     <string name="nav_site">Site</string>
     <string name="nav_projects">Projects</string>
+    <string name="nav_today">Today</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_more">More</string>
     <string name="nav_clients">Clients</string>
     <string name="nav_invoices">Invoices</string>
     <string name="nav_practice">Practice</string>

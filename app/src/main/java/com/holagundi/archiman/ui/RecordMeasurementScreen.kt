@@ -4,21 +4,35 @@ package com.holagundi.archiman.ui
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -28,11 +42,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -46,6 +64,45 @@ import com.holagundi.archiman.ui.theme.GlassSurface
 import com.holagundi.archiman.ui.theme.ScreenTitle
 import com.holagundi.archiman.ui.theme.announce
 import java.util.Locale
+
+@Composable
+private fun MeasurementField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    onCalc: (() -> Unit)?
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            label,
+            modifier = Modifier.width(80.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Medium
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier.weight(1f),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            textStyle = MaterialTheme.typography.bodyLarge.copy(
+                fontFamily = FontFamily.Monospace,
+                textAlign = TextAlign.End
+            ),
+            singleLine = true
+        )
+        if (onCalc != null) {
+            IconButton(onClick = onCalc) {
+                Icon(Icons.Default.Calculate, contentDescription = "Calculate $label")
+            }
+        } else {
+            Spacer(Modifier.width(48.dp))
+        }
+    }
+}
 
 @Composable
 fun RecordMeasurementScreen(
@@ -124,59 +181,191 @@ fun RecordMeasurementScreen(
             .map { Triple(it.name, it.calculationType, it.unit) }
     }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ScreenTitle("Record measurement")
-        Text("Quantity only. The sheet stays in draft until it is submitted.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        ChipRow(contractors.map { it.id to it.name }, contractorId.takeIf { it != -1L }) { contractorId = it }
-        ChipRow(floors.map { it.id to it.name }, floorId.takeIf { it != -1L }) { floorId = it }
-        val floorRooms = rooms.filter { it.floorId == floorId }
-        ChipRow(listOf(0L to "Whole floor") + floorRooms.map { it.id to it.name }, roomId) { roomId = it }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ChoiceChip("Qualified", !useCatalog) { useCatalog = false }
-            ChoiceChip("Catalogue", useCatalog) { useCatalog = true }
-        }
-        ArchiField(query, { query = it }, "Search work items", Modifier.fillMaxWidth())
-        choices.take(8).forEach { (name, type, uom) ->
-            TextButton(onClick = {
-                itemName = name
-                calcType = type
-                unit = uom
-            }) {
-                Text(if (name == itemName) "● $name · $uom" else "$name · $uom", color = if (name == itemName) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
-            }
-        }
-        ArchiField(nos, { nos = it }, "Nos", Modifier.fillMaxWidth(), keyboardOptions = numberKeys)
-        if (calcType != CalculationTypes.NOS) {
-            ArchiField(length, { length = it }, "Length", Modifier.fillMaxWidth(), keyboardOptions = numberKeys)
-            TextButton(onClick = { calcTarget = "length"; showCalc = true }) { Text("Calc length", color = MaterialTheme.colorScheme.primary) }
-        }
-        if (calcType == CalculationTypes.AREA || calcType == CalculationTypes.VOLUME) {
-            ArchiField(breadth, { breadth = it }, "Breadth", Modifier.fillMaxWidth(), keyboardOptions = numberKeys)
-            TextButton(onClick = { calcTarget = "breadth"; showCalc = true }) { Text("Calc breadth", color = MaterialTheme.colorScheme.primary) }
-        }
-        if (calcType == CalculationTypes.WALL_PLASTER || calcType == CalculationTypes.VOLUME) {
-            ArchiField(height, { height = it }, "Height", Modifier.fillMaxWidth(), keyboardOptions = numberKeys)
-            TextButton(onClick = { calcTarget = "height"; showCalc = true }) { Text("Calc height", color = MaterialTheme.colorScheme.primary) }
-        }
-        if (calcType == CalculationTypes.WALL_PLASTER) {
-            ArchiField(deduction, { deduction = it }, "Opening deduction", Modifier.fillMaxWidth(), keyboardOptions = numberKeys)
-        }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // Page Header - like a physical book
         GlassSurface(Modifier.fillMaxWidth()) {
-            Column {
-                Text("Quantity", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    String.format(Locale.US, "%.2f %s", animated, unit),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.headlineMedium,
+                    "MEASUREMENT BOOK",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.5.sp,
+                    color = MaterialTheme.colorScheme.primary
                 )
-                Text(calcType, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "New Entry",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
-        ArchiField(description, { description = it }, "Description", Modifier.fillMaxWidth(), singleLine = false)
-        ArchiField(location, { location = it }, "Location", Modifier.fillMaxWidth())
-        ArchiField(remarks, { remarks = it }, "Remarks", Modifier.fillMaxWidth())
-        if (error != null) Text(error ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.announce())
+
+        // Sheet Info Section
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Sheet Information", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            HorizontalDivider()
+            
+            Text("Contractor", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ChipRow(contractors.map { it.id to it.name }, contractorId.takeIf { it != -1L }) { contractorId = it }
+            
+            Text("Floor", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            ChipRow(floors.map { it.id to it.name }, floorId.takeIf { it != -1L }) { floorId = it }
+            
+            val floorRooms = rooms.filter { it.floorId == floorId }
+            if (floorRooms.isNotEmpty()) {
+                Text("Location", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ChipRow(listOf(0L to "Whole floor") + floorRooms.map { it.id to it.name }, roomId) { roomId = it }
+            }
+        }
+
+        // Work Item Section
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Work Item", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            HorizontalDivider()
+            
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChoiceChip("Qualified", !useCatalog) { useCatalog = false }
+                ChoiceChip("Catalogue", useCatalog) { useCatalog = true }
+            }
+            ArchiField(query, { query = it }, "Search work items", Modifier.fillMaxWidth())
+            
+            Text("Selected: $itemName", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text("Unit: $unit  |  Type: $calcType", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            
+            choices.take(6).forEach { (name, type, uom) ->
+                TextButton(onClick = {
+                    itemName = name
+                    calcType = type
+                    unit = uom
+                }) {
+                    Text(
+                        if (name == itemName) "● $name · $uom" else "$name · $uom",
+                        color = if (name == itemName) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+
+        // Measurement Grid - like physical book columns
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline)
+        ) {
+            // Column Headers
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .padding(8.dp)
+            ) {
+                Text("DIMENSIONS", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                Text("QUANTITY", modifier = Modifier.width(100.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+            }
+            HorizontalDivider()
+
+            // Measurement Fields in Grid
+            Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Nos
+                MeasurementField(
+                    label = "Nos",
+                    value = nos,
+                    onValueChange = { nos = it },
+                    onCalc = null
+                )
+                
+                // Length
+                if (calcType != CalculationTypes.NOS) {
+                    MeasurementField(
+                        label = "Length",
+                        value = length,
+                        onValueChange = { length = it },
+                        onCalc = { calcTarget = "length"; showCalc = true }
+                    )
+                }
+                
+                // Breadth
+                if (calcType == CalculationTypes.AREA || calcType == CalculationTypes.VOLUME) {
+                    MeasurementField(
+                        label = "Breadth",
+                        value = breadth,
+                        onValueChange = { breadth = it },
+                        onCalc = { calcTarget = "breadth"; showCalc = true }
+                    )
+                }
+                
+                // Height
+                if (calcType == CalculationTypes.WALL_PLASTER || calcType == CalculationTypes.VOLUME) {
+                    MeasurementField(
+                        label = "Height",
+                        value = height,
+                        onValueChange = { height = it },
+                        onCalc = { calcTarget = "height"; showCalc = true }
+                    )
+                }
+                
+                // Deduction
+                if (calcType == CalculationTypes.WALL_PLASTER) {
+                    MeasurementField(
+                        label = "Deduction",
+                        value = deduction,
+                        onValueChange = { deduction = it },
+                        onCalc = null
+                    )
+                }
+                
+                HorizontalDivider()
+                
+                // Total Quantity Display
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("TOTAL QUANTITY", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                    Text(
+                        String.format(Locale.US, "%.3f %s", animated, unit),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontFamily = FontFamily.Monospace,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+
+        // Details Section
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, MaterialTheme.colorScheme.outline)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Description & Remarks", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+            HorizontalDivider()
+            
+            ArchiField(description, { description = it }, "Description of work", Modifier.fillMaxWidth(), singleLine = false)
+            ArchiField(location, { location = it }, "Specific location", Modifier.fillMaxWidth())
+            ArchiField(remarks, { remarks = it }, "Additional remarks", Modifier.fillMaxWidth())
+        }
+
+        if (error != null) {
+            Text(error ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.announce())
+        }
+
         Button(
             onClick = {
                 val current = project ?: return@Button
@@ -211,7 +400,7 @@ fun RecordMeasurementScreen(
                 )
             },
             modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp),
-        ) { Text("Save measurement") }
+        ) { Text("SAVE TO MEASUREMENT BOOK") }
     }
 
     if (showCalc) {

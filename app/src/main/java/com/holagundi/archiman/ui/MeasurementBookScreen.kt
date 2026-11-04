@@ -2,17 +2,30 @@
 
 package com.holagundi.archiman.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -21,10 +34,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -79,32 +96,192 @@ fun MeasurementBookScreen(
         visible.forEach { sheet ->
             val rows = measurements.filter { it.sheetId == sheet.id }
             val total = rows.sumOf { it.quantity }
-            GlassSurface(Modifier.fillMaxWidth()) {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text(sheet.sheetCode, color = MaterialTheme.colorScheme.primary, fontFamily = FontFamily.Monospace)
-                    Text(sheet.itemNameSnapshot, style = MaterialTheme.typography.titleMedium)
-                    Text("${sheet.contractorNameSnapshot} · ${sheet.floorNameSnapshot}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                    Text(statusLabel(sheet), color = statusColor(sheet.status), style = MaterialTheme.typography.labelLarge)
-                    Text(String.format(Locale.US, "%.2f %s", total, sheet.uomSnapshot), fontFamily = FontFamily.Monospace)
-                    Row {
-                        TextButton(onClick = { openId = if (openId == sheet.id) null else sheet.id }) {
-                            Text(if (openId == sheet.id) "Hide rows of ${sheet.sheetCode}" else "Rows of ${sheet.sheetCode}")
+            
+            // Physical book style sheet
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .border(2.dp, MaterialTheme.colorScheme.outline)
+            ) {
+                // Sheet Header - like a page header in physical book
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            sheet.sheetCode,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Box(
+                            Modifier
+                                .background(statusColor(sheet.status).copy(alpha = 0.2f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                statusLabel(sheet),
+                                color = statusColor(sheet.status),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
-                        TextButton(onClick = {
-                            val projectId = project?.id ?: return@TextButton
-                            book.export(projectId, sheet.id) { name, csv -> shareCsv(context, name, csv) }
-                        }) { Text("Share CSV of ${sheet.sheetCode}") }
                     }
-                    if (openId == sheet.id) {
-                        rows.forEach { row -> RowLine(row, sheet, book) }
-                        MeasurementSheetWorkflow.allowedTransitions(sheet.status).forEach { next ->
-                            TextButton(onClick = {
-                                if (next == SheetStatus.RETURNED) returnId = sheet.id else book.transition(sheet.id, next, "")
-                            }) { Text("Set ${sheet.sheetCode} to $next") }
+                    Text(
+                        sheet.itemNameSnapshot,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        "${sheet.contractorNameSnapshot} · ${sheet.floorNameSnapshot}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "TOTAL:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            String.format(Locale.US, "%.3f %s", total, sheet.uomSnapshot),
+                            fontFamily = FontFamily.Monospace,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                HorizontalDivider(thickness = 2.dp)
+
+                // Action buttons
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    TextButton(onClick = { openId = if (openId == sheet.id) null else sheet.id }) {
+                        Text(if (openId == sheet.id) "Close" else "View entries (${rows.size})")
+                    }
+                    TextButton(onClick = {
+                        val projectId = project?.id ?: return@TextButton
+                        book.export(projectId, sheet.id) { name, csv -> shareCsv(context, name, csv) }
+                    }) {
+                        Text("Export CSV")
+                    }
+                }
+
+                // Measurement entries table
+                if (openId == sheet.id) {
+                    HorizontalDivider()
+                    
+                    // Table header
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.secondaryContainer)
+                            .padding(8.dp)
+                            .horizontalScroll(rememberScrollState())
+                    ) {
+                        TableHeaderCell("Description", Modifier.width(120.dp))
+                        TableHeaderCell("Location", Modifier.width(100.dp))
+                        TableHeaderCell("Nos", Modifier.width(60.dp))
+                        TableHeaderCell("L", Modifier.width(70.dp))
+                        TableHeaderCell("B", Modifier.width(70.dp))
+                        TableHeaderCell("H", Modifier.width(70.dp))
+                        TableHeaderCell("Ded", Modifier.width(70.dp))
+                        TableHeaderCell("Quantity", Modifier.width(100.dp))
+                        if (sheet.status == SheetStatus.DRAFT || sheet.status == SheetStatus.RETURNED) {
+                            TableHeaderCell("", Modifier.width(50.dp))
+                        }
+                    }
+
+                    HorizontalDivider()
+
+                    // Table rows
+                    rows.forEachIndexed { index, row ->
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                .padding(8.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TableCell(row.description, Modifier.width(120.dp))
+                            TableCell(row.location, Modifier.width(100.dp))
+                            TableCell(String.format(Locale.US, "%.0f", row.nos), Modifier.width(60.dp), true)
+                            TableCell(String.format(Locale.US, "%.2f", row.length), Modifier.width(70.dp), true)
+                            TableCell(String.format(Locale.US, "%.2f", row.width), Modifier.width(70.dp), true)
+                            TableCell(String.format(Locale.US, "%.2f", row.height), Modifier.width(70.dp), true)
+                            TableCell(String.format(Locale.US, "%.2f", row.deduction), Modifier.width(70.dp), true)
+                            TableCell(
+                                String.format(Locale.US, "%.3f", row.quantity),
+                                Modifier.width(100.dp),
+                                true,
+                                MaterialTheme.colorScheme.primary,
+                                FontWeight.Bold
+                            )
+                            if (sheet.status == SheetStatus.DRAFT || sheet.status == SheetStatus.RETURNED) {
+                                IconButton(
+                                    onClick = { book.deleteRow(row.id) },
+                                    modifier = Modifier.width(50.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                        HorizontalDivider()
+                    }
+
+                    // Sheet actions (status transitions)
+                    if (MeasurementSheetWorkflow.allowedTransitions(sheet.status).isNotEmpty()) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f))
+                                .padding(12.dp)
+                        ) {
+                            Text(
+                                "Sheet Actions",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MeasurementSheetWorkflow.allowedTransitions(sheet.status).forEach { next ->
+                                    TextButton(onClick = {
+                                        if (next == SheetStatus.RETURNED) returnId = sheet.id else book.transition(sheet.id, next, "")
+                                    }) {
+                                        Text("→ $next")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
+            
+            Spacer(Modifier.height(16.dp))
         }
     }
     if (returnId != null) {
@@ -127,19 +304,35 @@ fun MeasurementBookScreen(
 }
 
 @Composable
-private fun RowLine(row: MeasurementEntity, sheet: MeasurementSheetEntity, book: MeasurementBookViewModel) {
-    Column(Modifier.padding(vertical = 4.dp)) {
-        Text(row.description, style = MaterialTheme.typography.bodyMedium)
-        Text(
-            "${row.location} · L ${row.length} · B ${row.width} · H ${row.height} · Nos ${row.nos} · Ded ${row.deduction}",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(String.format(Locale.US, "%.2f %s", row.quantity, row.unit), fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
-        if (sheet.status == SheetStatus.DRAFT || sheet.status == SheetStatus.RETURNED) {
-            TextButton(onClick = { book.deleteRow(row.id) }) { Text("Remove ${row.description}") }
-        }
-    }
+private fun TableHeaderCell(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text,
+        modifier = modifier.padding(4.dp),
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        textAlign = TextAlign.Start,
+        letterSpacing = 0.5.sp
+    )
+}
+
+@Composable
+private fun TableCell(
+    text: String,
+    modifier: Modifier = Modifier,
+    monospace: Boolean = false,
+    color: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    fontWeight: FontWeight = FontWeight.Normal
+) {
+    Text(
+        text,
+        modifier = modifier.padding(4.dp),
+        style = MaterialTheme.typography.bodySmall,
+        fontFamily = if (monospace) FontFamily.Monospace else FontFamily.Default,
+        textAlign = if (monospace) TextAlign.End else TextAlign.Start,
+        color = color,
+        fontWeight = fontWeight,
+        maxLines = 2
+    )
 }
 
 private fun statusLabel(sheet: MeasurementSheetEntity) = sheet.status
