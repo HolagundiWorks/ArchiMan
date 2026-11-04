@@ -1,0 +1,294 @@
+{
+  "format": "archiman-company",
+  "schemaVersion": 28,
+  "fictional": true,
+  "practiceName": "Studio Holagundi",
+  "index": [
+    { "key": "clients", "label": "Clients", "count": 2 },
+    { "key": "projects", "label": "Projects", "count": 2 },
+    { "key": "levels", "label": "Levels", "count": 4 },
+    { "key": "rooms", "label": "Rooms", "count": 6 },
+    { "key": "contractors", "label": "Contractors", "count": 1 },
+    { "key": "qualifiedItems", "label": "Qualified items", "count": 2 },
+    { "key": "workLibrary", "label": "Work library", "count": 5 },
+    { "key": "sheets", "label": "Measurement sheets", "count": 2 },
+    { "key": "measurements", "label": "Measurements", "count": 2 },
+    { "key": "tasks", "label": "Tasks", "count": 3 },
+    { "key": "letters", "label": "Letters", "count": 1 },
+    { "key": "proposals", "label": "Proposals", "count": 1 },
+    { "key": "contracts", "label": "Contracts", "count": 1 },
+    { "key": "visits", "label": "Site visits", "count": 1 },
+    { "key": "snags", "label": "Snags and NCRs", "count": 2 },
+    { "key": "coordination", "label": "Coordination", "count": 2 },
+    { "key": "drawings", "label": "Drawings", "count": 1 },
+    { "key": "revisions", "label": "Revisions", "count": 1 },
+    { "key": "transmittals", "label": "Transmittals", "count": 1 },
+    { "key": "logs", "label": "Daily logs", "count": 1 },
+    { "key": "orders", "label": "Purchase orders", "count": 1 },
+    { "key": "invoices", "label": "Invoices", "count": 1 }
+  ],
+  "company": {
+    "practiceName": "Studio Holagundi",
+    "legalName": "Studio Holagundi Architecture Private Limited",
+    "companyType": "Architecture practice",
+    "address": "14/B, Design Enclave, Road No. 3",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "country": "India",
+    "pinCode": "560001",
+    "phone": "+91 98450 12345",
+    "email": "contact@studioholagundi.example",
+    "website": "https://studioholagundi.example",
+    "pan": "AAACH9921D",
+    "gstin": "29AAACH9921D1Z5",
+    "coaRegistrationNumber": "CA/2014/61234",
+    "principalName": "Ar. Vishwabhiram Holagundi",
+    "principalQualification": "B.Arch, M.Des (Urban Design)",
+    "practiceRegistrationDetails": "Fictional Council of Architecture practice for testing"
+  },
+  "clients": [
+    {
+      "ref": "ananya",
+      "name": "Dr. Ananya Rao",
+      "clientType": "Individual",
+      "contactPerson": "Dr. Ananya Rao",
+      "address": "Plot 42, Jubilee Hills",
+      "correspondenceAddress": "Plot 42, Jubilee Hills, Hyderabad",
+      "contactNo": "+91 98765 43210",
+      "email": "ananya.rao@example.com",
+      "preferredCommunication": "Email",
+      "notes": "Fictional residential client. Natural light and exposed brick."
+    },
+    {
+      "ref": "utic",
+      "name": "Urban Transport Infrastructure Corp",
+      "clientType": "Corporate",
+      "contactPerson": "K. Somasekhar",
+      "address": "Metro Bhavan, MG Road",
+      "correspondenceAddress": "Metro Bhavan, MG Road, Bengaluru",
+      "contactNo": "+91 94444 88888",
+      "email": "projects@utic.example",
+      "preferredCommunication": "Phone",
+      "notes": "Fictional transit client."
+    }
+  ],
+  "workItems": [
+    { "ref": "rcc", "itemCode": "CONC-RCCM-01", "workType": "Concrete & Structure", "name": "RCC M25 Column & Beams", "unit": "m³", "calculationType": "VOLUME", "specification": "Design mix M25 in columns, beams and lintels.", "sourceItemCode": "SR-02-12" },
+    { "ref": "brick", "itemCode": "MASO-BRIC-01", "workType": "Masonry", "name": "BrickWork 230mm in CM 1:6", "unit": "m²", "calculationType": "AREA", "specification": "First class bricks in cement mortar 1:6.", "sourceItemCode": "SR-03-02" },
+    { "ref": "plaster", "itemCode": "FINI-PLAS-01", "workType": "Finishes", "name": "Internal Cement Plaster 12mm", "unit": "m²", "calculationType": "WALL_PLASTER", "specification": "12mm cement plaster in CM 1:4.", "sourceItemCode": "SR-04-01" },
+    { "ref": "conduit", "itemCode": "ELEC-COND-01", "workType": "Electrical Works", "name": "Concealed Conduit 25mm", "unit": "m", "calculationType": "RUNNING_LENGTH", "specification": "Medium duty rigid PVC conduit.", "sourceItemCode": "SR-07-01" },
+    { "ref": "point", "itemCode": "ELEC-LPNT-01", "workType": "Electrical Works", "name": "Light Point Wiring", "unit": "Nos", "calculationType": "NOS", "specification": "Point wiring with 1.5 sq.mm FRLS copper.", "sourceItemCode": "SR-07-05" }
+  ],
+  "projects": [
+    {
+      "name": "Skyline Villa Residence",
+      "clientRef": "ananya",
+      "code": "PRJ-2026-01",
+      "type": "Residential",
+      "status": "ACTIVE",
+      "site": "Jubilee Hills, Road No. 45, Hyderabad",
+      "description": "Fictional four-level villa with courtyards and rainwater harvesting.",
+      "architect": "Ar. Vishwabhiram Holagundi",
+      "plotArea": 480,
+      "builtUpArea": 650,
+      "areaUnit": "m²",
+      "createdAt": 1735689600000,
+      "brief": {
+        "objectives": "A family house with a shaded court and a ground-floor room for guests.",
+        "requirements": "Four bedrooms, a study, and parking for two cars.",
+        "constraints": "Side setback is 2 m. The north wall cannot take a new opening."
+      },
+      "tasks": [
+        { "title": "Issue concept set", "status": "TO_DO" },
+        { "title": "Check plinth beam measure", "status": "DOING" },
+        { "title": "Record client brief", "status": "DONE" }
+      ],
+      "letters": [
+        { "subject": "Commencement of architectural services", "body": "This letter confirms that Studio Holagundi has started architectural services for Skyline Villa Residence." }
+      ],
+      "proposal": { "title": "Architectural services through working drawings", "amount": 850000, "status": "ISSUED" },
+      "contract": { "title": "Consultancy agreement", "party": "Dr. Ananya Rao", "kind": "Client", "amount": 850000, "status": "SIGNED" },
+      "visit": {
+        "location": "Ground Floor living",
+        "inspector": "Ar. Vishwabhiram Holagundi",
+        "observation": "Plinth beams are cast. Cover looks even along grid A.",
+        "severity": "NORMAL",
+        "status": "OPEN"
+      },
+      "snags": [
+        {
+          "referenceNumber": "NCR-PRJ-2026-01-001",
+          "type": "NCR",
+          "title": "Honeycombing in Column C-4 Base",
+          "location": "Ground Floor Column C-4 North Face",
+          "description": "Poor compaction noticed after de-shuttering around cover blocks.",
+          "severity": "ATTENTION",
+          "assignedTo": "Apex Civil Infrastructure",
+          "correctiveAction": "Chip loose concrete, apply epoxy bonding agent, and grout with non-shrink micro-concrete.",
+          "status": "IN_PROGRESS",
+          "evidenceUri": "Noted during architect site inspection"
+        },
+        {
+          "referenceNumber": "SNG-PRJ-2026-01-002",
+          "type": "SNAG",
+          "title": "Mortar joint thickness uneven in Dining Wall",
+          "location": "Ground Floor Dining Room",
+          "description": "Mortar beds exceed 16mm in three consecutive courses.",
+          "severity": "NORMAL",
+          "assignedTo": "Apex Civil Infrastructure",
+          "correctiveAction": "Rake joints cleanly to 12mm depth before plastering.",
+          "status": "OPEN",
+          "evidenceUri": "Photo inspection note"
+        }
+      ],
+      "coordination": [
+        {
+          "type": "RFI",
+          "referenceNumber": "RFI-PRJ-2026-01-001",
+          "subject": "Sleeve through beam B-04",
+          "discipline": "Plumbing",
+          "location": "First floor service duct",
+          "raisedBy": "AquaFlow Plumbing",
+          "assignedTo": "Structural consultant",
+          "question": "Can a 110mm soil pipe pass through beam B-04?",
+          "response": "Provide a 150mm sleeve 1200mm from column C-2.",
+          "status": "ANSWERED"
+        },
+        {
+          "type": "SITE_INSTRUCTION",
+          "referenceNumber": "SI-PRJ-2026-01-001",
+          "subject": "Continuous curing for exposed concrete",
+          "discipline": "Architectural",
+          "location": "All structural columns",
+          "raisedBy": "Ar. Vishwabhiram Holagundi",
+          "assignedTo": "Apex Civil Infrastructure",
+          "question": "Wrap columns in wet hessian and keep them moist for 14 days.",
+          "response": "",
+          "status": "ISSUED"
+        }
+      ],
+      "drawings": [
+        {
+          "number": "A-101",
+          "title": "Ground floor plan",
+          "discipline": "Architectural",
+          "status": "CURRENT",
+          "packageTag": "HFC",
+          "revisions": [
+            {
+              "code": "A",
+              "notes": "Issued for construction. HFC package.",
+              "asBuilt": false,
+              "severity": "NORMAL",
+              "fileNote": "A-101-RevA.pdf"
+            }
+          ]
+        }
+      ],
+      "transmittals": [
+        {
+          "number": "TR-2026-01",
+          "subject": "Ground floor plan for construction",
+          "recipients": "Apex Civil Infrastructure",
+          "purpose": "For construction"
+        }
+      ],
+      "logs": [
+        {
+          "weather": "Clear",
+          "work": "Plinth beams cast on grid A. Cover checked.",
+          "preparedBy": "Site engineer",
+          "manpower": "12 masons",
+          "materials": "Cement 40 bags",
+          "nextDay": "Start column starter bars"
+        }
+      ],
+      "orders": [
+        {
+          "number": "PO-2026-01",
+          "title": "Cover blocks",
+          "supplier": "Local yard",
+          "item": "40mm cover block",
+          "specification": "Dense concrete, 40 mm, for columns",
+          "quantity": 200,
+          "unit": "Nos"
+        }
+      ],
+      "invoice": { "number": "INV-2026-01", "title": "Commencement fee", "amount": 250000, "status": "DRAFT" },
+      "floors": [
+        { "name": "Ground Floor", "rooms": ["Entrance Foyer", "Double Height Living Room", "Dining & Open Kitchen"] },
+        { "name": "First Floor", "rooms": ["Master Suite & Walk-in", "Bed 2 / Studio"] },
+        { "name": "Terrace & Deck", "rooms": [] }
+      ],
+      "contractors": [
+        {
+          "name": "Apex Civil Infrastructure",
+          "type": "Civil",
+          "phone": "+91 99001 12233",
+          "qualified": [
+            { "workType": "Concrete & Structure", "itemRef": "rcc" },
+            { "workType": "Masonry", "itemRef": "brick" }
+          ]
+        }
+      ],
+      "sheets": [
+        {
+          "code": "MS-PRJ-2026-01-001",
+          "floor": "Ground Floor",
+          "contractor": "Apex Civil Infrastructure",
+          "itemRef": "rcc",
+          "status": "APPROVED",
+          "review": { "from": "CHECKED", "to": "APPROVED", "comment": "Quantities agree with drawing S-03.", "actor": "Principal" },
+          "rows": [
+            {
+              "description": "Ground floor plinth beams PB-1 to PB-6",
+              "nos": 1,
+              "length": 24.5,
+              "breadth": 0.3,
+              "height": 0.45,
+              "deduction": 0,
+              "location": "Perimeter foundation grid A-D",
+              "remarks": "Concreted as per structural drawing S-03"
+            }
+          ]
+        },
+        {
+          "code": "MS-PRJ-2026-01-002",
+          "floor": "Ground Floor",
+          "contractor": "Apex Civil Infrastructure",
+          "itemRef": "brick",
+          "status": "SUBMITTED",
+          "rows": [
+            {
+              "description": "External 230mm wall, grid A",
+              "nos": 1,
+              "length": 18,
+              "breadth": 3,
+              "height": 0,
+              "deduction": 0,
+              "location": "Grid A external face",
+              "remarks": "Openings not deducted on this row"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Metro Transit Urban Pavilion",
+      "clientRef": "utic",
+      "code": "PRJ-2026-02",
+      "type": "Commercial",
+      "status": "ACTIVE",
+      "site": "MG Road Metro Interchange, Bengaluru",
+      "description": "Fictional pedestrian concourse and canopy.",
+      "architect": "Ar. Rajesh Verma",
+      "plotArea": 2500,
+      "builtUpArea": 3200,
+      "areaUnit": "m²",
+      "createdAt": 1733000000000,
+      "floors": [
+        { "name": "Concourse Level 0", "rooms": ["Public concourse"] }
+      ]
+    }
+  ]
+}

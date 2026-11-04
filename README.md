@@ -1,12 +1,34 @@
-# ArchiMan (React Web Application)
+# ArchiMan
 
-**ArchiMan** is an architectural consultancy management system rewritten as a modern React application.
+**ArchiMan** is an offline-first app for a freelance architect. The phone holds projects, clients, briefs, proposals, contracts, a task board, letterhead letters, fee invoices, site-visit reports, measurements and a running bill.
 
-It manages practice projects, client and contractor registries, coordination workflows (RFIs / submittals / site instructions), snag/NCR tracking with evidence notes, project decisions, site reports, a quantity-only Measurement Book, and **Siteman** — the site-manager command hub for daily logs, Held-for-Construction (HFC) drawing registers, quantity abstracts, material purchase orders, and the embedded Archi Calc engine.
+The Kotlin app lives in `app/`. The React files under `src/` are the earlier prototype and are not the product build.
+
+## Stack
+
+- Kotlin, Jetpack Compose, Material 3 glass surfaces
+- Room schema 28, Hilt, Navigation Compose, Coroutines
+- Archi Calc and the measurement-sheet workflow ported from the prototype domain
+
+## Run
+
+Install JDK 17 and Android SDK 35, then:
+
+```sh
+gradlew.bat :app:assembleDebug
+```
+
+Open the `app` module in Android Studio and run it on a device or emulator. minSdk is 26. Backdrop blur is used on Android 12+; earlier devices get a solid translucent surface.
+
+## Product surface
+
+Projects, Clients, Invoices and Practice. An open project has Brief, Tasks, Letters, Proposal, Contract, Visits, Levels, Measure, M-Book, Invoice and Running bill. Measure includes Archi Calc, with metric and imperial lengths. Letters use the practice profile as the letterhead.
 
 ---
 
 ## Key Features & Architecture
+
+The table below is older practice scope. The phone now keeps the freelance set only: projects, clients, briefs, proposals, contracts, tasks, letters, invoices, visits, measurement and running bills.
 
 | Module | Features & Capabilities |
 |---|---|
@@ -22,24 +44,13 @@ It manages practice projects, client and contractor registries, coordination wor
 
 ---
 
-## Development & Build
+## Earlier web prototype
 
-This project is built with:
-- **React 18** + **TypeScript**
-- **Vite** bundler
-- **Tailwind CSS**
-- **Lucide React** iconography
+The files under `src/` are a React + Vite prototype of the same workflows. They are not the Android product. Do not treat `npm run dev` as the app.
 
-### Running Locally
 ```sh
 npm install
 npm run dev
-```
-The application runs on `http://localhost:3000`.
-
-### Production Build
-```sh
-npm run build
 ```
 
 ---

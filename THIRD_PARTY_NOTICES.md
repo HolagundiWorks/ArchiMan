@@ -77,6 +77,18 @@ Robolectric is used for Android unit tests and is not packaged into the release 
 Licensed under the MIT License.
 https://github.com/robolectric/robolectric
 
+## Outfit and Fraunces
+
+The Android UI bundles Latin subsets of Outfit and Fraunces for the glass theme.
+
+Copyright 2021 The Outfit Project Authors.
+Copyright 2020 The Fraunces Project Authors.
+
+Licensed under the SIL Open Font License 1.1.
+https://openfontlicense.org
+
+Upstream: https://github.com/googlefonts/outfit and https://github.com/googlefonts/fraunces
+
 ## Android Gradle Plugin & build tooling
 
 Build-time only (not redistributed in the APK). See Google / JetBrains / Gradle
