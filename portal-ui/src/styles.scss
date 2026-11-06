@@ -25,18 +25,27 @@
 @font-face {font-family:'IBM Plex Sans';src:url('/carbon/ibm_plex_sans_medium.ttf') format('truetype');font-weight:500;font-display:swap}
 @font-face {font-family:'IBM Plex Sans';src:url('/carbon/ibm_plex_sans_semibold.ttf') format('truetype');font-weight:600;font-display:swap}
 body {font-family:'IBM Plex Sans',system-ui,sans-serif}
-.carbon-icon {display:inline-block;width:20px;height:20px;fill:currentColor;flex-shrink:0}
+.carbon-icon {display:inline-block;width:20px;height:20px;fill:currentColor;flex-shrink:0;vertical-align:middle}
 .carbon-shell {display:flex;align-items:center;gap:24px;padding:0 24px;height:48px;background:#161616;color:#f4f4f4;border-bottom:1px solid #393939}
 .carbon-shell a {color:#fff;text-decoration:none;display:flex;align-items:center;gap:12px;font-weight:600}
 .carbon-shell .carbon-shell-section {font-size:14px;font-weight:400;color:#c6c6c6}
-main {max-width:1312px}
-nav {border-radius:0!important;gap:0!important;padding:0!important}
-nav a {display:inline-flex;align-items:center;gap:8px;padding:12px 16px;text-decoration:none;border-bottom:3px solid transparent;min-height:48px}
-nav a[aria-current='page'] {border-bottom-color:var(--link);background:var(--layer-hover);font-weight:600}
+.portal-canvas {max-width:99rem;padding-block:1.5rem 3rem}
+.portal-workflow {display:flex;flex-wrap:wrap;background:var(--cds-layer-01, var(--layer));margin:1rem 0}
+.portal-workflow a {display:inline-flex;align-items:center;gap:8px;padding:0 1rem;min-block-size:3rem;text-decoration:none;border-block-end:3px solid transparent}
+.portal-workflow a[aria-current='page'] {border-block-end-color:var(--cds-border-interactive, var(--link));font-weight:600}
+.portal-tile {display:flex;flex-direction:row;align-items:flex-start;gap:1rem;min-block-size:7.5rem;padding:1.25rem}
+.portal-tile-icon,.portal-masthead-icon,.portal-sign-in-brand {display:inline-flex;align-items:center;justify-content:center;background:var(--cds-layer-accent-01, var(--highlight));color:var(--cds-text-on-color, var(--highlight-text))}
+.portal-tile-icon {inline-size:2.75rem;block-size:2.75rem;flex:0 0 auto}
+.portal-masthead {display:flex;align-items:flex-start;gap:1rem;margin:0 0 1.75rem;padding-block-end:1.25rem;border-block-end:1px solid var(--border-subtle)}
+.portal-masthead-icon {inline-size:3rem;block-size:3rem;flex:0 0 auto}
+.portal-section-title {display:flex;align-items:center;gap:.625rem}
+.portal-kicker {margin:0 0 .5rem;color:var(--link);font-size:.75rem;font-weight:600;letter-spacing:.32px;text-transform:uppercase}
+.cds--side-nav__link--current {background:var(--cds-layer-selected-01, var(--highlight));font-weight:600}
+.carbon-kpi {display:flex;flex-direction:column}
+.carbon-kpi-icon {margin-block-end:.5rem;fill:var(--link)}
 form,article,.paper {border-radius:0!important}
-form {border-width:0!important;border-top:1px solid var(--border-subtle)!important}
 label {color:var(--text-secondary)}
-.cds--btn {max-width:100%;gap:16px}
+.cds--btn {max-width:100%;gap:16px;display:inline-flex;align-items:center}
 .cds--btn .carbon-icon {width:16px;height:16px}
 .cds--text-input,.cds--select-input {min-height:40px;border-radius:0;box-shadow:none;border-width:0 0 1px}
 .tablewrap {border:0;background:var(--layer);margin:24px 0}
@@ -78,4 +87,4 @@ cds-breadcrumb {display:block;margin:20px 0 16px}cds-inline-notification {displa
 .carbon-form-feedback {margin-top:12px;color:var(--text-primary)}
 [aria-invalid=true] {outline:2px solid var(--error);outline-offset:-2px}
 [aria-disabled=true] {cursor:wait;opacity:.65}
-@media(max-width:600px){main{min-width:0}.carbon-shell-section{display:none}.carbon-table-toolbar input{min-width:0;width:100%}.carbon-project-context{padding:12px}nav{flex-direction:column}nav a{white-space:normal}.carbon-table-pages{justify-content:flex-start}}
+@media(max-width:600px){main{min-width:0}.carbon-shell-section{display:none}.carbon-table-toolbar input{min-width:0;width:100%}.carbon-project-context{padding:12px}.portal-workflow{flex-direction:column}.portal-workflow a{white-space:normal}.carbon-table-pages{justify-content:flex-start}}

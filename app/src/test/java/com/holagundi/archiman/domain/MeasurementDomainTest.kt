@@ -8,7 +8,7 @@ import org.junit.Test
 class MeasurementDomainTest {
     @Test
     fun schemaIs31() {
-        assertEquals(31, SchemaContract.VERSION)
+        assertEquals(32, SchemaContract.VERSION)
     }
 
     @Test

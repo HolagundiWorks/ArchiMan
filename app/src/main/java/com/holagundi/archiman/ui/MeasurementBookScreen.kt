@@ -10,6 +10,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -19,6 +20,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -86,28 +89,41 @@ fun MeasurementBookScreen(
     var rowPage by rememberSaveable(openId) { mutableStateOf(0) }
     val pageCount=((visible.size+24)/25).coerceAtLeast(1)
     val currentPage=sheetPage.coerceAtMost(pageCount-1)
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        ScreenTitle("Measurement Book")
-        if (focused > 0) TextButton(onClick = { focused = 0L }) { Text("Show all project sheets") }
-        Text("Quantity-only sheets. Draft, submitted, checked, approved or returned.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        TextButton(onClick = onRecord) { Text("Record measurement", color = MaterialTheme.colorScheme.primary) }
-        ArchiField(query, { query = it }, "Search sheets", Modifier.fillMaxWidth())
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            (listOf("ALL") + SheetStatus.ALL).forEach { status ->
-                val count = if (status == "ALL") sheets.size else sheets.count { it.status == status }
-                ChoiceChip("${sheetStatusLabel(status)} $count", filter == status) { filter = status }
+    val pageSheets = visible.drop(currentPage*25).take(25)
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        item { ScreenTitle("Measurement Book") }
+        if (focused > 0) item { TextButton(onClick = { focused = 0L }) { Text("Show all project sheets") } }
+        item {
+            Text("Quantity-only sheets. Draft, submitted, checked, approved or returned.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        }
+        item { TextButton(onClick = onRecord) { Text("Record measurement", color = MaterialTheme.colorScheme.primary) } }
+        item { ArchiField(query, { query = it }, "Search sheets", Modifier.fillMaxWidth()) }
+        item {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (listOf("ALL") + SheetStatus.ALL).forEach { status ->
+                    val count = if (status == "ALL") sheets.size else sheets.count { it.status == status }
+                    ChoiceChip("${sheetStatusLabel(status)} $count", filter == status) { filter = status }
+                }
             }
         }
         if (notice != null) {
-            notice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Measurement review", it.message, it.kind) }
-            TextButton(onClick = book::clearNotice) { Text("Dismiss notice") }
+            item {
+                notice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Measurement review", it.message, it.kind) }
+                TextButton(onClick = book::clearNotice) { Text("Dismiss notice") }
+            }
         }
-        if (visible.size>25) Row {
-            TextButton(enabled=currentPage>0,onClick={sheetPage=currentPage-1}) { Text("Previous sheets") }
-            Text("Page ${currentPage+1} / $pageCount")
-            TextButton(enabled=currentPage+1<pageCount,onClick={sheetPage=currentPage+1}) { Text("Next sheets") }
+        if (visible.size>25) item {
+            Row {
+                TextButton(enabled=currentPage>0,onClick={sheetPage=currentPage-1}) { Text("Previous sheets") }
+                Text("Page ${currentPage+1} / $pageCount")
+                TextButton(enabled=currentPage+1<pageCount,onClick={sheetPage=currentPage+1}) { Text("Next sheets") }
+            }
         }
-        visible.drop(currentPage*25).take(25).forEach { sheet ->
+        items(pageSheets, key = { it.id }) { sheet ->
             RecordActions(RecordKind.SHEET, sheet.id, sheet.sheetCode)
             val rows = grouped[sheet.id].orEmpty()
             val total = rows.sumOf { it.quantity }
@@ -261,7 +277,7 @@ fun MeasurementBookScreen(
                                 FontWeight.Bold
                             )
                         }
-                        if (sheet.status == SheetStatus.DRAFT || sheet.status == SheetStatus.RETURNED) {
+                        if (sheet.status != SheetStatus.APPROVED && sheet.archivedAt == null) {
                             RecordActions(RecordKind.MEASUREMENT, row.id, row.description.ifBlank { "Measurement ${index + 1}" })
                         }
                         HorizontalDivider()

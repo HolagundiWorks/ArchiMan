@@ -87,8 +87,16 @@ object RecordDeviceChecks {
         rejects { operations.delete(edited) }
         rejects { operations.delete(operations.read(RecordKind.SHEET, sheetId)) }
 
-        // Exercise deletion of a populated demo project, including legacy non-FK rows.
-        val populatedId = scalar("SELECT projectId FROM measurements LIMIT 1")
+        // Demo projects carry BOQ/estimate finance history — delete must be rejected; archive instead.
+        val scheduledId = scalar("SELECT projectId FROM measurements LIMIT 1")
+        rejects { operations.delete(operations.read(RecordKind.PROJECT, scheduledId)) }
+        operations.archiveProject(operations.read(RecordKind.PROJECT, scheduledId))
+        check(db.projectDao().getProject(scheduledId)!!.status == "ARCHIVED")
+
+        // Cascade-delete a populated project that has no schedule/estimate finance history.
+        val populatedId = projects.createProject("Cascade delete", "OPS-DEL", "Cascade client", "Residential", "Delete site", "Architect")
+        val floorId = scalar("SELECT id FROM floors WHERE projectId = $populatedId LIMIT 1")
+        projects.addRoom(populatedId, floorId, "Cascade room")
         suite.addLetter(populatedId, "Project-owned letter", "Delete with parent")
         val clientsBefore = scalar("SELECT COUNT(*) FROM clients")
         val libraryBefore = scalar("SELECT COUNT(*) FROM item_master")

@@ -1,5 +1,6 @@
 package com.holagundi.archiman.data
 
+import com.holagundi.archiman.data.local.FeeDashboardTotals
 import com.holagundi.archiman.data.local.entity.InvoiceEntity
 import com.holagundi.archiman.data.local.entity.ReceiptEntity
 import org.junit.Assert.assertEquals
@@ -27,5 +28,13 @@ class FeeDashboardSummaryTest {
         assertEquals("0.00", result.outstanding.toPlainString())
         assertEquals("0.30", result.received.toPlainString())
         assertEquals(0, result.unpaidInvoices)
+    }
+
+    @Test fun sqlTotalsMapToScaledMoney() {
+        val result = FeeDashboardSummary.fromTotals(FeeDashboardTotals(160.0, 40.0, 2, 5.5))
+        assertEquals("160.00", result.outstanding.toPlainString())
+        assertEquals("40.00", result.received.toPlainString())
+        assertEquals(2, result.unpaidInvoices)
+        assertEquals("5.50", result.tdsWithheld.toPlainString())
     }
 }

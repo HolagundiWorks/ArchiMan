@@ -22,6 +22,11 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    override fun onStart() {
+        super.onStart()
+        com.holagundi.archiman.widget.PracticeWidgetUpdater.requestUpdate(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -34,22 +39,26 @@ class MainActivity : ComponentActivity() {
                 if (signedIn.value == null) {
                     LoginScreen(viewModel = session)
                 } else {
-                    val nav = rememberNavController()
-                    NavHost(navController = nav, startDestination = "portfolio") {
-                        composable("portfolio") {
-                            PortfolioScreen(
-                                onOpenProject = { id -> nav.navigate("project/$id") },
-                                onSignOut = session::signOut,
-                                onOpenPage = { id, page -> nav.navigate("project/$id?page=${page.name}") },
-                                onOpenRecord = { id, page, record -> nav.navigate("project/$id?page=${page.name}&recordId=$record") },
-                            )
-                        }
-                        composable(
-                            route = "project/{projectId}?page={page}&recordId={recordId}",
-                            arguments = listOf(navArgument("projectId") { type = NavType.LongType }, navArgument("page") { type = NavType.StringType; defaultValue = "OVERVIEW" }, navArgument("recordId") { type = NavType.LongType; defaultValue = 0L }),
-                        ) { entry ->
-                            val startPage = WorkspacePage.entries.firstOrNull { it.name == entry.arguments?.getString("page") } ?: WorkspacePage.OVERVIEW
-                            ProjectWorkspaceScreen(onBack = { nav.popBackStack() }, startPage = startPage, focusId = entry.arguments?.getLong("recordId") ?: 0L)
+                    com.holagundi.archiman.ui.AppLockGate(
+                        enabled = !android.app.ActivityManager.isRunningInTestHarness(),
+                    ) {
+                        val nav = rememberNavController()
+                        NavHost(navController = nav, startDestination = "portfolio") {
+                            composable("portfolio") {
+                                PortfolioScreen(
+                                    onOpenProject = { id -> nav.navigate("project/$id") },
+                                    onSignOut = session::signOut,
+                                    onOpenPage = { id, page -> nav.navigate("project/$id?page=${page.name}") },
+                                    onOpenRecord = { id, page, record -> nav.navigate("project/$id?page=${page.name}&recordId=$record") },
+                                )
+                            }
+                            composable(
+                                route = "project/{projectId}?page={page}&recordId={recordId}",
+                                arguments = listOf(navArgument("projectId") { type = NavType.LongType }, navArgument("page") { type = NavType.StringType; defaultValue = "OVERVIEW" }, navArgument("recordId") { type = NavType.LongType; defaultValue = 0L }),
+                            ) { entry ->
+                                val startPage = WorkspacePage.entries.firstOrNull { it.name == entry.arguments?.getString("page") } ?: WorkspacePage.OVERVIEW
+                                ProjectWorkspaceScreen(onBack = { nav.popBackStack() }, startPage = startPage, focusId = entry.arguments?.getLong("recordId") ?: 0L)
+                            }
                         }
                     }
                 }

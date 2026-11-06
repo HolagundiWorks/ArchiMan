@@ -8,11 +8,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,20 +51,27 @@ fun CoordinationPane(suite: SuiteProjectViewModel) {
     var assignedTo by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+    LazyColumn(
+        Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
     ) {
-        ScreenTitle(stringResource(R.string.coordination_heading))
-        Text(stringResource(R.string.coordination_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        item { ScreenTitle(stringResource(R.string.coordination_heading)) }
+        item {
+            Text(stringResource(R.string.coordination_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (notice != null) {
-            Text(notice ?: "", color = MaterialTheme.colorScheme.primary, modifier = Modifier.announce())
-            TextButton(onClick = suite::clearNotice) { Text("Dismiss") }
+            item {
+                Text(notice ?: "", color = MaterialTheme.colorScheme.primary, modifier = Modifier.announce())
+                TextButton(onClick = suite::clearNotice) { Text("Dismiss") }
+            }
         }
         if (items.isEmpty()) {
-            Text(stringResource(R.string.coordination_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            item {
+                Text(stringResource(R.string.coordination_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
-        items.forEach { item ->
+        items(items, key = { it.id }) { item ->
             val open = selectedId == item.id
             GlassSurface(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -93,26 +101,28 @@ fun CoordinationPane(suite: SuiteProjectViewModel) {
                 }
             }
         }
-        GlassSurface(Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.coordination_new), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf(CoordinationWorkflow.RFI, CoordinationWorkflow.SUBMITTAL, CoordinationWorkflow.SITE_INSTRUCTION).forEach { option ->
-                        ChoiceChip(option, type == option) { type = option }
+        item {
+            GlassSurface(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(stringResource(R.string.coordination_new), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(CoordinationWorkflow.RFI, CoordinationWorkflow.SUBMITTAL, CoordinationWorkflow.SITE_INSTRUCTION).forEach { option ->
+                            ChoiceChip(option, type == option) { type = option }
+                        }
                     }
+                    ArchiField(subject, { subject = it }, stringResource(R.string.coordination_subject))
+                    ArchiField(question, { question = it }, stringResource(R.string.coordination_question), singleLine = false)
+                    ArchiField(discipline, { discipline = it }, stringResource(R.string.coordination_discipline))
+                    ArchiField(location, { location = it }, stringResource(R.string.snag_location))
+                    ArchiField(raisedBy, { raisedBy = it }, "Raised by")
+                    ArchiField(assignedTo, { assignedTo = it }, stringResource(R.string.snag_assigned))
+                    Button(
+                        onClick = {
+                            val submitted = listOf(subject, question); suite.addCoordination(type, subject, discipline, location, question, raisedBy, assignedTo).onSuccess { if (listOf(subject, question) == submitted) { subject = ""; question = "" } }
+                        },
+                        modifier = Modifier.heightIn(min = 48.dp),
+                    ) { Text(stringResource(R.string.coordination_save)) }
                 }
-                ArchiField(subject, { subject = it }, stringResource(R.string.coordination_subject))
-                ArchiField(question, { question = it }, stringResource(R.string.coordination_question), singleLine = false)
-                ArchiField(discipline, { discipline = it }, stringResource(R.string.coordination_discipline))
-                ArchiField(location, { location = it }, stringResource(R.string.snag_location))
-                ArchiField(raisedBy, { raisedBy = it }, "Raised by")
-                ArchiField(assignedTo, { assignedTo = it }, stringResource(R.string.snag_assigned))
-                Button(
-                    onClick = {
-                        val submitted = listOf(subject, question); suite.addCoordination(type, subject, discipline, location, question, raisedBy, assignedTo).onSuccess { if (listOf(subject, question) == submitted) { subject = ""; question = "" } }
-                    },
-                    modifier = Modifier.heightIn(min = 48.dp),
-                ) { Text(stringResource(R.string.coordination_save)) }
             }
         }
     }

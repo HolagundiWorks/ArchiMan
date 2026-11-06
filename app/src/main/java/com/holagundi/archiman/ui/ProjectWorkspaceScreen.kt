@@ -13,12 +13,13 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -56,8 +57,6 @@ fun ProjectWorkspaceScreen(
     val floors by viewModel.floors.collectAsStateWithLifecycle()
     val rooms by viewModel.rooms.collectAsStateWithLifecycle()
     val contractors by viewModel.contractors.collectAsStateWithLifecycle()
-    val sheets by viewModel.sheets.collectAsStateWithLifecycle()
-    val measurements by viewModel.measurements.collectAsStateWithLifecycle()
     val suite: SuiteProjectViewModel = hiltViewModel()
     val notice by suite.notice.collectAsStateWithLifecycle()
     val operationNotice by suite.operationNotice.collectAsStateWithLifecycle()
@@ -139,7 +138,9 @@ fun ProjectWorkspaceScreen(
                 when (selected) {
                     null -> ProjectSectionHub(group, onOpen = ::selectPage)
                     WorkspacePage.DOCUMENTS, WorkspacePage.MEASUREMENTS -> ProjectSectionHub(group, selected, ::selectPage)
-                    WorkspacePage.OVERVIEW -> if (current != null) ProjectDashboard(current, sheets.size, suite, ::selectPage) else Opening()
+                    WorkspacePage.OVERVIEW -> if (current != null) {
+                        ProjectOverviewPage(current, viewModel, suite, ::selectPage)
+                    } else Opening()
                     WorkspacePage.BRIEF -> BriefPane(suite)
                     WorkspacePage.TASKS -> KanbanPane(suite, if (startPage == WorkspacePage.TASKS) focusId else 0L)
                     WorkspacePage.LETTERS -> LettersPane(current?.id, suite)
@@ -155,7 +156,7 @@ fun ProjectWorkspaceScreen(
                         projectCode = current?.projectCode.orEmpty(),
                     )
                     WorkspacePage.LEVELS -> if (current != null) {
-                        OverviewPane(current, floors, rooms, measurements.size, sheets.size, viewModel)
+                        ProjectLevelsPage(current, floors, rooms, viewModel)
                     } else {
                         Opening()
                     }
@@ -181,6 +182,29 @@ private fun Opening() {
 }
 
 @Composable
+private fun ProjectOverviewPage(
+    project: com.holagundi.archiman.data.local.entity.ProjectEntity,
+    workspace: ProjectWorkspaceViewModel,
+    suite: SuiteProjectViewModel,
+    onOpen: (WorkspacePage) -> Unit,
+) {
+    val sheets by workspace.sheets.collectAsStateWithLifecycle()
+    ProjectDashboard(project, sheets.size, suite, onOpen)
+}
+
+@Composable
+private fun ProjectLevelsPage(
+    project: com.holagundi.archiman.data.local.entity.ProjectEntity,
+    floors: List<com.holagundi.archiman.data.local.entity.FloorEntity>,
+    rooms: List<com.holagundi.archiman.data.local.entity.RoomEntity>,
+    viewModel: ProjectWorkspaceViewModel,
+) {
+    val sheets by viewModel.sheets.collectAsStateWithLifecycle()
+    val measurements by viewModel.measurements.collectAsStateWithLifecycle()
+    OverviewPane(project, floors, rooms, measurements.size, sheets.size, viewModel)
+}
+
+@Composable
 private fun OverviewPane(
     project: com.holagundi.archiman.data.local.entity.ProjectEntity,
     floors: List<com.holagundi.archiman.data.local.entity.FloorEntity>,
@@ -193,19 +217,27 @@ private fun OverviewPane(
     var roomFloorId by remember { mutableStateOf(-1L) }
     var roomName by rememberSaveable { mutableStateOf("") }
     var showFloor by rememberSaveable { mutableStateOf(false) }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        GlassSurface(Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(project.client, style = MaterialTheme.typography.titleMedium)
-                Text(project.siteLocation, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("${project.projectType} · ${project.builtUpArea} ${project.areaUnit}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("$sheetCount sheets · $measurementCount measurements", color = MaterialTheme.colorScheme.primary)
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            GlassSurface(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(project.client, style = MaterialTheme.typography.titleMedium)
+                    Text(project.siteLocation, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("${project.projectType} · ${project.builtUpArea} ${project.areaUnit}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("$sheetCount sheets · $measurementCount measurements", color = MaterialTheme.colorScheme.primary)
+                }
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            TextButton(onClick = { showFloor = true }) { Text("Add level") }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { showFloor = true }) { Text("Add level") }
+            }
         }
-        floors.forEach { floor ->
+        items(floors, key = { it.id }) { floor ->
             GlassSurface(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(floor.name, style = MaterialTheme.typography.titleSmall, fontFamily = FontFamily.Monospace)

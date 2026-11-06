@@ -177,7 +177,7 @@ fun RecordActions(kind: RecordKind, id: Long, title: String, onDeleted: () -> Un
                         }
                         }
                         "Delete" -> {
-                            Text(if (kind == RecordKind.PROJECT) "This permanently deletes the project and all its tasks, documents, site records, measurements, invoices and receipts. Shared clients and library items remain. Save a backup first." else if (kind == RecordKind.SHEET) "This deletes the sheet, all its entries and review comments. Only draft or returned sheets can be deleted." else "Permanently delete this record? Linked or approved records may prevent deletion.")
+                            Text(if (kind == RecordKind.PROJECT) "This permanently deletes the project and all its tasks, documents, site records, measurements, invoices and receipts. Shared clients and library items remain. Save a backup first." else if (kind == RecordKind.SHEET) "This deletes the sheet, all its entries and review comments. Only draft or returned sheets can be deleted." else if (kind == RecordKind.MEASUREMENT) "This permanently deletes the measurement entry. Approved entries cannot be deleted." else "Permanently delete this record? Linked or approved records may prevent deletion.")
                             if (kind == RecordKind.PROJECT) ArchiField(confirmation, { confirmation = it }, "Type DELETE to confirm")
                         }
                         "Void invoice" -> {

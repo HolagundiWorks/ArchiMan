@@ -53,6 +53,7 @@ fun PracticeScaffold(
     onDestinationChange: (PracticeDestination) -> Unit,
     modifier: Modifier = Modifier,
     onSearch: (() -> Unit)? = null,
+    searchOpen: Boolean = false,
     createActions: List<PracticeFabAction> = emptyList(),
     onSignOut: (() -> Unit)? = null,
     content: @Composable (androidx.compose.foundation.layout.PaddingValues) -> Unit,
@@ -149,7 +150,7 @@ fun PracticeScaffold(
                                     Spacer(Modifier.height(12.dp))
                                 }
                             }
-                            if (onSearch != null) {
+                            if (onSearch != null && !searchOpen) {
                                 SmallFloatingActionButton(
                                     onClick = {
                                         createOpen = false

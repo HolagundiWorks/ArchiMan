@@ -9,11 +9,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Icon
@@ -71,31 +72,36 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
         }
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
+    LazyColumn(
+        Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
     ) {
-        ScreenTitle(stringResource(R.string.snags_heading))
-        Text(
-            stringResource(R.string.snags_body),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            style = MaterialTheme.typography.bodySmall,
-        )
+        item { ScreenTitle(stringResource(R.string.snags_heading)) }
+        item {
+            Text(
+                stringResource(R.string.snags_body),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         if (notice != null) {
-            Text(notice ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.announce())
-            TextButton(onClick = suite::clearNotice) { Text("Dismiss") }
+            item {
+                Text(notice ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.announce())
+                TextButton(onClick = suite::clearNotice) { Text("Dismiss") }
+            }
         }
 
         if (issues.isEmpty()) {
-            Text(
-                stringResource(R.string.snags_empty),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            item {
+                Text(
+                    stringResource(R.string.snags_empty),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
 
-        issues.forEach { issue ->
+        items(issues, key = { it.id }) { issue ->
             val open = selectedId == issue.id
             GlassSurface(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -142,59 +148,61 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
             }
         }
 
-        GlassSurface(Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    stringResource(R.string.snag_new),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.semantics { heading() },
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("SNAG", "NCR", "SAFETY").forEach { option ->
-                        ChoiceChip(option, type == option) { type = option }
-                    }
-                }
-                Text(stringResource(R.string.snag_severity), style = MaterialTheme.typography.labelLarge)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SiteIssueWorkflow.severities.forEach { option ->
-                        ChoiceChip(SiteIssueWorkflow.severityLabel(option), severity == option) {
-                            severity = option
+        item {
+            GlassSurface(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        stringResource(R.string.snag_new),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("SNAG", "NCR", "SAFETY").forEach { option ->
+                            ChoiceChip(option, type == option) { type = option }
                         }
                     }
-                }
-                ArchiField(title, { title = it }, stringResource(R.string.snag_title))
-                ArchiField(location, { location = it }, stringResource(R.string.snag_location))
-                ArchiField(
-                    description,
-                    { description = it },
-                    stringResource(R.string.snag_description),
-                    singleLine = false,
-                )
-                ArchiField(assignedTo, { assignedTo = it }, stringResource(R.string.snag_assigned))
-                ArchiField(
-                    corrective,
-                    { corrective = it },
-                    stringResource(R.string.snag_corrective),
-                    singleLine = false,
-                )
-                ArchiField(evidence, { evidence = it }, stringResource(R.string.snag_evidence))
-                TextButton(
-                    onClick = {
-                        val submitted = listOf(title, location, description, corrective, evidence, assignedTo); suite.addIssue(
-                            type,
-                            title,
-                            location,
-                            description,
-                            severity,
-                            assignedTo,
-                            corrective,
-                            evidence,
-                        ).onSuccess { if (listOf(title, location, description, corrective, evidence, assignedTo) == submitted) { title = ""; location = ""; description = ""; corrective = ""; evidence = ""; assignedTo = "" } }
-                        severity = SiteIssueWorkflow.SEVERITY_NORMAL
-                        type = "SNAG"
-                    },
-                ) {
-                    Text(stringResource(R.string.snag_save), color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.snag_severity), style = MaterialTheme.typography.labelLarge)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SiteIssueWorkflow.severities.forEach { option ->
+                            ChoiceChip(SiteIssueWorkflow.severityLabel(option), severity == option) {
+                                severity = option
+                            }
+                        }
+                    }
+                    ArchiField(title, { title = it }, stringResource(R.string.snag_title))
+                    ArchiField(location, { location = it }, stringResource(R.string.snag_location))
+                    ArchiField(
+                        description,
+                        { description = it },
+                        stringResource(R.string.snag_description),
+                        singleLine = false,
+                    )
+                    ArchiField(assignedTo, { assignedTo = it }, stringResource(R.string.snag_assigned))
+                    ArchiField(
+                        corrective,
+                        { corrective = it },
+                        stringResource(R.string.snag_corrective),
+                        singleLine = false,
+                    )
+                    ArchiField(evidence, { evidence = it }, stringResource(R.string.snag_evidence))
+                    TextButton(
+                        onClick = {
+                            val submitted = listOf(title, location, description, corrective, evidence, assignedTo); suite.addIssue(
+                                type,
+                                title,
+                                location,
+                                description,
+                                severity,
+                                assignedTo,
+                                corrective,
+                                evidence,
+                            ).onSuccess { if (listOf(title, location, description, corrective, evidence, assignedTo) == submitted) { title = ""; location = ""; description = ""; corrective = ""; evidence = ""; assignedTo = "" } }
+                            severity = SiteIssueWorkflow.SEVERITY_NORMAL
+                            type = "SNAG"
+                        },
+                    ) {
+                        Text(stringResource(R.string.snag_save), color = MaterialTheme.colorScheme.primary)
+                    }
                 }
             }
         }

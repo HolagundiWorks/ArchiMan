@@ -362,6 +362,11 @@ object CarbonIcons {
             addPath(pathData=PathParser().parsePathString("M24 15 17 15 17 8 15 8 15 15 8 15 8 17 15 17 15 24 17 24 17 17 24 17z").toNodes(), fill=SolidColor(Color.Black), pathFillType=PathFillType.NonZero, fillAlpha=1.0f)
         }.build()
     }
+    val Save: ImageVector by lazy {
+        ImageVector.Builder(name="Carbon.save", defaultWidth=24.dp, defaultHeight=24.dp, viewportWidth=32f, viewportHeight=32f, autoMirror=false).apply {
+            addPath(pathData=PathParser().parsePathString("M27.71,9.29l-5-5A1,1,0,0,0,22,4H6A2,2,0,0,0,4,6V26a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V10A1,1,0,0,0,27.71,9.29ZM12,6h8v4H12Zm8,20H12V18h8Zm2,0V18a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2v8H6V6h4v4a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V6.41l4,4V26Z").toNodes(), fill=SolidColor(Color.Black), pathFillType=PathFillType.NonZero, fillAlpha=1.0f)
+        }.build()
+    }
     val Search: ImageVector by lazy {
         ImageVector.Builder(name="Carbon.search", defaultWidth=24.dp, defaultHeight=24.dp, viewportWidth=32f, viewportHeight=32f, autoMirror=false).apply {
             addPath(pathData=PathParser().parsePathString("M29,27.5859l-7.5521-7.5521a11.0177,11.0177,0,1,0-1.4141,1.4141L27.5859,29ZM4,13a9,9,0,1,1,9,9A9.01,9.01,0,0,1,4,13Z").toNodes(), fill=SolidColor(Color.Black), pathFillType=PathFillType.NonZero, fillAlpha=1.0f)
@@ -369,12 +374,7 @@ object CarbonIcons {
     }
     val Close: ImageVector by lazy {
         ImageVector.Builder(name="Carbon.close", defaultWidth=24.dp, defaultHeight=24.dp, viewportWidth=32f, viewportHeight=32f, autoMirror=false).apply {
-            addPath(pathData=PathParser().parsePathString("M24 9.4 22.6 8 16 14.6 9.4 8 8 9.4 14.6 16 8 22.6 9.4 24 16 17.4 22.6 24 24 22.6 17.4 16 24 9.4z").toNodes(), fill=SolidColor(Color.Black), pathFillType=PathFillType.NonZero, fillAlpha=1.0f)
-        }.build()
-    }
-    val Save: ImageVector by lazy {
-        ImageVector.Builder(name="Carbon.save", defaultWidth=24.dp, defaultHeight=24.dp, viewportWidth=32f, viewportHeight=32f, autoMirror=false).apply {
-            addPath(pathData=PathParser().parsePathString("M27.71,9.29l-5-5A1,1,0,0,0,22,4H6A2,2,0,0,0,4,6V26a2,2,0,0,0,2,2H26a2,2,0,0,0,2-2V10A1,1,0,0,0,27.71,9.29ZM12,6h8v4H12Zm8,20H12V18h8Zm2,0V18a2,2,0,0,0-2-2H12a2,2,0,0,0-2,2v8H6V6h4v4a2,2,0,0,0,2,2h8a2,2,0,0,0,2-2V6.41l4,4V26Z").toNodes(), fill=SolidColor(Color.Black), pathFillType=PathFillType.NonZero, fillAlpha=1.0f)
+            addPath(pathData=PathParser().parsePathString("M17.4141 16 24 9.4141 22.5859 8 16 14.5859 9.4143 8 8 9.4141 14.5859 16 8 22.5859 9.4143 24 16 17.4141 22.5859 24 24 22.5859 17.4141 16z").toNodes(), fill=SolidColor(Color.Black), pathFillType=PathFillType.NonZero, fillAlpha=1.0f)
         }.build()
     }
     val Backspace: ImageVector by lazy {

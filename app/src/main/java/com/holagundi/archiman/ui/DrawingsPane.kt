@@ -6,11 +6,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,21 +56,26 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
     var recipients by rememberSaveable { mutableStateOf("") }
     var purpose by rememberSaveable { mutableStateOf("For construction") }
 
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+    LazyColumn(
+        Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
     ) {
-        ScreenTitle(stringResource(R.string.drawings_heading))
-        Text(stringResource(R.string.drawings_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ChoiceChip(stringResource(R.string.drawings_register), panel == DrawingPanel.REGISTER) { panel = DrawingPanel.REGISTER }
-            ChoiceChip(stringResource(R.string.drawings_revisions), panel == DrawingPanel.REVISIONS) { panel = DrawingPanel.REVISIONS }
-            ChoiceChip(stringResource(R.string.drawings_transmittals), panel == DrawingPanel.TRANSMITTALS) { panel = DrawingPanel.TRANSMITTALS }
+        item { ScreenTitle(stringResource(R.string.drawings_heading)) }
+        item {
+            Text(stringResource(R.string.drawings_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        item {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ChoiceChip(stringResource(R.string.drawings_register), panel == DrawingPanel.REGISTER) { panel = DrawingPanel.REGISTER }
+                ChoiceChip(stringResource(R.string.drawings_revisions), panel == DrawingPanel.REVISIONS) { panel = DrawingPanel.REVISIONS }
+                ChoiceChip(stringResource(R.string.drawings_transmittals), panel == DrawingPanel.TRANSMITTALS) { panel = DrawingPanel.TRANSMITTALS }
+            }
         }
 
         when (panel) {
             DrawingPanel.REGISTER -> {
-                drawings.forEach { drawing ->
+                items(drawings, key = { "d-${it.id}" }) { drawing ->
                     GlassSurface(Modifier.fillMaxWidth()) {
                         Column {
                             Text(drawing.drawingNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
@@ -80,23 +86,25 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                         }
                     }
                 }
-                GlassSurface(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ArchiField(number, { number = it }, stringResource(R.string.drawing_number))
-                        ArchiField(title, { title = it }, stringResource(R.string.drawing_title))
-                        ArchiField(discipline, { discipline = it }, stringResource(R.string.drawing_discipline))
-                        ArchiField(packageTag, { packageTag = it }, stringResource(R.string.drawing_package))
-                        Button(
-                            onClick = {
-                                val submitted = listOf(number, title); suite.addDrawing(number, title, discipline, packageTag).onSuccess { if (listOf(number, title) == submitted) { number = ""; title = "" } }
-                            },
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        ) { Text(stringResource(R.string.drawing_save)) }
+                item {
+                    GlassSurface(Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ArchiField(number, { number = it }, stringResource(R.string.drawing_number))
+                            ArchiField(title, { title = it }, stringResource(R.string.drawing_title))
+                            ArchiField(discipline, { discipline = it }, stringResource(R.string.drawing_discipline))
+                            ArchiField(packageTag, { packageTag = it }, stringResource(R.string.drawing_package))
+                            Button(
+                                onClick = {
+                                    val submitted = listOf(number, title); suite.addDrawing(number, title, discipline, packageTag).onSuccess { if (listOf(number, title) == submitted) { number = ""; title = "" } }
+                                },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) { Text(stringResource(R.string.drawing_save)) }
+                        }
                     }
                 }
             }
             DrawingPanel.REVISIONS -> {
-                revisions.forEach { revision ->
+                items(revisions, key = { "r-${it.id}" }) { revision ->
                     val drawing = drawings.firstOrNull { it.id == revision.drawingId }
                     GlassSurface(Modifier.fillMaxWidth()) {
                         Column {
@@ -114,37 +122,39 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                         }
                     }
                 }
-                GlassSurface(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Drawing", style = MaterialTheme.typography.labelLarge)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            drawings.forEach { drawing ->
-                                ChoiceChip(drawing.drawingNumber, drawingId == drawing.id) { drawingId = drawing.id }
-                            }
-                        }
-                        ArchiField(revisionCode, { revisionCode = it }, stringResource(R.string.revision_code))
-                        ArchiField(notes, { notes = it }, stringResource(R.string.revision_notes), singleLine = false)
-                        ArchiField(fileNote, { fileNote = it }, stringResource(R.string.snag_evidence))
-                        ChoiceChip(stringResource(R.string.revision_as_built), asBuilt) { asBuilt = !asBuilt }
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            SiteIssueWorkflow.severities.forEach { option ->
-                                ChoiceChip(SiteIssueWorkflow.severityLabel(option), severity == option) { severity = option }
-                            }
-                        }
-                        Button(
-                            onClick = {
-                                if (drawingId > 0L) {
-                                    val submitted = listOf(notes); suite.addRevision(drawingId, revisionCode, notes, asBuilt, severity, fileNote).onSuccess { if (listOf(notes) == submitted) { notes = "" } }
+                item {
+                    GlassSurface(Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Drawing", style = MaterialTheme.typography.labelLarge)
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                drawings.forEach { drawing ->
+                                    ChoiceChip(drawing.drawingNumber, drawingId == drawing.id) { drawingId = drawing.id }
                                 }
-                            },
-                            enabled = drawingId > 0L,
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        ) { Text(stringResource(R.string.revision_save)) }
+                            }
+                            ArchiField(revisionCode, { revisionCode = it }, stringResource(R.string.revision_code))
+                            ArchiField(notes, { notes = it }, stringResource(R.string.revision_notes), singleLine = false)
+                            ArchiField(fileNote, { fileNote = it }, stringResource(R.string.snag_evidence))
+                            ChoiceChip(stringResource(R.string.revision_as_built), asBuilt) { asBuilt = !asBuilt }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SiteIssueWorkflow.severities.forEach { option ->
+                                    ChoiceChip(SiteIssueWorkflow.severityLabel(option), severity == option) { severity = option }
+                                }
+                            }
+                            Button(
+                                onClick = {
+                                    if (drawingId > 0L) {
+                                        val submitted = listOf(notes); suite.addRevision(drawingId, revisionCode, notes, asBuilt, severity, fileNote).onSuccess { if (listOf(notes) == submitted) { notes = "" } }
+                                    }
+                                },
+                                enabled = drawingId > 0L,
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) { Text(stringResource(R.string.revision_save)) }
+                        }
                     }
                 }
             }
             DrawingPanel.TRANSMITTALS -> {
-                transmittals.forEach { item ->
+                items(transmittals, key = { "t-${it.id}" }) { item ->
                     GlassSurface(Modifier.fillMaxWidth()) {
                         Column {
                             Text(item.transmittalNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
@@ -154,17 +164,19 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                         }
                     }
                 }
-                GlassSurface(Modifier.fillMaxWidth()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        ArchiField(subject, { subject = it }, stringResource(R.string.transmittal_subject))
-                        ArchiField(recipients, { recipients = it }, stringResource(R.string.transmittal_recipients))
-                        ArchiField(purpose, { purpose = it }, stringResource(R.string.transmittal_purpose))
-                        Button(
-                            onClick = {
-                                val submitted = listOf(subject); suite.addTransmittal(subject, recipients, purpose).onSuccess { if (listOf(subject) == submitted) { subject = "" } }
-                            },
-                            modifier = Modifier.heightIn(min = 48.dp),
-                        ) { Text(stringResource(R.string.transmittal_save)) }
+                item {
+                    GlassSurface(Modifier.fillMaxWidth()) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ArchiField(subject, { subject = it }, stringResource(R.string.transmittal_subject))
+                            ArchiField(recipients, { recipients = it }, stringResource(R.string.transmittal_recipients))
+                            ArchiField(purpose, { purpose = it }, stringResource(R.string.transmittal_purpose))
+                            Button(
+                                onClick = {
+                                    val submitted = listOf(subject); suite.addTransmittal(subject, recipients, purpose).onSuccess { if (listOf(subject) == submitted) { subject = "" } }
+                                },
+                                modifier = Modifier.heightIn(min = 48.dp),
+                            ) { Text(stringResource(R.string.transmittal_save)) }
+                        }
                     }
                 }
             }

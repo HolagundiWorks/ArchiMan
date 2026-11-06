@@ -17,7 +17,7 @@ The original gap was systematic: most lists could create and display records but
 | Levels and rooms | Rename, confirmed delete | Deletion blocked while dependent rooms, components or measurements exist. |
 | Contractors shown under Contracts | Edit directory details, delete unused entries | Referenced contractors cannot be deleted. Historical measurement snapshots stay unchanged. |
 | Measurement sheets | Confirmed delete of draft/returned sheets | Deletes entries and review comments with the sheet. Submitted/checked/approved sheets are protected. |
-| Measurement entries | Edit dimensions/text and recalculate quantity; confirmed delete | Only draft/returned entries can change. Removed the old immediate-delete button. |
+| Measurement entries | Edit dimensions/text and recalculate quantity; confirmed delete | Edit only on draft/returned sheets. Delete allowed until the sheet is approved (blocked once approved or archived). |
 | Running bill | Edit/delete rate-book entries | Bill totals remain derived from measurements and rates. Deleting all rates no longer causes them to reappear at startup. |
 | Daily site logs | Edit details, confirmed delete | Updates timestamp. |
 | Material orders and lines | Edit/delete before receipt | Received orders and their lines retain history. |

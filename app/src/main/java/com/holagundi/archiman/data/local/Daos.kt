@@ -146,6 +146,9 @@ interface MeasurementDao {
     @Query("SELECT * FROM measurements WHERE projectId = :projectId")
     suspend fun measurementsNow(projectId: Long): List<MeasurementEntity>
 
+    @Query("SELECT COALESCE(SUM(quantity), 0.0) FROM measurements WHERE projectId = :projectId AND itemName = :itemName COLLATE NOCASE")
+    suspend fun sumQuantityByItemName(projectId: Long, itemName: String): Double
+
     @Query(
         """
         SELECT * FROM measurement_sheets
@@ -218,4 +221,16 @@ interface FieldDao {
 
     @Query("SELECT COUNT(*) FROM project_tasks WHERE projectId = :projectId")
     fun observeTaskCount(projectId: Long): Flow<Int>
+
+    @Query("""SELECT
+        (SELECT COUNT(*) FROM daily_site_reports WHERE projectId = :projectId) AS dailyLogs,
+        (SELECT COUNT(*) FROM material_orders WHERE projectId = :projectId) AS materialOrders,
+        (SELECT COUNT(*) FROM project_drawings WHERE projectId = :projectId AND archivedAt IS NULL) AS drawings,
+        (SELECT COUNT(*) FROM site_issues WHERE projectId = :projectId) AS siteIssues,
+        (SELECT COUNT(*) FROM site_inspections WHERE projectId = :projectId) AS inspections,
+        (SELECT COUNT(*) FROM meeting_minutes WHERE projectId = :projectId) AS minutes,
+        (SELECT COUNT(*) FROM coordination_items WHERE projectId = :projectId AND archivedAt IS NULL) AS coordination,
+        (SELECT COUNT(*) FROM project_decisions WHERE projectId = :projectId) AS decisions,
+        (SELECT COUNT(*) FROM project_tasks WHERE projectId = :projectId) AS tasks""")
+    fun observeModuleCounts(projectId: Long): Flow<ProjectModuleCountRow>
 }

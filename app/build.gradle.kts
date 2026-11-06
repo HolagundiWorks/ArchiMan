@@ -71,6 +71,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     sourceSets.named("main") {
@@ -102,6 +103,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime)
+    implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.kotlinx.coroutines)
     implementation(libs.androidx.datastore)
@@ -117,6 +119,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
+    androidTestImplementation(libs.androidx.test.uiautomator)
 }
 
 tasks.register("writeSecurityInventory") {

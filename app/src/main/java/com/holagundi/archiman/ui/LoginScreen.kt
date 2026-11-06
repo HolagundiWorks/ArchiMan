@@ -54,6 +54,7 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
     var confirmBuiltIn by rememberSaveable { mutableStateOf(false) }
     var confirmCreate by rememberSaveable { mutableStateOf(false) }
     var showBackup by rememberSaveable { mutableStateOf(false) }
+    var showPortal by rememberSaveable { mutableStateOf(false) }
     var pendingUri by rememberSaveable { mutableStateOf<String?>(null) }
     var practiceName by rememberSaveable { mutableStateOf("") }
     var principalName by rememberSaveable { mutableStateOf("") }
@@ -141,8 +142,11 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
                 ) {
                     Text(stringResource(R.string.login_create))
                 }
-                OutlinedButton(onClick = { showBackup = true }, enabled = !opening) {
+                OutlinedButton(onClick = { showBackup = true }, enabled = !opening, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                     Text(stringResource(R.string.backup_title))
+                }
+                OutlinedButton(onClick = { showPortal = true }, enabled = !opening, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(R.string.portal_heading))
                 }
             } else if (step == LoginStep.CREATE) {
                 ArchiField(
@@ -187,6 +191,20 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
                 }
                 TextButton(onClick = { step = LoginStep.COMPANY }) {
                     Text(stringResource(R.string.login_change_company))
+                }
+            }
+        }
+    }
+
+    if (showPortal) {
+        Dialog(onDismissRequest = { showPortal = false }) {
+            GlassSurface {
+                Column {
+                    TextButton(onClick = { showPortal = false }) { Text(stringResource(R.string.cancel)) }
+                    Text(stringResource(R.string.login_portal_help), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().heightIn(min = 420.dp, max = 560.dp)) {
+                        PortalPane()
+                    }
                 }
             }
         }

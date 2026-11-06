@@ -43,7 +43,8 @@ class BackupRepository @Inject constructor(
     private class AttachmentTooLarge : IllegalArgumentException("Attachment exceeds the backup size limit.")
     private val mutex = Mutex()
     private val attachmentColumns = setOf("logoUri", "photoUri", "evidenceUri", "afterEvidenceUri", "fileUri")
-    private val recoveryFile get() = File(context.filesDir, "recovery/latest.archimanbackup")
+    private val recoveryFile get() = File(context.noBackupFilesDir, "recovery/latest.archimanbackup")
+    private val legacyRecoveryFile get() = File(context.filesDir, "recovery/latest.archimanbackup")
 
     suspend fun export(output: OutputStream) = mutex.withLock {
         val entries = db.withTransaction { snapshot(db.openHelper.writableDatabase) }
@@ -58,6 +59,21 @@ class BackupRepository @Inject constructor(
     }
 
     suspend fun protectLegacyRecovery() = mutex.withLock {
+        if (legacyRecoveryFile.isFile && !recoveryFile.isFile) {
+            legacyRecoveryFile.parentFile?.mkdirs()
+            recoveryFile.parentFile?.mkdirs()
+            runCatching {
+                java.nio.file.Files.move(
+                    legacyRecoveryFile.toPath(),
+                    recoveryFile.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING,
+                    java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                )
+            }.onFailure {
+                legacyRecoveryFile.copyTo(recoveryFile, overwrite = true)
+                legacyRecoveryFile.delete()
+            }
+        }
         if (!recoveryFile.isFile) return@withLock
         val bytes = recoveryFile.inputStream().use { com.holagundi.archiman.domain.PasswordEnvelope.readBounded(it,BackupArchive.safeByteLimit()+1024*1024) }
         if (RecoveryCipher.protected(bytes)) return@withLock
@@ -78,30 +94,40 @@ class BackupRepository @Inject constructor(
         val entries = BackupArchive.read(input).toMutableMap()
         val data = document(entries)
         val originalVersion = data.getInt("schemaVersion")
-        val upgradedFrom = if (originalVersion in 28..30) {
-            val expected = mapOf(28 to "1993cd791fb24b7411375cb96c1f771f", 29 to "d2a0df4c049eb978bdb19e4f03ee393c", 30 to "98cf1de9066b8d872610427572ad64dc").getValue(originalVersion)
-            require(data.getString("identity") == expected) { "Unknown legacy backup identity." }
-            val tables = data.getJSONObject("tables")
-            fun append(name: String, additions: Map<String, Any>) {
-                val table = tables.getJSONObject(name); val columns = table.getJSONArray("columns")
-                require(strings(columns).none { it in additions.keys }) { "Invalid legacy backup columns." }
-                additions.keys.forEach(columns::put)
-                val rows = table.getJSONArray("rows")
-                for (index in 0 until rows.length()) additions.values.forEach { rows.getJSONArray(index).put(it) }
+        val upgradedFrom = when {
+            originalVersion in 28..30 -> {
+                val expected = mapOf(28 to "1993cd791fb24b7411375cb96c1f771f", 29 to "d2a0df4c049eb978bdb19e4f03ee393c", 30 to "98cf1de9066b8d872610427572ad64dc").getValue(originalVersion)
+                require(data.getString("identity") == expected) { "Unknown legacy backup identity." }
+                val tables = data.getJSONObject("tables")
+                fun append(name: String, additions: Map<String, Any>) {
+                    val table = tables.getJSONObject(name); val columns = table.getJSONArray("columns")
+                    require(strings(columns).none { it in additions.keys }) { "Invalid legacy backup columns." }
+                    additions.keys.forEach(columns::put)
+                    val rows = table.getJSONArray("rows")
+                    for (index in 0 until rows.length()) additions.values.forEach { rows.getJSONArray(index).put(it) }
+                }
+                if (originalVersion == 28) listOf("fee_proposals", "work_contracts").forEach { append(it, linkedMapOf("detailsJson" to "", "documentText" to "")) }
+                if (originalVersion < 30) {
+                    append("invoices", mapOf("taxJson" to ""))
+                    append("receipts", linkedMapOf("tdsAmount" to 0.0, "tdsReference" to "", "tdsVerified" to 0, "bankKey" to ""))
+                    require(!tables.has("finance_records")) { "Invalid legacy finance table." }
+                    tables.put("finance_records", JSONObject().put("columns", JSONArray(listOf("key", "kind", "json"))).put("rows", JSONArray()))
+                }
+                listOf("clients","contractors").forEach { append(it,mapOf("detailsJson" to "")) }
+                listOf("measurement_sheets","measurements").forEach { append(it,linkedMapOf("boqRevision" to "", "boqLineKey" to "", "rateSnapshot" to 0.0, "contractBasis" to "")) }
+                data.put("schemaVersion", SchemaContract.VERSION).put("identity", identity(db.openHelper.writableDatabase))
+                entries["database.json"] = data.toString().toByteArray(Charsets.UTF_8)
+                originalVersion
             }
-            if (originalVersion == 28) listOf("fee_proposals", "work_contracts").forEach { append(it, linkedMapOf("detailsJson" to "", "documentText" to "")) }
-            if (originalVersion < 30) {
-            append("invoices", mapOf("taxJson" to ""))
-            append("receipts", linkedMapOf("tdsAmount" to 0.0, "tdsReference" to "", "tdsVerified" to 0, "bankKey" to ""))
-            require(!tables.has("finance_records")) { "Invalid legacy finance table." }
-            tables.put("finance_records", JSONObject().put("columns", JSONArray(listOf("key", "kind", "json"))).put("rows", JSONArray()))
+            // Schema 32 only adds indexes; row shapes match schema 31.
+            originalVersion == 31 -> {
+                require(data.getString("identity") == "f10be1fd4ecc259d1daebcf7cc86b9d8") { "Unknown schema 31 backup identity." }
+                data.put("schemaVersion", SchemaContract.VERSION).put("identity", identity(db.openHelper.writableDatabase))
+                entries["database.json"] = data.toString().toByteArray(Charsets.UTF_8)
+                31
             }
-            listOf("clients","contractors").forEach { append(it,mapOf("detailsJson" to "")) }
-            listOf("measurement_sheets","measurements").forEach { append(it,linkedMapOf("boqRevision" to "", "boqLineKey" to "", "rateSnapshot" to 0.0, "contractBasis" to "")) }
-            data.put("schemaVersion", SchemaContract.VERSION).put("identity", identity(db.openHelper.writableDatabase))
-            entries["database.json"] = data.toString().toByteArray(Charsets.UTF_8)
-            originalVersion
-        } else null
+            else -> null
+        }
         validate(data, entries, db.openHelper.writableDatabase)
         val tables = data.getJSONObject("tables")
         val company = tables.optJSONObject("company_profile")?.getJSONArray("rows")

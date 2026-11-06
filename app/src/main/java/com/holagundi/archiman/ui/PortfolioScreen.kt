@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -27,17 +28,26 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -48,9 +58,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
-import com.holagundi.archiman.data.local.entity.ClientEntity
 import com.holagundi.archiman.data.local.entity.CompanyProfileEntity
-import com.holagundi.archiman.data.local.entity.InvoiceEntity
 import com.holagundi.archiman.data.local.entity.ProjectEntity
 import com.holagundi.archiman.ui.shell.PracticeDestination
 import com.holagundi.archiman.ui.shell.PracticeScaffold
@@ -85,8 +93,6 @@ fun PortfolioScreen(
     val pending by viewModel.operations.pending.collectAsStateWithLifecycle()
     val company by viewModel.company.collectAsStateWithLifecycle()
     val projects by viewModel.projects.collectAsStateWithLifecycle()
-    val clients by viewModel.clients.collectAsStateWithLifecycle()
-    val invoices by viewModel.invoices.collectAsStateWithLifecycle()
     val demoCatalog by viewModel.demoCatalog.collectAsStateWithLifecycle()
     val demoNotice by viewModel.demoNotice.collectAsStateWithLifecycle()
     val openingDemo by viewModel.openingDemo.collectAsStateWithLifecycle()
@@ -95,18 +101,29 @@ fun PortfolioScreen(
     var confirmDemo by rememberSaveable { mutableStateOf(false) }
     var showCreate by rememberSaveable { mutableStateOf(false) }
     var showSearch by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
     var pickProjectFor by rememberSaveable { mutableStateOf<String?>(null) }
     var practicePage by rememberSaveable { mutableStateOf<PracticeRegistry?>(null) }
     val currentProjects = projects.filter { it.status != "ARCHIVED" }
+
+    if (showSearch) {
+        BackHandler {
+            showSearch = false
+            searchQuery = ""
+        }
+    }
 
     PracticeScaffold(
         destination = destination,
         onDestinationChange = {
             if (it == destination && it == PracticeDestination.PRACTICE) practicePage = null
             inbox = null
+            showSearch = false
+            searchQuery = ""
             destination = it
         },
         onSearch = { showSearch = true },
+        searchOpen = showSearch,
         createActions = listOf(
             com.holagundi.archiman.ui.shell.PracticeFabAction(
                 stringResource(R.string.new_project),
@@ -130,34 +147,79 @@ fun PortfolioScreen(
         ),
         onSignOut = onSignOut,
     ) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding)) {
-            operationNotice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Practice update", it.message, it.kind); TextButton(onClick = viewModel.operations::dismiss) { Text("Dismiss update") } }
-            if (pending.isNotEmpty()) Text("Saving…")
-            Box(Modifier.weight(1f)) {
-            if (inbox != null) AttentionInbox(viewModel, inbox!!, { inbox = null }, onOpenRecord)
-            else when (destination) {
-                PracticeDestination.HOME -> PracticeDashboard(
-                    viewModel = viewModel,
-                    onNewProject = { showCreate = true },
-                    onProjects = { destination = PracticeDestination.PROJECTS },
-                    onInvoices = { practicePage = PracticeRegistry.INVOICES; destination = PracticeDestination.PRACTICE },
-                    onOpenProject = onOpenProject,
-                    onOpenPage = onOpenPage,
-                    onOpenRecord = onOpenRecord,
-                    onAttention = { inbox = it },
-                )
-                PracticeDestination.PROJECTS -> ProjectList(projects, onOpenProject)
-                PracticeDestination.PRACTICE -> PracticeRegistries(
-                    company, clients, invoices, projects, viewModel, demoCatalog, demoNotice, openingDemo,
-                    onOpenDemo = { confirmDemo = true },
-                    onRestored = onSignOut,
-                    page = practicePage,
-                    onPageChange = { practicePage = it },
+        Box(Modifier.fillMaxSize().padding(innerPadding)) {
+            Column(Modifier.fillMaxSize()) {
+                operationNotice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Practice update", it.message, it.kind); TextButton(onClick = viewModel.operations::dismiss) { Text("Dismiss update") } }
+                if (pending.isNotEmpty()) Text("Saving…")
+                Box(Modifier.weight(1f)) {
+                    if (showSearch && searchQuery.isNotBlank()) {
+                        PracticeSearchResults(
+                            viewModel = viewModel,
+                            onOpenProject = {
+                                showSearch = false
+                                searchQuery = ""
+                                viewModel.setPracticeSearchQuery("")
+                                onOpenProject(it)
+                            },
+                            onOpenRecord = { projectId, page, recordId ->
+                                showSearch = false
+                                searchQuery = ""
+                                viewModel.setPracticeSearchQuery("")
+                                onOpenRecord(projectId, page, recordId)
+                            },
+                            onOpenPracticeInvoices = {
+                                showSearch = false
+                                searchQuery = ""
+                                viewModel.setPracticeSearchQuery("")
+                                practicePage = PracticeRegistry.INVOICES
+                                destination = PracticeDestination.PRACTICE
+                            },
+                        )
+                    } else if (inbox != null) {
+                        AttentionInbox(viewModel, inbox!!, { inbox = null }, onOpenRecord)
+                    } else when (destination) {
+                        PracticeDestination.HOME -> PracticeDashboard(
+                            viewModel = viewModel,
+                            onNewProject = { showCreate = true },
+                            onProjects = { destination = PracticeDestination.PROJECTS },
+                            onInvoices = { practicePage = PracticeRegistry.INVOICES; destination = PracticeDestination.PRACTICE },
+                            onOpenProject = onOpenProject,
+                            onOpenPage = onOpenPage,
+                            onOpenRecord = onOpenRecord,
+                            onAttention = { inbox = it },
+                        )
+                        PracticeDestination.PROJECTS -> ProjectList(projects, onOpenProject)
+                        PracticeDestination.PRACTICE -> PracticeRegistries(
+                            company, projects, viewModel, demoCatalog, demoNotice, openingDemo,
+                            onOpenDemo = { confirmDemo = true },
+                            onRestored = onSignOut,
+                            page = practicePage,
+                            onPageChange = { practicePage = it },
+                        )
+                    }
+                }
+            }
+            if (showSearch) {
+                PracticeFloatingSearchBar(
+                    query = searchQuery,
+                    onQueryChange = {
+                        searchQuery = it
+                        viewModel.setPracticeSearchQuery(it)
+                    },
+                    onClose = {
+                        showSearch = false
+                        searchQuery = ""
+                        viewModel.setPracticeSearchQuery("")
+                    },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 88.dp, bottom = 16.dp)
+                        .navigationBarsPadding()
+                        .imePadding(),
                 )
             }
         }
-    }
-
     }
 
     if (confirmDemo) {
@@ -177,26 +239,6 @@ fun PortfolioScreen(
                 }
             }
         }
-    }
-
-    if (showSearch) {
-        PracticeSearchSheet(
-            viewModel = viewModel,
-            onDismiss = { showSearch = false },
-            onOpenProject = {
-                showSearch = false
-                onOpenProject(it)
-            },
-            onOpenRecord = { projectId, page, recordId ->
-                showSearch = false
-                onOpenRecord(projectId, page, recordId)
-            },
-            onOpenPracticeInvoices = {
-                showSearch = false
-                practicePage = PracticeRegistry.INVOICES
-                destination = PracticeDestination.PRACTICE
-            },
-        )
     }
 
     if (pickProjectFor != null) {
@@ -284,8 +326,6 @@ internal fun ProjectCard(project: ProjectEntity, onOpen: (Long) -> Unit) {
 @Composable
 private fun PracticeRegistries(
     company: CompanyProfileEntity?,
-    clients: List<ClientEntity>,
-    invoices: List<InvoiceEntity>,
     projects: List<ProjectEntity>,
     viewModel: PortfolioViewModel,
     demoCatalog: DemoCompanyPackage?,
@@ -315,8 +355,8 @@ private fun PracticeRegistries(
                     }
                 }
                 PracticeRegistry.PROFILE -> OfficePane(company)
-                PracticeRegistry.CLIENTS -> ClientsPane(clients, viewModel)
-                PracticeRegistry.INVOICES -> AccountsPane(invoices, projects)
+                PracticeRegistry.CLIENTS -> ClientsPane(viewModel)
+                PracticeRegistry.INVOICES -> AccountsPane(viewModel, projects)
                 PracticeRegistry.FINANCE -> FinancePane()
                 PracticeRegistry.DEMO -> DemoPane(demoCatalog, demoNotice, openingDemo, onOpenDemo)
                 PracticeRegistry.PORTAL -> PortalPane()
@@ -359,43 +399,62 @@ private fun DemoPane(
 }
 
 @Composable
-private fun ClientsPane(
-    clients: List<com.holagundi.archiman.data.local.entity.ClientEntity>,
-    viewModel: PortfolioViewModel,
-) {
+private fun ClientsPane(viewModel: PortfolioViewModel) {
+    val clients by viewModel.clients.collectAsStateWithLifecycle()
     var name by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Clients", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-        clients.forEach { client ->
-            Text(client.name, style = MaterialTheme.typography.titleMedium)
-            Text("${client.clientType} · ${client.contactNo.ifBlank { "No phone" }} · ${client.email}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            RecordActions(RecordKind.CLIENT, client.id, client.name)
+    LazyColumn(
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
+    ) {
+        item { Text("Clients", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() }) }
+        items(clients, key = { it.id }) { client ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(client.name, style = MaterialTheme.typography.titleMedium)
+                Text("${client.clientType} · ${client.contactNo.ifBlank { "No phone" }} · ${client.email}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                RecordActions(RecordKind.CLIENT, client.id, client.name)
+            }
         }
-        ArchiField(name, { name = it }, "Client name")
-        ArchiField(phone, { phone = it }, "Phone")
-        ArchiField(email, { email = it }, "Email")
-        TextButton(onClick = {
-            val submitted = listOf(name, phone, email); viewModel.addClient(name, phone, email).onSuccess { if (listOf(name, phone, email) == submitted) { name = ""; phone = ""; email = "" } }
-        }) { Text("Save client", color = MaterialTheme.colorScheme.primary) }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ArchiField(name, { name = it }, "Client name")
+                ArchiField(phone, { phone = it }, "Phone")
+                ArchiField(email, { email = it }, "Email")
+                TextButton(onClick = {
+                    val submitted = listOf(name, phone, email); viewModel.addClient(name, phone, email).onSuccess { if (listOf(name, phone, email) == submitted) { name = ""; phone = ""; email = "" } }
+                }) { Text("Save client", color = MaterialTheme.colorScheme.primary) }
+            }
+        }
     }
 }
 
 @Composable
 private fun AccountsPane(
-    invoices: List<com.holagundi.archiman.data.local.entity.InvoiceEntity>,
+    viewModel: PortfolioViewModel,
     projects: List<ProjectEntity>,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Invoices", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-        Text("Fee invoices raised from a project. Open the project to issue one.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        if (invoices.isEmpty()) Text("No invoices yet.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-        invoices.forEach { invoice ->
+    val invoices by viewModel.invoices.collectAsStateWithLifecycle()
+    LazyColumn(
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
+    ) {
+        item { Text("Invoices", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() }) }
+        item {
+            Text("Fee invoices raised from a project. Open the project to issue one.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        }
+        if (invoices.isEmpty()) {
+            item { Text("No invoices yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
+        items(invoices, key = { it.id }) { invoice ->
             val project = projects.find { it.id == invoice.projectId }?.name ?: "Project"
-            Text("${invoice.number} · $project", style = MaterialTheme.typography.titleMedium)
-            Text("${invoice.title} · ${invoice.status} · ${invoice.amount}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            RecordActions(RecordKind.INVOICE, invoice.id, invoice.number)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("${invoice.number} · $project", style = MaterialTheme.typography.titleMedium)
+                Text("${invoice.title} · ${invoice.status} · ${invoice.amount}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                RecordActions(RecordKind.INVOICE, invoice.id, invoice.number)
+            }
         }
     }
 }
@@ -466,77 +525,101 @@ private fun CreateProjectDialog(
 }
 
 @Composable
-private fun PracticeSearchSheet(
+private fun PracticeFloatingSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    Surface(
+        modifier = modifier,
+        shape = RectangleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        shadowElevation = 6.dp,
+        tonalElevation = 2.dp,
+    ) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                CarbonIcons.Search,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(start = 12.dp),
+            )
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f).focusRequester(focus),
+                placeholder = { Text(stringResource(R.string.practice_search_hint)) },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
+                ),
+            )
+            IconButton(onClick = onClose) {
+                Icon(CarbonIcons.Close, contentDescription = stringResource(R.string.close_search))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PracticeSearchResults(
     viewModel: PortfolioViewModel,
-    onDismiss: () -> Unit,
     onOpenProject: (Long) -> Unit,
     onOpenRecord: (Long, WorkspacePage, Long) -> Unit,
     onOpenPracticeInvoices: () -> Unit,
 ) {
-    var query by rememberSaveable { mutableStateOf("") }
-    val projects by viewModel.projects.collectAsStateWithLifecycle()
-    val tasks by viewModel.dashboardTasks.collectAsStateWithLifecycle()
-    val reviews by viewModel.dashboardReviews.collectAsStateWithLifecycle()
-    val issues by viewModel.dashboardIssues.collectAsStateWithLifecycle()
-    val invoices by viewModel.invoices.collectAsStateWithLifecycle()
-    val q = query.trim()
-    val projectHits = projects.filter { project ->
-        q.isBlank() || listOf(project.name, project.projectCode, project.client, project.siteLocation).any { it.contains(q, true) }
-    }.take(8)
-    val taskHits = tasks.filter { q.isBlank() || it.title.contains(q, true) || it.projectName.contains(q, true) }.take(6)
-    val reviewHits = reviews.filter { q.isBlank() || it.sheetCode.contains(q, true) || it.projectName.contains(q, true) }.take(6)
-    val issueHits = issues.filter { q.isBlank() || it.title.contains(q, true) || it.projectName.contains(q, true) }.take(6)
-    val invoiceHits = invoices.filter { q.isBlank() || it.number.contains(q, true) || it.title.contains(q, true) }.take(6)
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(stringResource(R.string.practice_search), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-            ArchiField(query, { query = it }, stringResource(R.string.practice_search_hint), Modifier.fillMaxWidth())
-            LazyColumn(Modifier.height(420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (projectHits.isNotEmpty()) {
-                    item { Text("Projects", style = MaterialTheme.typography.titleMedium) }
-                    items(projectHits, key = { "p-${it.id}" }) { project ->
-                        FeatureRow(project.name, listOf(project.projectCode, project.client).filter { it.isNotBlank() }.joinToString(" · "), CarbonIcons.Apartment) {
-                            onOpenProject(project.id)
-                        }
-                    }
-                }
-                if (taskHits.isNotEmpty()) {
-                    item { Text("Tasks", style = MaterialTheme.typography.titleMedium) }
-                    items(taskHits, key = { "t-${it.id}" }) { task ->
-                        FeatureRow(task.title, task.projectName, CarbonIcons.Assignment) {
-                            onOpenRecord(task.projectId, WorkspacePage.TASKS, task.id)
-                        }
-                    }
-                }
-                if (reviewHits.isNotEmpty()) {
-                    item { Text("Sheets to review", style = MaterialTheme.typography.titleMedium) }
-                    items(reviewHits, key = { "r-${it.id}" }) { review ->
-                        FeatureRow(review.sheetCode, review.projectName, CarbonIcons.FactCheck) {
-                            onOpenRecord(review.projectId, WorkspacePage.BOOK, review.id)
-                        }
-                    }
-                }
-                if (issueHits.isNotEmpty()) {
-                    item { Text("Site issues", style = MaterialTheme.typography.titleMedium) }
-                    items(issueHits, key = { "i-${it.id}" }) { issue ->
-                        FeatureRow(issue.title, issue.projectName, CarbonIcons.ReportProblem) {
-                            onOpenRecord(issue.projectId, WorkspacePage.SNAGS, issue.id)
-                        }
-                    }
-                }
-                if (invoiceHits.isNotEmpty()) {
-                    item { Text("Invoices", style = MaterialTheme.typography.titleMedium) }
-                    items(invoiceHits, key = { "inv-${it.id}" }) { invoice ->
-                        FeatureRow(invoice.number, invoice.title, CarbonIcons.ReceiptLong, onOpenPracticeInvoices)
-                    }
-                }
-                if (projectHits.isEmpty() && taskHits.isEmpty() && reviewHits.isEmpty() && issueHits.isEmpty() && invoiceHits.isEmpty()) {
-                    item { Text("No matches.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+    val hits by viewModel.practiceSearchHits.collectAsStateWithLifecycle()
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = 16.dp).padding(bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        if (hits.projects.isNotEmpty()) {
+            item { Text("Projects", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+            items(hits.projects, key = { "p-${it.id}" }) { project ->
+                FeatureRow(project.name, listOf(project.projectCode, project.client).filter { it.isNotBlank() }.joinToString(" · "), CarbonIcons.Apartment) {
+                    onOpenProject(project.id)
                 }
             }
+        }
+        if (hits.tasks.isNotEmpty()) {
+            item { Text("Tasks", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+            items(hits.tasks, key = { "t-${it.id}" }) { task ->
+                FeatureRow(task.title, task.projectName, CarbonIcons.Assignment) {
+                    onOpenRecord(task.projectId, WorkspacePage.TASKS, task.id)
+                }
+            }
+        }
+        if (hits.reviews.isNotEmpty()) {
+            item { Text("Sheets to review", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+            items(hits.reviews, key = { "r-${it.id}" }) { review ->
+                FeatureRow(review.sheetCode, review.projectName, CarbonIcons.FactCheck) {
+                    onOpenRecord(review.projectId, WorkspacePage.BOOK, review.id)
+                }
+            }
+        }
+        if (hits.issues.isNotEmpty()) {
+            item { Text("Site issues", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+            items(hits.issues, key = { "i-${it.id}" }) { issue ->
+                FeatureRow(issue.title, issue.projectName, CarbonIcons.ReportProblem) {
+                    onOpenRecord(issue.projectId, WorkspacePage.SNAGS, issue.id)
+                }
+            }
+        }
+        if (hits.invoices.isNotEmpty()) {
+            item { Text("Invoices", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
+            items(hits.invoices, key = { "inv-${it.id}" }) { invoice ->
+                FeatureRow(invoice.number, invoice.title, CarbonIcons.ReceiptLong, onOpenPracticeInvoices)
+            }
+        }
+        if (hits.projects.isEmpty() && hits.tasks.isEmpty() && hits.reviews.isEmpty() && hits.issues.isEmpty() && hits.invoices.isEmpty()) {
+            item { Text("No matches.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 16.dp)) }
         }
     }
 }

@@ -62,7 +62,7 @@ object ConsultancyDeviceChecks {
             PdfRenderer(descriptor).use { renderer -> check(renderer.pageCount >= 2) { "Full agreement was truncated during PDF export." } }
         }
         pdf.delete()
-        val backups = BackupRepository(context, db, PortalServer(db))
+        val backups = BackupRepository(context, db, PortalServer(db, context))
         val export = ByteArrayOutputStream().also { backups.export(it) }.toByteArray()
         val candidate = backups.prepare(ByteArrayInputStream(export))
         backups.restore(candidate)
@@ -94,14 +94,15 @@ object ConsultancyDeviceChecks {
         val migrated = Room.databaseBuilder(target, ArchiManDatabase::class.java, name).addMigrations(*ArchiManMigrations.ALL).build()
         try {
             val sql = migrated.openHelper.writableDatabase
-            check(sql.version == 31)
+            check(sql.version == SchemaContract.VERSION)
             sql.query("SELECT title, amount, detailsJson, documentText FROM fee_proposals").use { check(it.moveToFirst()); check(it.getString(0) == "Preserved fee" && it.getDouble(1) == 12345.0 && it.getString(2) == "" && it.getString(3) == "") }
             sql.query("SELECT amount, detailsJson FROM work_contracts").use { check(it.moveToFirst()); check(it.getDouble(0) == 54321.0 && it.getString(1) == "") }
+            sql.query("SELECT name FROM sqlite_master WHERE type='index' AND name='index_projects_status'").use { check(it.moveToFirst()) }
         } finally { migrated.close(); target.deleteDatabase(name) }
     }
 
     suspend fun legacyBackup(context: Context, db: ArchiManDatabase) {
-        val backups = BackupRepository(context, db, PortalServer(db))
+        val backups = BackupRepository(context, db, PortalServer(db, context))
         val current = ByteArrayOutputStream().also { backups.export(it) }.toByteArray()
         val entries = BackupArchive.read(ByteArrayInputStream(current)).toMutableMap()
         val data = JSONObject(String(entries.getValue("database.json"), Charsets.UTF_8))
@@ -127,6 +128,15 @@ object ConsultancyDeviceChecks {
         val prepared = backups.prepare(ByteArrayInputStream(legacy))
         check(prepared.preview.upgradedFrom == 28)
         backups.restore(prepared)
-        check(db.openHelper.writableDatabase.version == 31)
+        check(db.openHelper.writableDatabase.version == SchemaContract.VERSION)
+        // Schema-31 identity upgrade path (indexes only; row shapes unchanged).
+        val schema31 = BackupArchive.read(ByteArrayInputStream(current)).toMutableMap()
+        val data31 = JSONObject(String(schema31.getValue("database.json"), Charsets.UTF_8))
+        data31.put("schemaVersion", 31).put("identity", "f10be1fd4ecc259d1daebcf7cc86b9d8")
+        schema31["database.json"] = data31.toString().toByteArray(Charsets.UTF_8)
+        val prepared31 = backups.prepare(ByteArrayInputStream(ByteArrayOutputStream().also { BackupArchive.write(schema31, it) }.toByteArray()))
+        check(prepared31.preview.upgradedFrom == 31)
+        backups.restore(prepared31)
+        check(db.openHelper.writableDatabase.version == SchemaContract.VERSION)
     }
 }

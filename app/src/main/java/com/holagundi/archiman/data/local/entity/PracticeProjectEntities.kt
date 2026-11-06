@@ -75,7 +75,7 @@ data class PortalAuditEventEntity(
     val occurredAt: Long,
 )
 
-@Entity(tableName = "projects", indices = [Index("clientId")])
+@Entity(tableName = "projects", indices = [Index("clientId"), Index("status")])
 data class ProjectEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,

@@ -15,7 +15,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("projectId")],
+    indices = [Index("projectId"), Index(value = ["projectId", "status"])],
 )
 data class ProjectTaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -169,7 +169,7 @@ data class ProjectDecisionEntity(
             childColumns = ["projectId"],
             onDelete = ForeignKey.CASCADE,
         ),
-    ], indices = [Index("projectId")])
+    ], indices = [Index("projectId"), Index(value = ["projectId", "status"])])
 data class SiteIssueEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val projectId: Long,

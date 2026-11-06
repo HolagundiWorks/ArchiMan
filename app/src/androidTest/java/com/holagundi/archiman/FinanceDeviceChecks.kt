@@ -38,7 +38,7 @@ object FinanceDeviceChecks {
         finance.saveSettings("COMPOSITION", "18", "29", "29ABCDE1234F1Z5")
         val composition = finance.createInvoice(project, "Composition fee", "1000", "", "998322", "")
         check(db.suiteDao().invoice(composition)!!.amount == 1000.0)
-        val backup = BackupRepository(context, db, PortalServer(db))
+        val backup = BackupRepository(context, db, PortalServer(db, context))
         val bytes = ByteArrayOutputStream().also { backup.export(it) }.toByteArray()
         backup.restore(backup.prepare(ByteArrayInputStream(bytes)))
         check(db.suiteDao().invoiceReceipts(id).sumOf { it.tdsAmount } == 100.0)

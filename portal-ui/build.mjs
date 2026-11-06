@@ -34,4 +34,5 @@ for(const input of Object.keys(built.metafile.inputs)){
 const noticeDirectory=path.resolve(root,'../third_party/portal-dependencies');await mkdir(noticeDirectory,{recursive:true});
 await writeFile(path.join(noticeDirectory,'NOTICES.txt'),[...notices].sort(([a],[b])=>a.localeCompare(b)).map(([name,license])=>name+'\n'+'='.repeat(name.length)+'\n'+license).join('\n\n'));
 const generated=spawnSync(process.platform==='win32'?'python':'python3',[path.join(root,'generate-icons.py')],{stdio:'inherit'});if(generated.status!==0)process.exit(generated.status||1);
+const portalIcons=spawnSync(process.platform==='win32'?'python':'python3',[path.join(root,'generate-portal-icons.py')],{stdio:'inherit'});if(portalIcons.status!==0)process.exit(portalIcons.status||1);
 console.log('Bundled Carbon styles, web components, icons and charts for offline use.');

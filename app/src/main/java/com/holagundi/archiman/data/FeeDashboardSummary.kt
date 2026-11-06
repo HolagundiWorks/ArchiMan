@@ -1,5 +1,6 @@
 package com.holagundi.archiman.data
 
+import com.holagundi.archiman.data.local.FeeDashboardTotals
 import com.holagundi.archiman.data.local.entity.InvoiceEntity
 import com.holagundi.archiman.data.local.entity.ReceiptEntity
 import com.holagundi.archiman.domain.InvoiceBalance
@@ -22,5 +23,12 @@ data class FeeDashboardSummary(val outstanding: BigDecimal, val received: BigDec
             val countedIds=invoices.filter { it.status in listOf("ISSUED","PAID") }.map { it.id }.toSet()
             return FeeDashboardSummary(outstanding, received, unpaid, receipts.filter { r -> r.invoiceId in countedIds }.fold(BigDecimal("0.00")) { total, receipt -> total + InvoiceBalance.money(receipt.tdsAmount) })
         }
+
+        fun fromTotals(totals: FeeDashboardTotals) = FeeDashboardSummary(
+            outstanding = InvoiceBalance.money(totals.outstanding).max(BigDecimal.ZERO),
+            received = InvoiceBalance.money(totals.received),
+            unpaidInvoices = totals.unpaidInvoices,
+            tdsWithheld = InvoiceBalance.money(totals.tdsWithheld),
+        )
     }
 }

@@ -70,6 +70,9 @@ class SuiteRepository @Inject constructor(
     fun observeDashboardTasks(limit: Int = 4) = suiteDao.observeDashboardTasks(limit)
     fun observeDashboardReviews(limit: Int = 3) = suiteDao.observeDashboardReviews(limit)
     fun observeDashboardIssues(limit: Int = 3) = suiteDao.observeDashboardIssues(limit)
+    fun observePracticeFeeSummary() = suiteDao.observePracticeFeeTotals().map { FeeDashboardSummary.fromTotals(it) }
+    fun observeProjectFeeSummary(projectId: Long) = suiteDao.observeProjectFeeTotals(projectId).map { FeeDashboardSummary.fromTotals(it) }
+    fun observeProjectOverviewCounts(projectId: Long) = suiteDao.observeProjectOverviewCounts(projectId)
     fun observeEnquiries() = suiteDao.observeEnquiries()
     fun observeLetters() = suiteDao.observeLetters()
     fun observeTransmittals(projectId: Long) = suiteDao.observeTransmittals(projectId)
@@ -762,8 +765,7 @@ class SuiteRepository @Inject constructor(
 
     suspend fun applyLink(projectId: Long, projectCode: String, ruleId: Long): String {
         val rule = suiteDao.link(ruleId) ?: return "That link is no longer available."
-        val source = measurementDao.measurementsNow(projectId).filter { it.itemName.equals(rule.sourceTrade, ignoreCase = true) }
-        val quantity = source.sumOf { it.quantity }
+        val quantity = measurementDao.sumQuantityByItemName(projectId, rule.sourceTrade)
         if (quantity <= 0.0) return "No ${rule.sourceTrade} quantity to link."
         val (unit, _) = civilMeasure(rule.targetTrade)
         return recordNamed(

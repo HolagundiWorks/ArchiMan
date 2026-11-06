@@ -1,7 +1,21 @@
 package com.holagundi.archiman.portal
 object PortalWorkspaceAssets {
     val css = """
-    [hidden]{display:none!important}main{max-width:1100px;margin:auto;padding:24px}nav{display:flex;gap:20px;flex-wrap:wrap;background:var(--layer);padding:18px;border:1px solid var(--border-subtle);border-radius:8px}h1{font-size:28px}form,article{background:var(--layer);padding:20px;border:1px solid var(--border-subtle);border-radius:8px;margin:16px 0}label{display:block;font-size:14px;margin-bottom:12px}input,textarea,select{display:block;width:100%}input[type=checkbox]{display:inline;width:auto;accent-color:var(--button-primary)}input[type=color]{height:48px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.dimensions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}output{display:block;padding:16px;background:var(--highlight);color:var(--highlight-text);font-weight:700}table{border-collapse:collapse;width:100%}td,th{border:1px solid var(--border-subtle);padding:8px;text-align:left;vertical-align:top}th{background:var(--layer-hover)}.tablewrap{overflow:auto}.paper{background:#ffffff;color:#161616;color-scheme:light;border-radius:0;min-height:650px;max-width:800px;margin:20px auto;padding:40px;--accent:#0f62fe}.paper hr{border:1px solid var(--accent)}.logo{width:90px;height:90px;object-fit:contain;float:right}.paper p{margin:4px 0}.paper footer{margin-top:250px;font-size:12px}@media(max-width:600px){main{padding:12px}.grid{grid-template-columns:1fr}.dimensions label{font-size:11px}.dimensions input{padding:8px 4px}form{padding:12px}}@media print{nav,form{display:none}body{background:white}.paper{border:0;margin:0}}
+    [hidden]{display:none!important}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}
+    .dimensions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
+    input[type=checkbox]{inline-size:auto;accent-color:var(--cds-border-interactive, var(--button-primary))}
+    input[type=color]{block-size:3rem}
+    output{display:block;padding:1rem;background:var(--cds-layer-selected, var(--highlight));color:var(--cds-text-primary, var(--highlight-text));font-weight:600}
+    .tablewrap{overflow:auto}
+    .paper{background:#ffffff;color:#161616;color-scheme:light;min-height:650px;max-width:50rem;margin:1.5rem auto;padding:2.5rem;--accent:#0f62fe}
+    .paper hr{border:1px solid var(--accent)}
+    .logo{width:5.5rem;height:5.5rem;object-fit:contain;float:right}
+    .paper p{margin:.25rem 0}
+    .paper footer{margin-top:12rem;font-size:.75rem}
+    article{margin-block:1rem}
+    @media(max-width:600px){.grid,.dimensions{grid-template-columns:1fr}}
+    @media print{.portal-workflow,form{display:none}.paper{border:0;margin:0}}
     """.trimIndent()
     val js = """
     'use strict';

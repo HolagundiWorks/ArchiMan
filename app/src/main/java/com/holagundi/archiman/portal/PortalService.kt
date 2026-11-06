@@ -48,9 +48,17 @@ class PortalService : Service() {
             }
             return START_NOT_STICKY
         }
-        if (!portal.start(address)) {
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+        // TLS keystore work and bind can take hundreds of ms on StrongBox devices.
+        Thread({
+            if (!portal.start(address)) {
+                Handler(Looper.getMainLooper()).post {
+                    stopForeground(STOP_FOREGROUND_REMOVE)
+                    stopSelf()
+                }
+            }
+        }, "archiman-portal-start").apply {
+            isDaemon = true
+            start()
         }
         return START_NOT_STICKY
     }

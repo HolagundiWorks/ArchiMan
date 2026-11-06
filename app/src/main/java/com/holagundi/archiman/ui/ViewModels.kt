@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.holagundi.archiman.data.CatalogRepository
 import com.holagundi.archiman.data.DemoCompanyPackage
 import com.holagundi.archiman.data.DemoCompanyStore
-import com.holagundi.archiman.data.FieldRepository
 import com.holagundi.archiman.data.MeasurementRepository
 import com.holagundi.archiman.data.PracticeRepository
 import com.holagundi.archiman.data.ProjectRepository
@@ -16,21 +15,22 @@ import com.holagundi.archiman.data.local.entity.LocalUserEntity
 import com.holagundi.archiman.data.local.entity.ProjectStageEntity
 import com.holagundi.archiman.domain.MeasurementDraft
 import com.holagundi.archiman.domain.MeasurementSheetCsv
-import com.holagundi.archiman.domain.ProjectModuleCounts
 import com.holagundi.archiman.domain.RecordResult
 import com.holagundi.archiman.domain.SiteIssueWorkflow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val subscribed = SharingStarted.WhileSubscribed(5_000)
 
@@ -40,7 +40,6 @@ class PortfolioViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val suiteRepository: SuiteRepository,
     private val demoCompanyStore: DemoCompanyStore,
-    catalogRepository: CatalogRepository,
 ) : ViewModel() {
     private val attentionLimit = MutableStateFlow(50)
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
@@ -51,26 +50,58 @@ class PortfolioViewModel @Inject constructor(
     val inboxIssues = attentionLimit.flatMapLatest { suiteRepository.observeDashboardIssues(it) }.stateIn(viewModelScope, subscribed, emptyList())
     fun loadMoreAttention() { attentionLimit.value += 50 }
     val dashboardMetrics = suiteRepository.observeDashboardMetrics().stateIn(viewModelScope, subscribed, null)
-    val dashboardTasks = suiteRepository.observeDashboardTasks().stateIn(viewModelScope, subscribed, emptyList())
-    val dashboardReviews = suiteRepository.observeDashboardReviews().stateIn(viewModelScope, subscribed, emptyList())
-    val dashboardIssues = suiteRepository.observeDashboardIssues().stateIn(viewModelScope, subscribed, emptyList())
-    val dashboardFees = combine(suiteRepository.observeAllInvoices(), suiteRepository.observeAllReceipts()) { invoices, receipts ->
-        com.holagundi.archiman.data.FeeDashboardSummary.calculate(invoices, receipts)
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, subscribed, null)
+    val dashboardTasks = inboxTasks.map { it.take(4) }.stateIn(viewModelScope, subscribed, emptyList())
+    val dashboardReviews = inboxReviews.map { it.take(3) }.stateIn(viewModelScope, subscribed, emptyList())
+    val dashboardIssues = inboxIssues.map { it.take(3) }.stateIn(viewModelScope, subscribed, emptyList())
     val company = practiceRepository.observeCompany().stateIn(viewModelScope, subscribed, null)
     val projects = projectRepository.observeProjects().stateIn(viewModelScope, subscribed, emptyList())
+    /** Collected only from the Clients practice pane. */
     val clients = practiceRepository.observeClients().stateIn(viewModelScope, subscribed, emptyList())
-    val workItems = catalogRepository.observeActiveItems().stateIn(viewModelScope, subscribed, emptyList())
-
-
-    val users = suiteRepository.observeUsers().stateIn(viewModelScope, subscribed, emptyList())
-    val enquiries = suiteRepository.observeEnquiries().stateIn(viewModelScope, subscribed, emptyList())
-    val letters = suiteRepository.observeLetters().stateIn(viewModelScope, subscribed, emptyList())
-    val transmittals = suiteRepository.observeAllTransmittals().stateIn(viewModelScope, subscribed, emptyList())
-    val stages = suiteRepository.observeAllStages().stateIn(viewModelScope, subscribed, emptyList())
+    /** Collected from Accounts / search — not the HOME dashboard. */
     val invoices = suiteRepository.observeAllInvoices().stateIn(viewModelScope, subscribed, emptyList())
-    val receipts = suiteRepository.observeAllReceipts().stateIn(viewModelScope, subscribed, emptyList())
-    val rates = suiteRepository.observeRates().stateIn(viewModelScope, subscribed, emptyList())
+    val dashboardFees = suiteRepository.observePracticeFeeSummary()
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, subscribed, null)
+    private val searchQuery = MutableStateFlow("")
+    fun setPracticeSearchQuery(value: String) { searchQuery.value = value }
+    data class PracticeSearchHits(
+        val projects: List<com.holagundi.archiman.data.local.entity.ProjectEntity> = emptyList(),
+        val tasks: List<com.holagundi.archiman.data.local.DashboardTask> = emptyList(),
+        val reviews: List<com.holagundi.archiman.data.local.DashboardReview> = emptyList(),
+        val issues: List<com.holagundi.archiman.data.local.DashboardIssue> = emptyList(),
+        val invoices: List<com.holagundi.archiman.data.local.entity.InvoiceEntity> = emptyList(),
+    )
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    val practiceSearchHits = combine(
+        searchQuery.debounce(250),
+        projects,
+        inboxTasks,
+        inboxReviews,
+        inboxIssues,
+        invoices,
+    ) { values ->
+        val q = (values[0] as String).trim()
+        @Suppress("UNCHECKED_CAST")
+        val projectList = values[1] as List<com.holagundi.archiman.data.local.entity.ProjectEntity>
+        @Suppress("UNCHECKED_CAST")
+        val taskList = values[2] as List<com.holagundi.archiman.data.local.DashboardTask>
+        @Suppress("UNCHECKED_CAST")
+        val reviewList = values[3] as List<com.holagundi.archiman.data.local.DashboardReview>
+        @Suppress("UNCHECKED_CAST")
+        val issueList = values[4] as List<com.holagundi.archiman.data.local.DashboardIssue>
+        @Suppress("UNCHECKED_CAST")
+        val invoiceList = values[5] as List<InvoiceEntity>
+        if (q.isBlank()) PracticeSearchHits()
+        else PracticeSearchHits(
+            projects = projectList.filter { project ->
+                listOf(project.name, project.projectCode, project.client, project.siteLocation).any { it.contains(q, true) }
+            }.take(8),
+            tasks = taskList.filter { it.title.contains(q, true) || it.projectName.contains(q, true) }.take(6),
+            reviews = reviewList.filter { it.sheetCode.contains(q, true) || it.projectName.contains(q, true) }.take(6),
+            issues = issueList.filter { it.title.contains(q, true) || it.projectName.contains(q, true) }.take(6),
+            invoices = invoiceList.filter { it.number.contains(q, true) || it.title.contains(q, true) }.take(6),
+        )
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, subscribed, PracticeSearchHits())
     private val _signedIn = MutableStateFlow<LocalUserEntity?>(null)
     val signedIn = _signedIn.asStateFlow()
     private val _demoCatalog = MutableStateFlow<DemoCompanyPackage?>(null)
@@ -127,7 +158,6 @@ class ProjectWorkspaceViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val catalogRepository: CatalogRepository,
     measurementRepository: MeasurementRepository,
-    fieldRepository: FieldRepository,
     scheduleRepository: com.holagundi.archiman.data.ProjectScheduleRepository,
 ) : ViewModel() {
     private val projectId: Long = checkNotNull(savedStateHandle.get<Long>("projectId"))
@@ -137,10 +167,9 @@ class ProjectWorkspaceViewModel @Inject constructor(
     val floors = projectRepository.observeFloors(projectId).stateIn(viewModelScope, subscribed, emptyList())
     val rooms = projectRepository.observeRooms(projectId).stateIn(viewModelScope, subscribed, emptyList())
     val contractors = catalogRepository.observeContractors(projectId).stateIn(viewModelScope, subscribed, emptyList())
+    /** Collected from Measurement Book / overview only — not the project shell. */
     val sheets = measurementRepository.observeSheets(projectId).stateIn(viewModelScope, subscribed, emptyList())
     val measurements = measurementRepository.observeMeasurements(projectId).stateIn(viewModelScope, subscribed, emptyList())
-    val counts = fieldRepository.observeCounts(projectId).stateIn(viewModelScope, subscribed, ProjectModuleCounts())
-    val workItems = catalogRepository.observeActiveItems().stateIn(viewModelScope, subscribed, emptyList())
     data class CaptureContext(
         val schedules: List<com.holagundi.archiman.data.ScheduleRevision>,
         val contractors: List<com.holagundi.archiman.data.local.entity.ContractorEntity>,
@@ -148,7 +177,8 @@ class ProjectWorkspaceViewModel @Inject constructor(
     )
     // A null initial value distinguishes loading from a genuinely empty setup. This prevents
     // lookup placeholders from erasing restored contractor/item selections after recreation.
-    val captureContext = combine(scheduleRepository.observe(projectId), catalogRepository.observeContractors(projectId), projectRepository.observeFloors(projectId)) { schedules, contractors, floors ->
+    // Reuse the shared stateIn sources so capture does not open a second Room subscription set.
+    val captureContext = combine(schedules, contractors, floors) { schedules, contractors, floors ->
         CaptureContext(schedules, contractors, floors)
     }.stateIn(viewModelScope, subscribed, null)
 
@@ -225,6 +255,14 @@ class RecordMeasurementViewModel @Inject constructor(
         ready(committed)
     }
 
+    fun deleteSelected(ready: () -> Unit) = operation {
+        val selected = requireNotNull(_selected.value) { "Choose a recorded entry first." }
+        withContext(Dispatchers.IO) { recordOperations.delete(selected) }
+        selectSnapshot(null); setEditing(true)
+        _saved.value = "Measurement entry deleted."
+        ready()
+    }
+
     fun clearError() {
         _error.value = null
     }
@@ -288,6 +326,12 @@ class SuiteProjectViewModel @Inject constructor(
     val stages = suiteRepository.observeStages(projectId).stateIn(viewModelScope, subscribed, emptyList())
     val invoices = suiteRepository.observeInvoices(projectId).stateIn(viewModelScope, subscribed, emptyList())
     val receipts = suiteRepository.observeReceipts(projectId).stateIn(viewModelScope, subscribed, emptyList())
+    /** Overview-only aggregates — keep full task/issue/fee tables off the dashboard collectors. */
+    val overviewCounts = suiteRepository.observeProjectOverviewCounts(projectId)
+        .stateIn(viewModelScope, subscribed, com.holagundi.archiman.data.local.ProjectOverviewCounts(0, 0))
+    val feeSummary = suiteRepository.observeProjectFeeSummary(projectId)
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, subscribed, null)
     val permits = suiteRepository.observePermits(projectId).stateIn(viewModelScope, subscribed, emptyList())
     val time = suiteRepository.observeTime(projectId).stateIn(viewModelScope, subscribed, emptyList())
     val letters = suiteRepository.observeLetters().stateIn(viewModelScope, subscribed, emptyList())

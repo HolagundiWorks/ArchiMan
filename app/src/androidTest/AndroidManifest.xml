@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Instrumentation runner is BackupDeviceChecks (see app/build.gradle.kts).
+     Pass -e suite screenWalk to run ScreenWalkRunner. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" />

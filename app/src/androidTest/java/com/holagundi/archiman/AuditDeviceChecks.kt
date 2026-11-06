@@ -20,7 +20,7 @@ object AuditDeviceChecks {
     suspend fun run(context:Context,db:ArchiManDatabase,suite:SuiteRepository,results:Bundle) {
         val directory=File(context.cacheDir,"audit-device").apply { mkdirs() }
         val metrics=JSONObject()
-        val backups=BackupRepository(context,db,PortalServer(db))
+        val backups=BackupRepository(context,db,PortalServer(db,context))
         suspend fun tables():String { val bytes=ByteArrayOutputStream().also { backups.export(it) }.toByteArray();return JSONObject(BackupArchive.read(ByteArrayInputStream(bytes)).getValue("database.json").toString(Charsets.UTF_8)).getJSONObject("tables").toString() }
         val before=tables();val store=DemoCompanyStore(context,db)
         val backupBytes=ByteArrayOutputStream().also { backups.export(it) }.toByteArray()
@@ -97,7 +97,7 @@ object AuditDeviceChecks {
         check(injection.contains("'=HYPERLINK")&&injection.contains("'\t+SUM")&&injection.contains("'\uFEFF=1+1"))
         results.putString("largeData","passed: 10,000 bank import rows and records, 10,000-invoice cash/TDS aggregation, bounded schedule reads and spreadsheet formula neutralisation")
 
-        val server=PortalServer(db);check(server.start("127.0.0.1"))
+        val server=PortalServer(db,context);check(server.start("127.0.0.1"))
         fun request(raw:String):String=PinnedPortalClient.socket(server).use { socket->socket.soTimeout=5000;socket.getOutputStream().apply{write(raw.toByteArray());flush()};socket.getInputStream().readBytes().toString(Charsets.UTF_8) }
         fun closed(socket:Socket):Boolean=try { socket.getInputStream().read()==-1 } catch(timeout:java.net.SocketTimeoutException) { false } catch(reset:java.net.SocketException) { true }
         fun get(path:String="/")="GET $path HTTP/1.1\r\nHost: 127.0.0.1:${PortalHttp.PORT}\r\n\r\n"

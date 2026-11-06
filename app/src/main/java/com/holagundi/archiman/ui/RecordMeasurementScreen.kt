@@ -40,13 +40,13 @@ import com.holagundi.archiman.ui.theme.CarbonIcons
 import java.util.Locale
 
 @Composable
-fun <T> MeasurementSelect(label: String, value: String, choices: List<Pair<T, String>>, enabled: Boolean = true, choose: (T) -> Unit) {
+fun <T> MeasurementSelect(label: String, value: String, choices: List<Pair<T, String>>, enabled: Boolean = true, modifier: Modifier = Modifier, choose: (T) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
-    Column {
+    Column(modifier) {
         Text(label, style = MaterialTheme.typography.labelSmall)
         Box {
             OutlinedButton(enabled = enabled, onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
-                Text(value.ifBlank { "Select $label" }, Modifier.weight(1f), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(value.ifBlank { "Select $label" }, Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.width(8.dp))
                 Icon(CarbonIcons.ChevronDown, null, Modifier.size(20.dp))
             }
@@ -95,6 +95,7 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
     var descriptionEdited by rememberSaveable { mutableStateOf(false) }
     var details by rememberSaveable { mutableStateOf(false) }
     var more by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     var activeField by rememberSaveable { mutableStateOf("description") }
     val softwareKeyboard = LocalSoftwareKeyboardController.current
     val selection = remember { mutableStateMapOf<String, TextRange>() }
@@ -131,6 +132,7 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
     val sheetById = remember(sheets) { sheets.associateBy { it.id } }
     val selectedSheet = sheetById[selectedEntry?.text("sheetId")?.toLongOrNull()]
     val canEditSelected = selectedEntry != null && selectedSheet?.status in listOf("DRAFT", "RETURNED") && selectedSheet?.archivedAt == null
+    val canDeleteSelected = selectedEntry != null && selectedSheet?.status != "APPROVED" && selectedSheet?.archivedAt == null
     LaunchedEffect(assigned) {
         if (selectedLine == null && selectedEntry == null) { lineKey = ""; itemName = ""; if (!descriptionEdited) description = "" }
     }
@@ -332,6 +334,30 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
         text = { Text("This entry has unsaved values. Save it before leaving, or discard these values.") },
         confirmButton = { TextButton(onClick = { val leave = pendingLeave; pendingLeave = null; leave?.invoke() }) { Text("Discard and leave") } },
         dismissButton = { TextButton(onClick = { pendingLeave = null }) { Text("Keep editing") } })
+    if (confirmDelete) AlertDialog(
+        onDismissRequest = { confirmDelete = false },
+        title = { Text("Delete measurement entry?") },
+        text = { Text("This permanently removes the recorded entry. Approved entries cannot be deleted.") },
+        confirmButton = {
+            TextButton(
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                enabled = !busy,
+                onClick = {
+                    confirmDelete = false
+                    record.deleteSelected {
+                        clearDimensions()
+                        description = selectedLine?.description.orEmpty()
+                        descriptionEdited = false
+                        location = ""
+                        remarks = ""
+                        editBaseline = emptyList()
+                        activeField = "description"
+                    }
+                },
+            ) { Text("Delete entry") }
+        },
+        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+    )
     Scaffold(
         modifier = Modifier.fillMaxSize().imePadding(),
         snackbarHost = { SnackbarHost(feedback) },
@@ -347,8 +373,8 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
                     com.holagundi.archiman.ui.theme.CarbonScreenHelp("Record measurements", listOf(
                         "Choose a floor and an assigned work item for a new entry. Previous/next arrows browse recorded measurements for this contractor, including entries for different work items.",
                         "Tap a field to edit it. The fixed keyboard switches between text and numbers; its arrows move between fields.",
-                        "For a new entry, Save records it in a draft sheet. For a selected draft/returned entry, Edit unlocks its values and Save updates that same entry. Approved entries are read-only.",
-                        "Use the three-dot menu to change contractor, metric/imperial units, or extra details. The system keyboard is blocked on this screen.",
+                        "For a new entry, Save records it in a draft sheet. For a selected draft/returned entry, Edit unlocks its values and Save updates that same entry. Delete is available until the sheet is approved.",
+                        "Use the three-dot menu to change contractor, metric/imperial units, delete an unapproved entry, or open extra details. The system keyboard is blocked on this screen.",
                     ))
                     Box {
                         IconButton(enabled = !busy, onClick = { more = true }) { Icon(CarbonIcons.MoreVert, "Measurement options") }
@@ -359,6 +385,11 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
                             }
                             DropdownMenuItem(text = { Text(if (details) "Hide location and remarks" else "Room, location and remarks") }, onClick = { more = false; details = !details; activeField = if (details) "location" else "description" })
                             if (selectedEntry != null) DropdownMenuItem(text = { Text("Reload recorded entry") }, onClick = { more = false; requestLeave { record.selectEntry(selectedEntry!!.id, ::loadEntry) } })
+                            if (canDeleteSelected) DropdownMenuItem(
+                                text = { Text("Delete recorded entry") },
+                                leadingIcon = { Icon(CarbonIcons.DeleteOutline, null, tint = MaterialTheme.colorScheme.error) },
+                                onClick = { more = false; confirmDelete = true },
+                            )
                             DropdownMenuItem(text = { Text("New measurement") }, leadingIcon = { Icon(CarbonIcons.Add, null) }, onClick = { more = false; newEntry() })
                             DropdownMenuItem(text = { Text("Save and view sheet") }, enabled = canSave, onClick = { more = false; saveEntry(false) })
                             DropdownMenuItem(text = { Text("View measurement sheets") }, onClick = { more = false; requestLeave(onDone) })
@@ -375,7 +406,7 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(selectedEntry?.text("contractorName") ?: contractors.firstOrNull { it.id == contractorId }?.name ?: "Select contractor in measurement options", style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            run {
                 val status = when {
                     selectedSheet?.archivedAt != null -> "Archived — read-only"
                     selectedSheet?.status == "SUBMITTED" -> "Ready to check"
@@ -383,11 +414,24 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
                     selectedSheet?.status == "RETURNED" -> "Returned with comments"
                     else -> selectedSheet?.status?.lowercase()?.replace('_', ' ')?.replaceFirstChar { it.uppercase() }.orEmpty()
                 }
-                Text(if (selectedEntry == null) "New entry · ${entries.size} recorded" else "Entry ${entryIndex + 1} of ${entries.size} · $status", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                Text(
+                    if (selectedEntry == null) "New entry · ${entries.size} recorded" else "Entry ${entryIndex + 1} of ${entries.size} · $status",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                MeasurementSelect(
+                    "Floor",
+                    floors.firstOrNull { it.id == floorId }?.name ?: selectedEntry?.text("floor").orEmpty(),
+                    floors.map { it.id to it.name },
+                    enabled = !busy && selectedEntry == null,
+                    modifier = Modifier.weight(1f),
+                ) { floorId = it; roomId = 0 }
                 IconButton(enabled = !busy && entries.isNotEmpty() && (selectedEntry == null || entryIndex > 0), onClick = { navigateEntry(if (selectedEntry == null) entries.lastIndex else entryIndex - 1) }) { Icon(CarbonIcons.ArrowBack, "Previous recorded measurement") }
                 IconButton(enabled = !busy && selectedEntry != null && entryIndex >= 0 && entryIndex < entries.lastIndex, onClick = { navigateEntry(entryIndex + 1) }) { Icon(CarbonIcons.ArrowForward, "Next recorded measurement") }
             }
-            MeasurementSelect("Floor", floors.firstOrNull { it.id == floorId }?.name ?: selectedEntry?.text("floor").orEmpty(), floors.map { it.id to it.name }, enabled = !busy && selectedEntry == null) { floorId = it; roomId = 0 }
             MeasurementSelect("Assigned item", itemName, assigned.map { it.key to "${it.code} | ${it.description}" }, enabled = !busy && selectedEntry == null, choose = ::selectItem)
             if (selectedEntry == null && (active == null || assigned.isEmpty())) {
                 Text("No assigned works in an active revision for this contractor.", style = MaterialTheme.typography.bodySmall)

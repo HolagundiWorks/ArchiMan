@@ -24,7 +24,7 @@ import com.holagundi.archiman.domain.SheetExport
 import com.holagundi.archiman.domain.SheetExportRow
 import com.holagundi.archiman.domain.SheetStatus
 import androidx.room.withTransaction
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,6 +73,8 @@ class ProjectRepository @Inject constructor(
         siteLocation: String,
         architect: String,
     ): Long = db.withTransaction {
+        require(name.isNotBlank()) { "Enter a project name." }
+        require(clientName.isNotBlank()) { "Enter a client name." }
         val now = System.currentTimeMillis()
         val clientId = practiceDao.insertClient(
             ClientEntity(
@@ -109,11 +111,13 @@ class ProjectRepository @Inject constructor(
     }
 
     suspend fun addFloor(projectId: Long, name: String) {
+        require(name.isNotBlank()) { "Enter a level name." }
         val order = projectDao.floors(projectId).size
         projectDao.insertFloor(FloorEntity(projectId = projectId, name = name.trim(), orderIndex = order))
     }
 
     suspend fun addRoom(projectId: Long, floorId: Long, name: String) {
+        require(name.isNotBlank()) { "Enter a room name." }
         val order = projectDao.roomsOnFloor(projectId, floorId).size
         projectDao.insertRoom(
             RoomEntity(projectId = projectId, floorId = floorId, name = name.trim(), orderIndex = order),
@@ -256,7 +260,7 @@ class MeasurementRepository @Inject constructor(
     suspend fun deleteMeasurement(id: Long): Boolean = db.withTransaction {
         val row = measurementDao.getMeasurement(id) ?: return@withTransaction false
         val sheet = measurementDao.getSheet(row.sheetId) ?: return@withTransaction false
-        if (sheet.status !in listOf(SheetStatus.DRAFT, SheetStatus.RETURNED)) return@withTransaction false
+        if (sheet.archivedAt != null || sheet.status == SheetStatus.APPROVED) return@withTransaction false
         measurementDao.deleteMeasurement(id)
         true
     }
@@ -299,33 +303,17 @@ class MeasurementRepository @Inject constructor(
 class FieldRepository @Inject constructor(
     private val fieldDao: FieldDao,
 ) {
-    fun observeCounts(projectId: Long) = combine(
-        combine(
-            fieldDao.observeDailyLogCount(projectId),
-            fieldDao.observeMaterialOrderCount(projectId),
-            fieldDao.observeDrawingCount(projectId),
-        ) { daily, orders, drawings -> Triple(daily, orders, drawings) },
-        combine(
-            fieldDao.observeSiteIssueCount(projectId),
-            fieldDao.observeInspectionCount(projectId),
-            fieldDao.observeMinutesCount(projectId),
-        ) { issues, inspections, minutes -> Triple(issues, inspections, minutes) },
-        combine(
-            fieldDao.observeCoordinationCount(projectId),
-            fieldDao.observeDecisionCount(projectId),
-            fieldDao.observeTaskCount(projectId),
-        ) { coordination, decisions, tasks -> Triple(coordination, decisions, tasks) },
-    ) { site, quality, office ->
+    fun observeCounts(projectId: Long) = fieldDao.observeModuleCounts(projectId).map { row ->
         ProjectModuleCounts(
-            dailyLogs = site.first,
-            materialOrders = site.second,
-            drawings = site.third,
-            siteIssues = quality.first,
-            inspections = quality.second,
-            minutes = quality.third,
-            coordination = office.first,
-            decisions = office.second,
-            tasks = office.third,
+            dailyLogs = row.dailyLogs,
+            materialOrders = row.materialOrders,
+            drawings = row.drawings,
+            siteIssues = row.siteIssues,
+            inspections = row.inspections,
+            minutes = row.minutes,
+            coordination = row.coordination,
+            decisions = row.decisions,
+            tasks = row.tasks,
         )
     }
 }

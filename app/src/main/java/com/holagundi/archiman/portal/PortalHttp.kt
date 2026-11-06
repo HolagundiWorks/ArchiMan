@@ -13,7 +13,12 @@ data class PortalRequest(
     val query: Map<String, String>,
     val headers: Map<String, String>,
     val body: String,
+    val rawBody: ByteArray = ByteArray(0),
 )
+
+data class PortalPart(val filename: String?, val bytes: ByteArray) {
+    fun text(): String = bytes.toString(StandardCharsets.UTF_8)
+}
 
 object PortalHttp {
     const val PORT = 8765
@@ -43,15 +48,31 @@ object PortalHttp {
     }
 
     fun hostAllowed(hostHeader: String?, address: String, port: Int = PORT): Boolean {
-        val host = hostHeader?.trim()?.lowercase().orEmpty()
-        if (host.isEmpty() || host.contains('@')) return false
-        val expected = address.lowercase()
+        val host = normalizeHost(hostHeader) ?: return false
+        val expected = normalizeHost(address) ?: return false
         return host == expected || host == "$expected:$port"
     }
 
     fun originAllowed(origin: String?, address: String, port: Int = PORT): Boolean {
-        if (origin.isNullOrBlank()) return true
-        return origin.trim() == "https://${address.lowercase()}:$port" || origin.trim() == "https://$address:$port"
+        if (origin.isNullOrBlank() || origin.equals("null", ignoreCase = true)) return true
+        val expected = "https://${normalizeHost(address)}:$port"
+        return origin.trim().trimEnd('/').equals(expected, ignoreCase = true)
+    }
+
+    /** Strip whitespace, trailing DNS dots, and IPv6 brackets so browser Host headers match the bound Wi‑Fi IP. */
+    fun normalizeHost(value: String?): String? {
+        val raw = value?.trim()?.lowercase().orEmpty()
+        if (raw.isEmpty() || raw.contains('@') || raw.contains(',')) return null
+        val withoutBrackets = if (raw.startsWith('[')) {
+            val end = raw.indexOf(']')
+            if (end <= 1) return null
+            val ip = raw.substring(1, end).trimEnd('.')
+            val rest = raw.substring(end + 1)
+            if (rest.isEmpty()) ip else if (rest.startsWith(':')) "$ip$rest" else return null
+        } else raw
+        val hostPart = withoutBrackets.substringBefore(':').trimEnd('.')
+        val portPart = withoutBrackets.substringAfter(':', missingDelimiterValue = "")
+        return if (portPart.isEmpty()) hostPart else "$hostPart:$portPart"
     }
 
     fun escape(value: String): String = buildString(value.length) {
@@ -94,10 +115,12 @@ object PortalHttp {
         val lengthText=parsed.headers["content-length"]
         if(lengthText!=null && !lengthText.matches(Regex("[0-9]{1,9}"))) return null
         val length=lengthText?.toIntOrNull() ?: 0
-        if(length !in 0..bodyLimit(parsed).coerceIn(0,4_000_000) || (parsed.method=="GET" && length>0)) return null
-        val body=ByteArray(length); var offset=0
-        while(offset<length) { val count=stream.read(body,offset,length-offset); if(count<0) return null;offset+=count }
-        return parsed.copy(body=String(body,StandardCharsets.UTF_8))
+        val cap = if (parsed.path == "/transfer/restore") 65 * 1024 * 1024 else 4_000_000
+        if(length !in 0..bodyLimit(parsed).coerceIn(0, cap) || (parsed.method=="GET" && length>0)) return null
+        val raw=ByteArray(length); var offset=0
+        while(offset<length) { val count=stream.read(raw,offset,length-offset); if(count<0) return null;offset+=count }
+        val multipart = parsed.headers["content-type"]?.substringBefore(';')?.trim()?.equals("multipart/form-data", true) == true
+        return if (multipart) parsed.copy(body = "", rawBody = raw) else parsed.copy(body = String(raw, StandardCharsets.UTF_8))
     }
 
     fun parseHead(head: String): PortalRequest? {
@@ -130,8 +153,63 @@ object PortalHttp {
         }
         if(headers["host"].isNullOrBlank() || headers["host"]!!.contains(',') || headers.containsKey("transfer-encoding")) return null
         if(authority!=null && !authority.equals(headers["host"],ignoreCase=true)) return null
-        if (headers["content-type"]?.substringBefore(';')?.trim()?.lowercase() == "multipart/form-data") return null
+        val multipart = headers["content-type"]?.substringBefore(';')?.trim()?.equals("multipart/form-data", true) == true
+        if (multipart && path != "/transfer/restore") return null
         return PortalRequest(method, path, query, headers, "")
+    }
+
+    fun multipart(contentType: String?, raw: ByteArray): Map<String, PortalPart> {
+        val boundary = Regex("""boundary=(?:"([^"]+)"|([^;\s]+))""", RegexOption.IGNORE_CASE)
+            .find(contentType.orEmpty())?.let { it.groupValues[1].ifBlank { it.groupValues[2] } }
+            ?: throw IllegalArgumentException("Choose the backup file again.")
+        require(boundary.length in 1..70 && boundary.none { it.code < 32 }) { "Invalid upload." }
+        val marker = "--$boundary".toByteArray(StandardCharsets.ISO_8859_1)
+        val parts = linkedMapOf<String, PortalPart>()
+        var cursor = indexOf(raw, marker, 0)
+        require(cursor >= 0) { "The upload was incomplete." }
+        var count = 0
+        while (cursor >= 0) {
+            var start = cursor + marker.size
+            if (start + 1 < raw.size && raw[start] == '-'.code.toByte() && raw[start + 1] == '-'.code.toByte()) break
+            if (count >= 8) throw IllegalArgumentException("Too many upload fields.")
+            if (start < raw.size && raw[start] == '\r'.code.toByte()) start++
+            if (start < raw.size && raw[start] == '\n'.code.toByte()) start++
+            val next = indexOf(raw, marker, start)
+            val end = if (next < 0) raw.size else {
+                var cut = next
+                if (cut >= 2 && raw[cut - 2] == '\r'.code.toByte() && raw[cut - 1] == '\n'.code.toByte()) cut -= 2
+                else if (cut >= 1 && raw[cut - 1] == '\n'.code.toByte()) cut -= 1
+                cut
+            }
+            val headerEnd = indexOf(raw, "\r\n\r\n".toByteArray(StandardCharsets.ISO_8859_1), start).let { crlf ->
+                if (crlf in start until end) crlf to 4 else indexOf(raw, "\n\n".toByteArray(StandardCharsets.ISO_8859_1), start).let { lf ->
+                    if (lf in start until end) lf to 2 else -1 to 0
+                }
+            }
+            require(headerEnd.first >= start) { "The upload was incomplete." }
+            val header = String(raw, start, headerEnd.first - start, StandardCharsets.ISO_8859_1)
+            val disposition = header.lineSequence().firstOrNull { it.startsWith("Content-Disposition:", true) }.orEmpty()
+            val name = Regex("""name="([^"]{1,128})"""").find(disposition)?.groupValues?.get(1)
+                ?: throw IllegalArgumentException("Invalid upload field.")
+            require(name !in parts) { "Duplicate upload field." }
+            val filename = Regex("""filename="([^"]*)"""").find(disposition)?.groupValues?.get(1)
+            val dataStart = headerEnd.first + headerEnd.second
+            parts[name] = PortalPart(filename, raw.copyOfRange(dataStart, end))
+            count++
+            cursor = next
+        }
+        require(parts.isNotEmpty()) { "The upload was empty." }
+        return parts
+    }
+
+    private fun indexOf(data: ByteArray, needle: ByteArray, from: Int): Int {
+        if (needle.isEmpty() || from > data.size - needle.size) return -1
+        for (index in from..data.size - needle.size) {
+            var match = true
+            for (offset in needle.indices) if (data[index + offset] != needle[offset]) { match = false; break }
+            if (match) return index
+        }
+        return -1
     }
 
     private fun decodePairs(text: String): Map<String, String> {

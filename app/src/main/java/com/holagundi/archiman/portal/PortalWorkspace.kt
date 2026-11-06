@@ -26,12 +26,17 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
         val projectNav = if (id != null && section in listOf("schedule", "measure", "estimate", "bills")) {
             val project = requireNotNull(db.projectDao().getProject(id))
             val revision = com.holagundi.archiman.data.ProjectScheduleRepository(db).active(id)
-            "<section class='carbon-project-context'><h2>${e(project.name)}</h2><p>Active item revision: ${e(revision?.label ?: "Not activated")}. Contractor quantities and bills exclude taxes.</p><nav aria-label='Project workflow'>" +
+            "<section class='cds--tile carbon-project-context'><h2>${e(project.name)}</h2><p class='portal-tile-meta'>Active item revision: ${e(revision?.label ?: "Not activated")}. Contractor quantities and bills exclude taxes.</p><nav class='portal-workflow' aria-label='Project workflow'>" +
                 listOf("estimate" to "1. Estimate", "schedule" to "2. Assigned works & revision", "measure" to "3. Record / import", "bills" to "4. Contractor bills").joinToString("") { (target,label) -> "<a href='/workspace?section=$target&id=$id'>${e(label)}</a>" } + "</nav><p>Review and approve recorded sheets in the phone's Measurement Book before preparing a bill.</p></section>"
         } else ""
-        val navigation = "<nav aria-label='Practice workspace'><a href='/workspace?section=dashboard'>Overview</a><a href='/'>Projects</a><details class='carbon-nav-group'><summary>Practice setup</summary><a href='/workspace?section=company'>Company & letterhead</a><a href='/workspace?section=items'>Reference item library</a><a href='/workspace?section=contacts&type=client'>Clients</a><a href='/workspace?section=contacts&type=contractor'>Contractors</a></details><a href='/workspace?section=documents'>Documents & exports</a></nav>"
         val feedback = if (notice.isBlank()) "" else "<p role='status' data-kind='${e(noticeKind.takeIf { it in listOf("success","info","warning","error") } ?: "info")}'>${e(notice)}</p>"
-        return shell(navigation + feedback + projectNav + content)
+        val current = when {
+            section == "contacts" && query["type"] == "contractor" -> "contractors"
+            section == "contacts" -> "clients"
+            section.isBlank() -> "dashboard"
+            else -> section
+        }
+        return shell(feedback + projectNav + content, current, csrf)
     }
     private suspend fun company(csrf: String): String {
         val c = requireNotNull(db.practiceDao().company()); val s=style()
@@ -80,10 +85,10 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
     }
     private suspend fun saveAction(fields: Map<String,String>, csrf: String): String {
         fun value(key: String)=fields[key].orEmpty().trim()
-        if (value("action").startsWith("schedule")) return shell(PortalProjectSchedules(db).action(fields,csrf))
-        if (value("action")=="contact") return shell(PortalProjectSchedules(db).saveContact(fields,csrf))
-        if (value("action").startsWith("bill")) return shell(PortalContractorBills(db).save(fields,csrf))
-        if (value("action").startsWith("estimate")) return shell(PortalEstimates(db).save(fields,csrf))
+        if (value("action").startsWith("schedule")) return shell(PortalProjectSchedules(db).action(fields,csrf), "schedule", csrf)
+        if (value("action")=="contact") return shell(PortalProjectSchedules(db).saveContact(fields,csrf), "clients", csrf)
+        if (value("action").startsWith("bill")) return shell(PortalContractorBills(db).save(fields,csrf), "bills", csrf)
+        if (value("action").startsWith("estimate")) return shell(PortalEstimates(db).save(fields,csrf), "estimate", csrf)
         return when(value("action")) {
             "company" -> {
                 db.withTransaction {
@@ -202,5 +207,13 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
         val identity=DocumentExports.identity(c).map { listOf(it) }; rows=identity+listOf(emptyList())+rows
         return when(format) { "pdf" -> Download(DocumentExports.pdf(c,style(),title,text),"application/pdf","archiman-$kind.pdf"); "xlsx" -> Download(DocumentExports.xlsx(rows),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","archiman-$kind.xlsx"); "csv" -> Download(DocumentExports.csv(rows),"text/csv; charset=utf-8","archiman-$kind.csv"); else -> error("Choose PDF, XLSX or CSV.") }
     }
-    fun shell(body: String) = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ArchiMan workspace</title><link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/carbon/vendor.css"><link rel="stylesheet" href="/workspace.css"><script src="/theme.js"></script><script src="/carbon/vendor.js" defer></script><script src="/workspace.js" defer></script></head><body><a class="carbon-skip" href="#content">Skip to content</a><main id="content">$body</main></body></html>"""
+    fun shell(body: String, current: String = "dashboard", csrf: String? = null) = CarbonPortal.page(
+        title = "Workspace",
+        body = body,
+        audience = CarbonPortal.Audience.ADMIN,
+        current = current,
+        crumb = "Workspace",
+        workspace = true,
+        csrf = csrf,
+    )
 }

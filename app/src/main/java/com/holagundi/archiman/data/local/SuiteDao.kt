@@ -65,6 +65,37 @@ interface SuiteDao {
         (SELECT COUNT(*) FROM site_issues i JOIN projects p ON p.id = i.projectId WHERE p.status != 'ARCHIVED' AND i.status != 'CLOSED') AS openIssues""")
     fun observeDashboardMetrics(): Flow<DashboardMetrics>
 
+    @Query("""SELECT
+        COALESCE(SUM(CASE WHEN ROUND(i.amount - COALESCE(p.paid, 0), 2) > 0 THEN ROUND(i.amount - COALESCE(p.paid, 0), 2) ELSE 0 END), 0) AS outstanding,
+        COALESCE(SUM(COALESCE(p.cash, 0)), 0) AS received,
+        COALESCE(SUM(CASE WHEN ROUND(i.amount - COALESCE(p.paid, 0), 2) > 0 THEN 1 ELSE 0 END), 0) AS unpaidInvoices,
+        COALESCE(SUM(COALESCE(p.tds, 0)), 0) AS tdsWithheld
+        FROM invoices i
+        LEFT JOIN (
+            SELECT invoiceId, SUM(amount + tdsAmount) AS paid, SUM(amount) AS cash, SUM(tdsAmount) AS tds
+            FROM receipts GROUP BY invoiceId
+        ) p ON p.invoiceId = i.id
+        WHERE i.status IN ('ISSUED', 'PAID')""")
+    fun observePracticeFeeTotals(): Flow<FeeDashboardTotals>
+
+    @Query("""SELECT
+        COALESCE(SUM(CASE WHEN ROUND(i.amount - COALESCE(p.paid, 0), 2) > 0 THEN ROUND(i.amount - COALESCE(p.paid, 0), 2) ELSE 0 END), 0) AS outstanding,
+        COALESCE(SUM(COALESCE(p.cash, 0)), 0) AS received,
+        COALESCE(SUM(CASE WHEN ROUND(i.amount - COALESCE(p.paid, 0), 2) > 0 THEN 1 ELSE 0 END), 0) AS unpaidInvoices,
+        COALESCE(SUM(COALESCE(p.tds, 0)), 0) AS tdsWithheld
+        FROM invoices i
+        LEFT JOIN (
+            SELECT invoiceId, SUM(amount + tdsAmount) AS paid, SUM(amount) AS cash, SUM(tdsAmount) AS tds
+            FROM receipts GROUP BY invoiceId
+        ) p ON p.invoiceId = i.id
+        WHERE i.projectId = :projectId AND i.status IN ('ISSUED', 'PAID')""")
+    fun observeProjectFeeTotals(projectId: Long): Flow<FeeDashboardTotals>
+
+    @Query("""SELECT
+        (SELECT COUNT(*) FROM project_tasks WHERE projectId = :projectId AND status NOT IN ('DONE', 'COMPLETED')) AS openTasks,
+        (SELECT COUNT(*) FROM site_issues WHERE projectId = :projectId AND status != 'CLOSED') AS openIssues""")
+    fun observeProjectOverviewCounts(projectId: Long): Flow<ProjectOverviewCounts>
+
     @Query("""SELECT t.id, t.projectId, t.title, p.name AS projectName, t.dueDate FROM project_tasks t
         JOIN projects p ON p.id = t.projectId WHERE p.status != 'ARCHIVED' AND t.status NOT IN ('DONE', 'COMPLETED')
         ORDER BY t.dueDate IS NULL, t.dueDate, t.createdAt DESC LIMIT :limit""")
@@ -211,6 +242,9 @@ interface SuiteDao {
     @Query("SELECT * FROM daily_site_reports WHERE projectId = :projectId ORDER BY reportDate DESC")
     suspend fun logs(projectId: Long): List<DailySiteReportEntity>
 
+    @Query("SELECT * FROM daily_site_reports WHERE projectId = :projectId ORDER BY reportDate DESC LIMIT :limit")
+    suspend fun logsLimited(projectId: Long, limit: Int): List<DailySiteReportEntity>
+
     @Insert
     suspend fun insertLog(report: DailySiteReportEntity): Long
 
@@ -219,6 +253,9 @@ interface SuiteDao {
 
     @Query("SELECT * FROM site_issues WHERE projectId = :projectId ORDER BY updatedAt DESC")
     suspend fun issues(projectId: Long): List<SiteIssueEntity>
+
+    @Query("SELECT * FROM site_issues WHERE projectId = :projectId ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun issuesLimited(projectId: Long, limit: Int): List<SiteIssueEntity>
 
     @Query("SELECT * FROM site_issues WHERE id = :id")
     suspend fun issue(id: Long): SiteIssueEntity?
@@ -308,6 +345,9 @@ interface SuiteDao {
     @Query("SELECT * FROM coordination_items WHERE projectId = :projectId AND archivedAt IS NULL ORDER BY updatedAt DESC")
     suspend fun coordinationItems(projectId: Long): List<CoordinationItemEntity>
 
+    @Query("SELECT * FROM coordination_items WHERE projectId = :projectId AND archivedAt IS NULL ORDER BY updatedAt DESC LIMIT :limit")
+    suspend fun coordinationItemsLimited(projectId: Long, limit: Int): List<CoordinationItemEntity>
+
     @Query("SELECT * FROM coordination_items WHERE id = :id")
     suspend fun coordination(id: Long): CoordinationItemEntity?
 
@@ -325,6 +365,9 @@ interface SuiteDao {
 
     @Query("SELECT * FROM project_drawings WHERE projectId = :projectId AND archivedAt IS NULL ORDER BY drawingNumber")
     suspend fun drawings(projectId: Long): List<ProjectDrawingEntity>
+
+    @Query("SELECT * FROM project_drawings WHERE projectId = :projectId AND archivedAt IS NULL ORDER BY drawingNumber LIMIT :limit")
+    suspend fun drawingsLimited(projectId: Long, limit: Int): List<ProjectDrawingEntity>
 
     @Insert
     suspend fun insertDrawing(drawing: ProjectDrawingEntity): Long

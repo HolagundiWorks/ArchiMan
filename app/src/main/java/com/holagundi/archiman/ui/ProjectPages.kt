@@ -1,27 +1,49 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.holagundi.archiman.ui
 
+import android.content.ClipData
+import android.content.ClipDescription
 import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.draganddrop.dragAndDropSource
+import androidx.compose.foundation.draganddrop.dragAndDropTarget
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draganddrop.DragAndDropEvent
+import androidx.compose.ui.draganddrop.DragAndDropTarget
+import androidx.compose.ui.draganddrop.DragAndDropTransferData
+import androidx.compose.ui.draganddrop.mimeTypes
+import androidx.compose.ui.draganddrop.toAndroidDragEvent
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,24 +60,38 @@ import com.holagundi.archiman.data.local.entity.InvoiceEntity
 import com.holagundi.archiman.data.local.entity.ReceiptEntity
 import com.holagundi.archiman.data.local.entity.ProjectTaskEntity
 
+private const val TASK_DRAG_LABEL = "archiman.task"
+
 @Composable
 fun SitePane(suite: SuiteProjectViewModel) {
     val inspections by suite.inspections.collectAsStateWithLifecycle()
     var place by rememberSaveable { mutableStateOf("") }
     var inspector by rememberSaveable { mutableStateOf("") }
     var observation by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ScreenTitle("Site visits")
-        Text("Inspection reports. Photos come in the next pass.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        inspections.forEach { item ->
-            Text("${item.location.ifBlank { "Site" }} · ${item.inspector}", style = MaterialTheme.typography.titleMedium)
-            Text(item.observation, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            RecordActions(RecordKind.VISIT, item.id, item.location.ifBlank { "Site visit" })
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        item { ScreenTitle("Site visits") }
+        item {
+            Text("Inspection reports. Photos come in the next pass.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
-        ArchiField(place, { place = it }, "Location")
-        ArchiField(inspector, { inspector = it }, "Inspector")
-        ArchiField(observation, { observation = it }, "Report", singleLine = false)
-        TextButton(onClick = { val submitted = listOf(observation); suite.addInspection(place, inspector, observation).onSuccess { if (listOf(observation) == submitted) { observation = "" } } }) { Text("Save visit", color = MaterialTheme.colorScheme.primary) }
+        items(inspections, key = { it.id }) { item ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("${item.location.ifBlank { "Site" }} · ${item.inspector}", style = MaterialTheme.typography.titleMedium)
+                Text(item.observation, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                RecordActions(RecordKind.VISIT, item.id, item.location.ifBlank { "Site visit" })
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ArchiField(place, { place = it }, "Location")
+                ArchiField(inspector, { inspector = it }, "Inspector")
+                ArchiField(observation, { observation = it }, "Report", singleLine = false)
+                TextButton(onClick = { val submitted = listOf(observation); suite.addInspection(place, inspector, observation).onSuccess { if (listOf(observation) == submitted) { observation = "" } } }) { Text("Save visit", color = MaterialTheme.colorScheme.primary) }
+            }
+        }
     }
 }
 
@@ -65,23 +101,36 @@ fun LettersPane(projectId: Long?, suite: SuiteProjectViewModel) {
     val company by suite.company.collectAsStateWithLifecycle()
     var subject by rememberSaveable { mutableStateOf("") }
     var body by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ScreenTitle("Letters")
-        GlassSurface(Modifier.fillMaxWidth()) {
-            Column {
-                Text(company?.practiceName ?: "Practice letterhead", style = MaterialTheme.typography.titleMedium)
-                Text(company?.let { "${it.address}, ${it.city} ${it.pinCode}" } ?: "", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                Text(company?.let { "CoA ${it.coaRegistrationNumber}" } ?: "", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+    val visibleLetters = letters.filter { projectId == null || it.projectId == projectId || it.projectId == null }
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        item { ScreenTitle("Letters") }
+        item {
+            GlassSurface(Modifier.fillMaxWidth()) {
+                Column {
+                    Text(company?.practiceName ?: "Practice letterhead", style = MaterialTheme.typography.titleMedium)
+                    Text(company?.let { "${it.address}, ${it.city} ${it.pinCode}" } ?: "", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    Text(company?.let { "CoA ${it.coaRegistrationNumber}" } ?: "", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
-        letters.filter { projectId == null || it.projectId == projectId || it.projectId == null }.forEach { letter ->
-            Text(letter.subject, style = MaterialTheme.typography.titleMedium)
-            Text(letter.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            RecordActions(RecordKind.LETTER, letter.id, letter.subject)
+        items(visibleLetters, key = { it.id }) { letter ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(letter.subject, style = MaterialTheme.typography.titleMedium)
+                Text(letter.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                RecordActions(RecordKind.LETTER, letter.id, letter.subject)
+            }
         }
-        ArchiField(subject, { subject = it }, "Subject")
-        ArchiField(body, { body = it }, "Body", singleLine = false)
-        TextButton(onClick = { val submitted = listOf(subject, body); suite.addLetter(subject, body).onSuccess { if (listOf(subject, body) == submitted) { subject = ""; body = "" } } }) { Text("Save letter", color = MaterialTheme.colorScheme.primary) }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ArchiField(subject, { subject = it }, "Subject")
+                ArchiField(body, { body = it }, "Body", singleLine = false)
+                TextButton(onClick = { val submitted = listOf(subject, body); suite.addLetter(subject, body).onSuccess { if (listOf(subject, body) == submitted) { subject = ""; body = "" } } }) { Text("Save letter", color = MaterialTheme.colorScheme.primary) }
+            }
+        }
     }
 }
 
@@ -126,8 +175,13 @@ fun KanbanPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
     var title by rememberSaveable { mutableStateOf("") }
     var focused by rememberSaveable(focusId) { mutableStateOf(focusId) }
     val columns = listOf("TO_DO" to "To do", "DOING" to "Doing", "DONE" to "Done")
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ScreenTitle("Tasks")
+        Text(
+            "Drag a task into another column to move it.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.bodySmall,
+        )
         if (focused > 0L) {
             Text("Showing the task opened from your dashboard.")
             TextButton(onClick = { focused = 0L }) { Text("Show all project tasks") }
@@ -137,20 +191,112 @@ fun KanbanPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
             val submitted = listOf(title)
             suite.addTask(title).onSuccess { if (listOf(title) == submitted) title = "" }
         }) { Text("Add to To do") }
-        columns.forEach { (status, label) ->
-            Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-            val columnTasks = tasks.filter {
-                (focused == 0L || it.id == focused) && (it.status == status || (status == "TO_DO" && it.status == "OPEN"))
-            }
-            if (columnTasks.isEmpty()) {
-                Text("No tasks", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            }
-            columnTasks.forEach { task ->
-                TaskTile(
-                    task = task,
-                    column = status,
-                    onMove = { suite.moveTask(task.id, it) },
+        Row(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            columns.forEach { (status, label) ->
+                val columnTasks = tasks.filter {
+                    (focused == 0L || it.id == focused) && (it.status == status || (status == "TO_DO" && it.status == "OPEN"))
+                }
+                KanbanColumn(
+                    status = status,
+                    label = label,
+                    tasks = columnTasks,
+                    onDropTask = { taskId -> suite.moveTask(taskId, status) },
+                    onMove = { taskId, next -> suite.moveTask(taskId, next) },
+                    modifier = Modifier.width(280.dp).fillMaxHeight(),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun KanbanColumn(
+    status: String,
+    label: String,
+    tasks: List<ProjectTaskEntity>,
+    onDropTask: (Long) -> Unit,
+    onMove: (Long, String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var hovering by remember { mutableStateOf(false) }
+    val dropTarget = remember(status, onDropTask) {
+        object : DragAndDropTarget {
+            override fun onDrop(event: DragAndDropEvent): Boolean {
+                hovering = false
+                val text = event.toAndroidDragEvent().clipData?.getItemAt(0)?.text?.toString().orEmpty()
+                val taskId = text.toLongOrNull() ?: return false
+                onDropTask(taskId)
+                return true
+            }
+
+            override fun onEntered(event: DragAndDropEvent) {
+                hovering = true
+            }
+
+            override fun onExited(event: DragAndDropEvent) {
+                hovering = false
+            }
+
+            override fun onEnded(event: DragAndDropEvent) {
+                hovering = false
+            }
+        }
+    }
+    Surface(
+        modifier = modifier
+            .border(
+                width = if (hovering) 2.dp else 1.dp,
+                color = if (hovering) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                shape = RectangleShape,
+            )
+            .dragAndDropTarget(
+                shouldStartDragAndDrop = { event ->
+                    event.mimeTypes().contains(ClipDescription.MIMETYPE_TEXT_PLAIN)
+                },
+                target = dropTarget,
+            ),
+        color = if (hovering) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLow
+        },
+        shape = RectangleShape,
+    ) {
+        Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+            Text(
+                "${tasks.size}",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.labelMedium,
+            )
+            LazyColumn(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (tasks.isEmpty()) {
+                    item {
+                        Text(
+                            "Drop tasks here",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                items(tasks, key = { it.id }) { task ->
+                    TaskTile(
+                        task = task,
+                        column = status,
+                        onMove = { onMove(task.id, it) },
+                    )
+                }
             }
         }
     }
@@ -183,7 +329,15 @@ private fun TaskTile(
         "DOING" -> "Move to Doing"
         else -> null
     }
-    ArchiCard(Modifier.fillMaxWidth()) {
+    ArchiCard(
+        Modifier
+            .fillMaxWidth()
+            .dragAndDropSource {
+                DragAndDropTransferData(
+                    ClipData.newPlainText(TASK_DRAG_LABEL, task.id.toString()),
+                )
+            },
+    ) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -193,9 +347,9 @@ private fun TaskTile(
         ) {
             Icon(
                 CarbonIcons.Assignment,
-                contentDescription = null,
+                contentDescription = "Drag task",
                 modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.primary,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 task.title,
@@ -234,26 +388,32 @@ fun ProposalPane(suite: SuiteProjectViewModel) {
 fun FeeInvoicePane(suite: SuiteProjectViewModel) {
     val invoices by suite.invoices.collectAsStateWithLifecycle()
     val receipts by suite.receipts.collectAsStateWithLifecycle()
-    var title by rememberSaveable { mutableStateOf("") }
-    var amount by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        ScreenTitle("Client invoice")
-        invoices.forEach { invoice ->
-            Text("${invoice.number} · ${invoice.title} · ${invoice.status} · ${invoice.amount}")
-            InvoiceTaxSummary(invoice.taxJson)
-            RecordActions(RecordKind.INVOICE, invoice.id, invoice.number)
-            if (invoice.status == "DRAFT") {
-                TextButton(onClick = { suite.issue(invoice) }) { Text("Issue ${invoice.number}") }
-            }
-            if (invoice.status == "ISSUED") {
-                InvoicePayment(invoice, receipts, suite)
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
+    ) {
+        item { ScreenTitle("Client invoice") }
+        items(invoices, key = { it.id }) { invoice ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("${invoice.number} · ${invoice.title} · ${invoice.status} · ${invoice.amount}")
+                InvoiceTaxSummary(invoice.taxJson)
+                RecordActions(RecordKind.INVOICE, invoice.id, invoice.number)
+                if (invoice.status == "DRAFT") {
+                    TextButton(onClick = { suite.issue(invoice) }) { Text("Issue ${invoice.number}") }
+                }
+                if (invoice.status == "ISSUED") {
+                    InvoicePayment(invoice, receipts, suite)
+                }
             }
         }
-        receipts.forEach { receipt ->
-            Text("Receipt ${receipt.amount} · ${receipt.note}", style = MaterialTheme.typography.bodySmall)
-            if ((receipt.amount > 0 || receipt.tdsAmount > 0) && receipts.none { it.note.startsWith("REVERSAL:${receipt.id}:") }) ReceiptReversal(receipt.id)
+        items(receipts, key = { "receipt-${it.id}" }) { receipt ->
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("Receipt ${receipt.amount} · ${receipt.note}", style = MaterialTheme.typography.bodySmall)
+                if ((receipt.amount > 0 || receipt.tdsAmount > 0) && receipts.none { it.note.startsWith("REVERSAL:${receipt.id}:") }) ReceiptReversal(receipt.id)
+            }
         }
-        TaxInvoiceForm(suite.projectIdForFinance)
+        item { TaxInvoiceForm(suite.projectIdForFinance) }
     }
 }
 

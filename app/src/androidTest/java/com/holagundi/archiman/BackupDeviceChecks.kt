@@ -23,12 +23,19 @@ import org.json.JSONObject
 
 /** Device checks use an isolated database and directory, never the user's practice. */
 class BackupDeviceChecks : Instrumentation() {
+    private var suite: String = "backup"
+
     override fun onCreate(arguments: Bundle?) {
         super.onCreate(arguments)
+        suite = arguments?.getString("suite").orEmpty().ifBlank { "backup" }
         start()
     }
 
     override fun onStart() {
+        when (suite) {
+            "screenWalk" -> { ScreenWalkRunner.run(this); return }
+            "inputPrompts" -> { InputPromptSuite.run(this); return }
+        }
         val results = Bundle()
         val directory = File(targetContext.filesDir, "restored-attachments/device-check-${UUID.randomUUID()}")
         directory.mkdirs()
@@ -53,7 +60,7 @@ class BackupDeviceChecks : Instrumentation() {
                 check(demoProjects.sumOf { schedules.revisions(it.id).size } == 2)
                 check(demoProjects.sumOf { db.catalogDao().observeContractors(it.id).first().size } == 8)
                 results.putString("demoContractors", "passed: 8 contractors, 14 rate-bearing assignments, active R001 per demo project, both contract bases, idempotent upgrade")
-                val backups = BackupRepository(isolated, db, PortalServer(db))
+                val backups = BackupRepository(isolated, db, PortalServer(db, isolated))
                 val sql = db.openHelper.writableDatabase
                 val projectId = sql.query("SELECT id FROM projects LIMIT 1").use { check(it.moveToFirst()); it.getLong(0) }
                 val attachment = File(directory, "evidence.txt").apply { writeText("offline evidence") }

@@ -11,7 +11,7 @@ There is no React / web product app in this repository. The only JavaScript pack
 | Language | Kotlin 17 |
 | UI | Jetpack Compose, Material 3, IBM Carbon colours / IBM Plex Sans / Carbon icons |
 | Architecture | Hilt, Coroutines, Navigation Compose |
-| Storage | Room (schema 31), offline-first |
+| Storage | Room (schema 32), offline-first |
 | Portal assets | Bundled Carbon web components under `app/src/main/assets/carbon/` (built from `portal-ui/`) |
 | Application ID | `com.holagundi.archiman` |
 | SDK | minSdk 26, targetSdk / compileSdk 35 |
@@ -56,7 +56,7 @@ HTTPS-only desktop workspace on the local network for letterhead, catalogues, es
 | Area | Capabilities |
 |---|---|
 | **Projects & portfolio** | Multi-project hub, clients, levels & rooms; new projects seed a Ground Floor |
-| **Dashboard & attention** | Open tasks, sheets to review, site issues, fee balances, project status mix |
+| **Dashboard & attention** | Open tasks, sheets to review, site issues, fee balances, project status mix; home-screen widget for KPIs and open tasks |
 | **Measurement Book** | Quantity sheets by contractor / level / item; review lifecycle `DRAFT` → `SUBMITTED` → `CHECKED` → `APPROVED` / `RETURNED`; CSV export |
 | **Record measurement** | Contractor-first capture with live formulas (`NOS`, length, area, plaster, volume) and Archi Calc |
 | **Tasks** | To do / Doing / Done tiles with move icons and record actions |
@@ -80,9 +80,11 @@ gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidT
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb shell am instrument -w com.holagundi.archiman.test/com.holagundi.archiman.BackupDeviceChecks
+adb shell am instrument -w -e suite screenWalk com.holagundi.archiman.test/com.holagundi.archiman.BackupDeviceChecks
+adb shell am instrument -w -e suite inputPrompts com.holagundi.archiman.test/com.holagundi.archiman.BackupDeviceChecks
 ```
 
-Device checks use an isolated database. They do not restore over the user’s practice.
+Device checks (`BackupDeviceChecks`) use an isolated database and do not restore over the user’s practice. Pass `-e suite screenWalk` to drive every practice and project destination in the installed UI, or `-e suite inputPrompts` to validate every create/edit prompt (demo company recommended).
 
 Portal UI assets:
 
@@ -107,6 +109,7 @@ npm test --prefix portal-ui
 - [Measurement capture 1.2.0](docs/ux/measurement-capture-1.2.0.md)
 - [Project schedules & letterhead](docs/ux/project-schedules-letterhead-and-measurements.md)
 - [Security file format](docs/security-file-format.md)
+- [Production readiness](docs/qa/production-readiness-2026-11-06.md)
 
 ## License
 

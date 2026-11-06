@@ -20,7 +20,10 @@ function icon(source,extra='') {
 function enhanceForms() {
  for(const button of window.document.querySelectorAll('button:not(.carbon-sort)')){
   button.classList.add('cds--btn',button.classList.contains('danger')?'cds--btn--danger':'cds--btn--primary');
-  if(!button.querySelector('svg'))button.append(icon(button.textContent.toLowerCase().includes('download')?download:arrow));
+  if(!button.querySelector('svg')){
+   const label=button.textContent.toLowerCase();
+   button.prepend(icon(label.includes('download')?download:label.includes('upload')||label.includes('restore')||label.includes('replace')?download:arrow));
+  }
  }
  for(const input of window.document.querySelectorAll('input:not([type=hidden]):not([type=checkbox]):not([type=file]):not([type=color]),textarea'))input.classList.add('cds--text-input');
  for(const label of window.document.querySelectorAll('form label'))label.classList.add('cds--label');
@@ -56,7 +59,33 @@ function enhanceFormBehavior() {
  window.addEventListener('beforeunload',event=>{if(dirty&&!submitting){event.preventDefault();event.returnValue='';}});
  window.addEventListener('pageshow',()=>{submitting=false;for(const form of window.document.querySelectorAll('form')){delete form.dataset.saving;form.removeAttribute('aria-busy');form.querySelectorAll('[aria-disabled]').forEach(b=>b.removeAttribute('aria-disabled'));}});
 }
+function iconForLabel(name){
+ const text=name.toLowerCase();
+ if(text.includes('overview')||text.includes('dashboard'))return dashboard;
+ if(text.includes('client')||text.includes('contractor')||text.includes('contact'))return users;
+ if(text.includes('item')||text.includes('measure')||text.includes('ruler')||text.includes('assigned'))return ruler;
+ if(text.includes('company')||text.includes('project'))return building;
+ if(text.includes('document')||text.includes('letter')||text.includes('export'))return document;
+ if(text.includes('transfer')||text.includes('backup'))return download;
+ return document;
+}
+function enhanceModernShell(){
+ const selected=new URLSearchParams(location.search).get('section')||'';
+ for(const link of window.document.querySelectorAll('.cds--side-nav__link, .cds--header__menu-item, .portal-workflow a')){
+  const target=new URL(link.href,location.href);
+  if(target.pathname==='/workspace'&&(target.searchParams.get('section')||'dashboard')===selected)link.setAttribute('aria-current','page');
+  if(!link.querySelector('svg'))link.prepend(icon(iconForLabel(link.textContent)));
+ }
+ for(const tile of window.document.querySelectorAll('a.cds--tile--clickable')){
+  if(tile.querySelector('.portal-tile-icon, .carbon-icon'))continue;
+  const glyph=icon(iconForLabel(tile.textContent),'portal-tile-glyph');
+  const wrap=window.document.createElement('span');wrap.className='portal-tile-icon';wrap.append(glyph);
+  tile.classList.add('portal-tile');tile.prepend(wrap);
+  if(!tile.querySelector('.portal-tile-arrow'))tile.append(icon(arrow,'portal-tile-arrow'));
+ }
+}
 function enhanceShell() {
+ if(window.document.querySelector('.cds--header')){enhanceModernShell();return;}
  const main=window.document.querySelector('main');if(!main)return;
  const header=window.document.createElement('header');header.className='carbon-shell';header.setAttribute('aria-label','ArchiMan');
  const brand=window.document.createElement('a');brand.href='/workspace?section=dashboard';brand.append(icon(dashboard),window.document.createTextNode('ArchiMan'));
@@ -68,8 +97,7 @@ function enhanceShell() {
  const selected=new URLSearchParams(location.search).get('section')||'dashboard';
  for(const link of main.querySelectorAll('nav a')){
   const target=new URL(link.href,location.href);if(target.pathname==='/workspace'&&(target.searchParams.get('section')||'dashboard')===selected)link.setAttribute('aria-current','page');
-  const name=link.textContent.toLowerCase();const image=name.includes('overview')?dashboard:name.includes('client')||name.includes('contractor')?users:name.includes('item')||name.includes('measure')?ruler:name.includes('company')?building:document;
-  link.prepend(icon(image));
+  link.prepend(icon(iconForLabel(link.textContent)));
  }
 }
 function enhanceNotifications() {

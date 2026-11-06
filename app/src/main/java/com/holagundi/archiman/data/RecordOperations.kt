@@ -228,7 +228,13 @@ class RecordOperations @Inject constructor(private val db: ArchiManDatabase) {
             }
             RecordKind.MEASUREMENT -> {
                 val sheet = readNow(RecordKind.SHEET, (record.values.getValue("sheetId") as Number).toLong())
-                require(sheet.text("status") in listOf("DRAFT", "RETURNED")) { "Only draft or returned measurement entries can be changed." }
+                val sheetStatus = sheet.text("status")
+                require(sheet.values["archivedAt"] == null) { "Archived measurement sheets retain their history." }
+                if (deleting) {
+                    require(sheetStatus != "APPROVED") { "Approved measurement entries cannot be deleted." }
+                } else {
+                    require(sheetStatus in listOf("DRAFT", "RETURNED")) { "Only draft or returned measurement entries can be edited." }
+                }
             }
             RecordKind.SNAG -> {
                 require(status != "CLOSED") { "Verified issues retain their history." }

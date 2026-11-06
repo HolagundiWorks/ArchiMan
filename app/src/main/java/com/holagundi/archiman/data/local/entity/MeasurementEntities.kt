@@ -16,7 +16,7 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("projectId"), Index("contractorId"), Index("floorId")],
+    indices = [Index("projectId"), Index("contractorId"), Index("floorId"), Index(value = ["projectId", "status"])],
 )
 data class MeasurementSheetEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

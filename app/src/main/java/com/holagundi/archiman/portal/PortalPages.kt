@@ -10,40 +10,89 @@ import com.holagundi.archiman.data.local.entity.SiteIssueEntity
 
 object PortalPages {
     fun login(practiceName: String, users: List<LocalUserEntity>, csrf: String, error: String?): String {
-        val notice = error?.let { "<p class=\"notice\">${PortalHttp.escape(it)}</p>" }.orEmpty()
-        return shell(
-            "Sign in",
-            """
-            <h1>${PortalHttp.escape(practiceName.ifBlank { "ArchiMan" })}</h1>
-            <p>Enter the access code shown on the phone, to open the admin workspace. Use the workspace to manage company documents and measurements.</p>
-            $notice
-            <form method="post" action="/">
-              <input type="hidden" name="csrf" value="${PortalHttp.escape(csrf)}">
-              <label for="code">Access code</label>
-              <input id="code" name="code" autocomplete="off" required>
-              <input type="hidden" name="user" value="${users.firstOrNull { it.isActive && it.role == "Admin" }?.id ?: 0}">
-              <button type="submit">Open portal</button>
-            </form>
+        val admin = users.firstOrNull { it.isActive && it.role == "Admin" }
+        val notice = error?.let { """<p class="notice" role="alert">${PortalHttp.escape(it)}</p>""" }.orEmpty()
+        val title: String
+        val lead: String
+        val hiddenUser: String
+        val action: String
+        val icon: String
+        if (admin == null) {
+            title = "Practice transfer"
+            lead = "Enter the access code shown on the phone to save or restore a practice backup before opening a company."
+            hiddenUser = ""
+            action = "Open practice transfer"
+            icon = "backup"
+        } else {
+            title = practiceName.ifBlank { "ArchiMan" }
+            lead = "Enter the access code shown on the phone. The practice stays on the phone; this computer only connects while the portal is on."
+            hiddenUser = """<input type="hidden" name="user" value="${admin.id}">"""
+            action = "Open portal"
+            icon = "wifi"
+        }
+        return CarbonPortal.page(
+            title = "Sign in",
+            audience = CarbonPortal.Audience.SIGNED_OUT,
+            body = """
+                <section class="cds--tile portal-sign-in">
+                  <div class="portal-sign-in-brand">${CarbonPortalIcons.svg(icon, "portal-sign-in-glyph")}</div>
+                  <p class="portal-kicker">ArchiMan Wi‑Fi portal</p>
+                  <h1>${PortalHttp.escape(title)}</h1>
+                  <p class="portal-lead">$lead</p>
+                  $notice
+                  <form method="post" action="/">
+                    <input type="hidden" name="csrf" value="${PortalHttp.escape(csrf)}">
+                    $hiddenUser
+                    ${CarbonPortal.textField("code", "code", "Access code", attributes = "autocomplete=\"off\" required autofocus")}
+                    ${CarbonPortal.button(action, icon = if (admin == null) "backup" else "wifi")}
+                  </form>
+                </section>
             """.trimIndent(),
         )
     }
 
+    fun transfer(practice: String, csrf: String, error: String?, role: String = "Admin") =
+        CarbonPortal.page(
+            title = "Practice transfer",
+            audience = if (role == PortalTransfer.ROLE) CarbonPortal.Audience.TRANSFER else CarbonPortal.Audience.ADMIN,
+            current = "transfer",
+            crumb = "Practice transfer",
+            csrf = csrf,
+            body = PortalTransfer.page(practice, csrf, error),
+        )
+
     fun home(company: CompanyProfileEntity?, projects: List<ProjectEntity>, role: String, csrf: String): String {
-        val rows = if (projects.isEmpty()) {
-            "<p>No projects yet.</p>"
+        val tiles = if (projects.isEmpty()) {
+            """<p class="portal-lead">No projects yet.</p>"""
         } else {
             projects.joinToString("") { project ->
-                "<li><a href=\"/project?id=${project.id}\">${PortalHttp.escape(project.projectCode)} · ${PortalHttp.escape(project.name)}</a><br>${PortalHttp.escape(project.client)} · ${PortalHttp.escape(project.status)}</li>"
-            }.let { "<ul>$it</ul>" }
+                """
+                <a class="cds--tile cds--tile--clickable portal-tile" href="/project?id=${project.id}">
+                  <span class="portal-tile-icon">${CarbonPortalIcons.svg("building", "portal-tile-glyph")}</span>
+                  <span class="portal-tile-copy">
+                    <h2>${PortalHttp.escape(project.name)}</h2>
+                    <p class="portal-tile-meta">${PortalHttp.escape(project.projectCode)} · ${PortalHttp.escape(project.client)}</p>
+                    <span class="${statusClass(project.status)}">${PortalHttp.escape(project.status)}</span>
+                  </span>
+                  ${CarbonPortalIcons.svg("arrow", "portal-tile-arrow")}
+                </a>
+                """.trimIndent()
+            }.let { """<div class="portal-tiles">$it</div>""" }
         }
-        return shell(
-            "Projects",
-            """
-            <h1>${PortalHttp.escape(company?.practiceName ?: "Practice")}</h1>
-            <p>${PortalHttp.escape(role)} · Your practice stays on the phone.</p>
-            <p><a href="/workspace">Open company, letterhead, item and measurement workspace</a></p>
-            $rows
-            ${signOut(csrf)}
+        return CarbonPortal.page(
+            title = "Projects",
+            audience = CarbonPortal.Audience.ADMIN,
+            current = "projects",
+            crumb = "Projects",
+            csrf = csrf,
+            body = """
+                ${CarbonPortal.masthead(company?.practiceName ?: "Practice", "$role · Your practice stays on the phone.", "building")}
+                <div class="portal-tiles">
+                  ${CarbonPortal.tile("/workspace?section=dashboard", "Overview", "Projects, fees and work that needs attention.", "dashboard")}
+                  ${CarbonPortal.tile("/transfer", "Practice transfer", "Download or restore the practice on this computer.", "backup")}
+                </div>
+                <h2 class="portal-section-title">${CarbonPortalIcons.svg("folder")}<span>Projects</span></h2>
+                $tiles
             """.trimIndent(),
         )
     }
@@ -57,53 +106,48 @@ object PortalPages {
         drawings: List<ProjectDrawingEntity>,
         csrf: String,
     ): String {
-        fun list(title: String, items: List<String>): String {
-            val body = if (items.isEmpty()) "<p>None yet.</p>" else "<ul>${items.joinToString("") { "<li>$it</li>" }}</ul>"
-            return "<h2>$title</h2>$body"
+        fun tile(title: String, items: List<String>, icon: String): String {
+            val body = if (items.isEmpty()) {
+                """<p class="portal-tile-meta">None yet.</p>"""
+            } else {
+                "<ul>${items.joinToString("") { "<li>$it</li>" }}</ul>"
+            }
+            return """<section class="cds--tile portal-panel"><h2>${CarbonPortalIcons.svg(icon)}<span>$title</span></h2>$body</section>"""
         }
-        return shell(
-            project.name,
-            """
-            <p><a href="/">Projects</a></p>
-            <h1>${PortalHttp.escape(project.projectCode)} · ${PortalHttp.escape(project.name)}</h1>
-            <p>${PortalHttp.escape(project.client)} · ${PortalHttp.escape(project.siteLocation)} · ${PortalHttp.escape(project.status)}</p>
-            <p><a href="/workspace?section=measure&amp;id=${project.id}">Record / import measurements and download reports</a></p>
-            <h2>Brief</h2>
-            <p>${PortalHttp.escape(brief.ifBlank { "No brief yet." })}</p>
-            ${list("Daily logs", logs.take(20).map { PortalHttp.escape("${it.preparedBy}: ${it.workCompleted}") })}
-            ${list("Snags", issues.take(30).map { PortalHttp.escape("${it.referenceNumber} · ${it.title} · ${it.status}") })}
-            ${list("Coordination", coordination.take(30).map { PortalHttp.escape("${it.type} ${it.referenceNumber} · ${it.subject} · ${it.status}") })}
-            ${list("Drawings", drawings.take(40).map { PortalHttp.escape("${it.drawingNumber} · ${it.title} · ${it.packageTag}") })}
-            ${signOut(csrf)}
+        return CarbonPortal.page(
+            title = project.name,
+            audience = CarbonPortal.Audience.ADMIN,
+            current = "projects",
+            crumb = project.name,
+            csrf = csrf,
+            body = """
+                ${CarbonPortal.masthead("${project.projectCode} · ${project.name}", "${project.client} · ${project.siteLocation} · ${project.status}", "building")}
+                <div class="portal-tiles">
+                  ${CarbonPortal.tile("/workspace?section=measure&id=${project.id}", "Measurement book", "Record, import and download measurements.", "notebook")}
+                  ${CarbonPortal.tile("/workspace?section=schedule&id=${project.id}", "Assigned works", "Item revision, contractors and rates.", "task")}
+                </div>
+                <div class="portal-stack">
+                  <section class="cds--tile portal-panel"><h2>${CarbonPortalIcons.svg("document")}<span>Brief</span></h2><p>${PortalHttp.escape(brief.ifBlank { "No brief yet." })}</p></section>
+                  ${tile("Daily logs", logs.take(20).map { PortalHttp.escape("${it.preparedBy}: ${it.workCompleted}") }, "document")}
+                  ${tile("Snags", issues.take(30).map { PortalHttp.escape("${it.referenceNumber} · ${it.title} · ${it.status}") }, "task")}
+                  ${tile("Coordination", coordination.take(30).map { PortalHttp.escape("${it.type} ${it.referenceNumber} · ${it.subject} · ${it.status}") }, "partnership")}
+                  ${tile("Drawings", drawings.take(40).map { PortalHttp.escape("${it.drawingNumber} · ${it.title} · ${it.packageTag}") }, "folder")}
+                </div>
             """.trimIndent(),
         )
     }
 
-    fun message(title: String, body: String) = shell(title, "<h1>${PortalHttp.escape(title)}</h1><p>${PortalHttp.escape(body)}</p>")
+    fun message(title: String, body: String) = CarbonPortal.page(
+        title = title,
+        audience = CarbonPortal.Audience.SIGNED_OUT,
+        body = """<section class="cds--tile portal-sign-in"><div class="portal-sign-in-brand">${CarbonPortalIcons.svg("wifi", "portal-sign-in-glyph")}</div><h1>${PortalHttp.escape(title)}</h1><p class="portal-lead">${PortalHttp.escape(body)}</p></section>""",
+    )
 
-    private fun signOut(csrf: String) = """
-        <form method="post" action="/logout">
-          <input type="hidden" name="csrf" value="${PortalHttp.escape(csrf)}">
-          <button type="submit">Sign out</button>
-        </form>
-    """.trimIndent()
-
-    private fun shell(title: String, body: String) = """
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>${PortalHttp.escape(title)} · ArchiMan</title>
-          <link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/carbon/vendor.css">
-          <script src="/carbon/vendor.js" defer></script>
-          <script src="/theme.js"></script>
-          <style>main{max-width:720px;margin:0 auto;padding:24px}input,select{display:block;width:100%;min-height:48px;margin:4px 0 12px}form{margin:16px 0}article{background:var(--layer);padding:16px;border:1px solid var(--border-subtle)}</style>
-        </head>
-        <body>
-          <a href="#content">Skip to content</a>
-          <main id="content">$body</main>
-        </body>
-        </html>
-    """.trimIndent()
+    private fun statusClass(status: String) = when (status.uppercase()) {
+        "APPROVED", "ISSUED", "ACTIVE", "COMPLETED" -> "status status-approved"
+        "RETURNED", "VOID", "ARCHIVED" -> "status status-returned"
+        "CHECKED", "ON_HOLD" -> "status status-checked"
+        "SUBMITTED" -> "status status-submitted"
+        else -> "status"
+    }
 }
