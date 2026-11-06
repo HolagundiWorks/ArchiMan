@@ -43,7 +43,7 @@ object PortalHttp {
     }
 
     fun hostAllowed(hostHeader: String?, address: String, port: Int = PORT): Boolean {
-        val host = hostHeader?.substringBefore(',')?.trim()?.lowercase().orEmpty()
+        val host = hostHeader?.trim()?.lowercase().orEmpty()
         if (host.isEmpty() || host.contains('@')) return false
         val expected = address.lowercase()
         return host == expected || host == "$expected:$port"
@@ -51,7 +51,7 @@ object PortalHttp {
 
     fun originAllowed(origin: String?, address: String, port: Int = PORT): Boolean {
         if (origin.isNullOrBlank()) return true
-        return origin.trim() == "http://${address.lowercase()}:$port" || origin.trim() == "http://$address:$port"
+        return origin.trim() == "https://${address.lowercase()}:$port" || origin.trim() == "https://$address:$port"
     }
 
     fun escape(value: String): String = buildString(value.length) {
@@ -77,89 +77,81 @@ object PortalHttp {
         }
     }
 
-    fun read(input: InputStream): PortalRequest? {
-        val header = ByteArrayOutputStream()
-        val chunk = ByteArray(1024)
-        while (header.size() < 32_768) {
-            val count = input.read(chunk)
-            if (count < 0) return null
-            if (header.size() == 0 && count > 0 && chunk[0] == 0x16.toByte()) return null
-            header.write(chunk, 0, count)
-            val raw = header.toByteArray()
-            val end = headerEnd(raw) ?: continue
-            val head = String(raw, 0, end.index, StandardCharsets.UTF_8)
-            val parsed = parseHead(head) ?: return null
-            val length = parsed.headers["content-length"]?.toIntOrNull() ?: 0
-            if (length !in 0..4096) return null
-            val already = raw.copyOfRange((end.index + end.separator).coerceAtMost(raw.size), raw.size)
-            val body = ByteArray(length)
-            val copied = minOf(already.size, length)
-            if (copied > 0) System.arraycopy(already, 0, body, 0, copied)
-            var filled = copied
-            while (filled < length) {
-                val more = input.read(body, filled, length - filled)
-                if (more < 0) return null
-                filled += more
-            }
-            return parsed.copy(body = String(body, StandardCharsets.UTF_8))
+    fun read(input: InputStream, bodyLimit: (PortalRequest) -> Int = { 4_000_000 }): PortalRequest? {
+        val stream=java.io.BufferedInputStream(input,8192)
+        val header=ByteArrayOutputStream(); var previous=0; var beforePrevious=0; var thirdPrevious=0; var separator=0
+        while(header.size()<32_768) {
+            val byte=stream.read(); if(byte<0) return null
+            if(header.size()==0 && byte==0x16) return null
+            header.write(byte)
+            if(thirdPrevious==13 && beforePrevious==10 && previous==13 && byte==10) { separator=4;break }
+            if(previous==10 && byte==10) { separator=2;break }
+            thirdPrevious=beforePrevious; beforePrevious=previous; previous=byte
         }
-        return null
+        if(separator==0) return null
+        val bytes=header.toByteArray()
+        val parsed=parseHead(String(bytes,0,bytes.size-separator,StandardCharsets.UTF_8)) ?: return null
+        val lengthText=parsed.headers["content-length"]
+        if(lengthText!=null && !lengthText.matches(Regex("[0-9]{1,9}"))) return null
+        val length=lengthText?.toIntOrNull() ?: 0
+        if(length !in 0..bodyLimit(parsed).coerceIn(0,4_000_000) || (parsed.method=="GET" && length>0)) return null
+        val body=ByteArray(length); var offset=0
+        while(offset<length) { val count=stream.read(body,offset,length-offset); if(count<0) return null;offset+=count }
+        return parsed.copy(body=String(body,StandardCharsets.UTF_8))
     }
 
     fun parseHead(head: String): PortalRequest? {
         val lines = head.replace("\r\n", "\n").replace('\r', '\n').split('\n')
         if (lines.isEmpty() || lines.size > 80) return null
         val request = lines.first().trim().split(Regex("\\s+"))
-        if (request.size < 2) return null
+        if (request.size != 3 || request[2] !in listOf("HTTP/1.0","HTTP/1.1")) return null
         val method = request[0].uppercase()
         if (method != "GET" && method != "POST") return null
         var target = request[1]
+        var authority: String? = null
         if (target.length > 2048 || target.contains("..") || target.contains('\\')) return null
         if (target.startsWith("http://") || target.startsWith("https://")) {
-            val scheme = target.indexOf("://")
-            val slash = target.indexOf('/', scheme + 3)
-            target = if (slash < 0) "/" else target.substring(slash)
+            val uri=runCatching { java.net.URI(target) }.getOrNull() ?: return null
+            authority=uri.rawAuthority
+            if(uri.userInfo!=null || uri.fragment!=null) return null
+            target=uri.rawPath.orEmpty().ifBlank { "/" } + (uri.rawQuery?.let { "?$it" } ?: "")
         }
         val path = target.substringBefore('?').ifBlank { "/" }
         if (!path.startsWith("/")) return null
-        val query = decodePairs(if ('?' in target) target.substringAfter('?') else "")
+        val query = runCatching { decodePairs(if ('?' in target) target.substringAfter('?') else "") }.getOrNull() ?: return null
         val headers = mutableMapOf<String, String>()
-        lines.drop(1).forEach { line ->
-            if (line.isBlank()) return@forEach
-            val split = line.split(':', limit = 2)
-            if (split.size != 2 || split[0].length > 128 || split[1].length > 4096) return@forEach
-            headers.putIfAbsent(split[0].trim().lowercase(), split[1].trim())
+        for(line in lines.drop(1)) {
+            if(line.isBlank()) continue
+            val split=line.split(':',limit=2)
+            if(split.size!=2 || !split[0].matches(Regex("[!#$%&'*+.^_`|~0-9A-Za-z-]{1,128}")) || split[1].length>4096) return null
+            val name=split[0].lowercase(); val value=split[1].trim()
+            if(value.any { it.code<32 && it!='\t' } || name in headers) return null
+            headers[name]=value
         }
+        if(headers["host"].isNullOrBlank() || headers["host"]!!.contains(',') || headers.containsKey("transfer-encoding")) return null
+        if(authority!=null && !authority.equals(headers["host"],ignoreCase=true)) return null
         if (headers["content-type"]?.substringBefore(';')?.trim()?.lowercase() == "multipart/form-data") return null
         return PortalRequest(method, path, query, headers, "")
     }
 
     private fun decodePairs(text: String): Map<String, String> {
         if (text.isBlank()) return emptyMap()
-        return text.split('&').mapNotNull { part ->
-            if (part.isEmpty()) return@mapNotNull null
-            val split = part.split('=', limit = 2)
-            urlDecode(split[0]) to urlDecode(split.getOrElse(1) { "" })
-        }.toMap()
+        val parts=text.split('&',limit=130)
+        require(parts.size<=128) { "Too many form parameters." }
+        val result=linkedMapOf<String,String>()
+        parts.forEach { part ->
+            if(part.isEmpty()) return@forEach
+            val split=part.split('=',limit=2); val key=urlDecode(split[0])
+            require(key.length in 1..128 && key !in result) { "Duplicate or invalid form field." }
+            result[key]=urlDecode(split.getOrElse(1) { "" })
+        }
+        return result
     }
 
     private fun urlDecode(value: String): String = try {
-        URLDecoder.decode(value, StandardCharsets.UTF_8)
+        URLDecoder.decode(value, StandardCharsets.UTF_8.name())
     } catch (_: IllegalArgumentException) {
         value
     }
 
-    private data class HeaderEnd(val index: Int, val separator: Int)
-
-    private fun headerEnd(raw: ByteArray): HeaderEnd? {
-        for (index in 0 until raw.size - 1) {
-            if (raw[index] == 13.toByte() && index + 3 < raw.size && raw[index + 1] == 10.toByte() && raw[index + 2] == 13.toByte() && raw[index + 3] == 10.toByte()) {
-                return HeaderEnd(index, 4)
-            }
-            if (raw[index] == 10.toByte() && raw[index + 1] == 10.toByte()) {
-                return HeaderEnd(index, 2)
-            }
-        }
-        return null
-    }
 }

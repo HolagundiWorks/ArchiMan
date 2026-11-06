@@ -9,6 +9,7 @@
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
 /.idea/
+/.cursor/
 .DS_Store
 /build
 app/build/
@@ -19,4 +20,10 @@ app/build/
 local.properties
 .env
 debug.keystore
+/.signing/
+*.jks
+*.keystore
+__pycache__/
+*.py[cod]
+**/node_modules/
 /gradle/gradle-daemon-jvm.properties

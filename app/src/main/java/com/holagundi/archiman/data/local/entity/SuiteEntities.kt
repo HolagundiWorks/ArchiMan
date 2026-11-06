@@ -1,6 +1,7 @@
 package com.holagundi.archiman.data.local.entity
 
 import androidx.room.Entity
+import androidx.room.ColumnInfo
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -65,6 +66,7 @@ data class InvoiceEntity(
     val amount: Double,
     val status: String,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "''") val taxJson: String = "",
 )
 
 @Entity(
@@ -86,6 +88,11 @@ data class ReceiptEntity(
     val amount: Double,
     val note: String,
     val receivedAt: Long,
+    @ColumnInfo(defaultValue = "0") val tdsAmount: Double = 0.0,
+    @ColumnInfo(defaultValue = "''") val tdsReference: String = "",
+    @ColumnInfo(defaultValue = "0") val tdsVerified: Boolean = false,
+    @ColumnInfo(defaultValue = "''") val bankKey: String = "",
+
 )
 
 @Entity(tableName = "enquiries")
@@ -169,6 +176,8 @@ data class FeeProposalEntity(
     val amount: Double,
     val status: String,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "''") val detailsJson: String = "",
+    @ColumnInfo(defaultValue = "''") val documentText: String = "",
 )
 
 @Entity(
@@ -227,6 +236,8 @@ data class WorkContractEntity(
     val amount: Double,
     val status: String,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "''") val detailsJson: String = "",
+    @ColumnInfo(defaultValue = "''") val documentText: String = "",
 )
 
 @Entity(
@@ -258,3 +269,6 @@ data class ItemLinkRuleEntity(
     val factor: Double,
     val note: String,
 )
+
+@Entity(tableName = "finance_records")
+data class FinanceRecordEntity(@PrimaryKey val key: String, val kind: String, val json: String)

@@ -13,6 +13,7 @@ import com.holagundi.archiman.data.local.entity.MeasurementReviewEventEntity
 import com.holagundi.archiman.data.local.entity.MeasurementSheetEntity
 import com.holagundi.archiman.data.local.entity.ProjectEntity
 import com.holagundi.archiman.data.local.entity.RoomEntity
+import com.holagundi.archiman.domain.InvoiceBalance
 import com.holagundi.archiman.domain.MeasurementDraft
 import com.holagundi.archiman.domain.MeasurementInput
 import com.holagundi.archiman.domain.MeasurementSheetWorkflow
@@ -35,7 +36,7 @@ class PracticeRepository @Inject constructor(
     fun observeClients() = practiceDao.observeClients()
 
     suspend fun addClient(name: String, phone: String, email: String) {
-        if (name.isBlank()) return
+        require(name.isNotBlank()) { "Enter a client name." }
         practiceDao.insertClient(
             ClientEntity(
                 name = name.trim(),
@@ -143,6 +144,18 @@ class MeasurementRepository @Inject constructor(
         if (draft.contractorId == 0L || draft.itemName.isBlank()) {
             return@withTransaction RecordResult.Rejected("Choose a contractor and a work item.")
         }
+        val schedule = ProjectScheduleRepository(db).active(draft.projectId)
+            ?: return@withTransaction RecordResult.Rejected("Activate a project contractor-item revision in the web portal first.")
+        val assigned = schedule.lines.firstOrNull { it.key == draft.boqLineKey && it.contractorId == draft.contractorId }
+            ?: return@withTransaction RecordResult.Rejected("This item is not assigned to the selected contractor in the active revision.")
+        if (draft.boqRevision != schedule.label || draft.itemId != assigned.itemId || draft.itemName != assigned.description || draft.unit != assigned.unit || draft.calculationType != assigned.formula || InvoiceBalance.money(draft.rateSnapshot).toPlainString() != assigned.rate || draft.contractBasis != assigned.basis)
+            return@withTransaction RecordResult.Rejected("The project schedule changed. Reopen the entry and select the active item again.")
+        val project = projectDao.getProject(draft.projectId)
+        if (project == null || project.status == "ARCHIVED") return@withTransaction RecordResult.Rejected("Select an active project.")
+        val floor = db.openHelper.writableDatabase.query("SELECT COUNT(*) FROM floors WHERE id = ? AND projectId = ?", arrayOf(draft.floorId, draft.projectId)).use { it.moveToFirst(); it.getInt(0) > 0 }
+        val contractor = db.openHelper.writableDatabase.query("SELECT COUNT(*) FROM contractors WHERE id = ? AND (projectId = ? OR projectId = 0)", arrayOf(draft.contractorId, draft.projectId)).use { it.moveToFirst(); it.getInt(0) > 0 }
+        if (!floor || !contractor) return@withTransaction RecordResult.Rejected("Choose a valid floor and contractor for this project.")
+        if (listOf(draft.nos, draft.length, draft.width, draft.height, draft.deduction).any { !it.isFinite() || it < 0 || it > 1e9 }) return@withTransaction RecordResult.Rejected("Dimensions must be finite, non-negative numbers.")
         val quantity = QuantityCalculator.calculate(
             draft.calculationType,
             MeasurementInput(
@@ -162,7 +175,7 @@ class MeasurementRepository @Inject constructor(
             draft.projectId,
             draft.contractorId,
             draft.itemName,
-            draft.floorId,
+            draft.floorId, draft.unit, draft.calculationType, draft.boqRevision, draft.boqLineKey,
         )
         val sheetId = existing?.id ?: measurementDao.insertSheet(
             MeasurementSheetEntity(
@@ -174,6 +187,7 @@ class MeasurementRepository @Inject constructor(
                 contractorNameSnapshot = draft.contractorName,
                 itemId = item?.id ?: draft.itemId,
                 itemNameSnapshot = draft.itemName,
+                boqRevision = draft.boqRevision, boqLineKey = draft.boqLineKey, rateSnapshot = draft.rateSnapshot, contractBasis = draft.contractBasis,
                 uomSnapshot = draft.unit,
                 formulaCode = draft.calculationType,
                 formulaVersion = 1,
@@ -193,6 +207,7 @@ class MeasurementRepository @Inject constructor(
                 contractorName = draft.contractorName,
                 itemId = item?.id ?: draft.itemId,
                 itemName = draft.itemName,
+                boqRevision = draft.boqRevision, boqLineKey = draft.boqLineKey, rateSnapshot = draft.rateSnapshot, contractBasis = draft.contractBasis,
                 unit = draft.unit,
                 calculationType = draft.calculationType,
                 formulaCode = draft.calculationType,
@@ -213,44 +228,43 @@ class MeasurementRepository @Inject constructor(
         RecordResult.Saved(sheetId)
     }
 
-    suspend fun transition(sheetId: Long, toStatus: String, comment: String, actor: String): Boolean {
-        val sheet = measurementDao.getSheet(sheetId) ?: return false
-        if (!MeasurementSheetWorkflow.canTransition(sheet.status, toStatus, comment)) return false
+    suspend fun transition(sheetId: Long, toStatus: String, comment: String, actor: String): Boolean = db.withTransaction {
+        val sheet = measurementDao.getSheet(sheetId) ?: return@withTransaction false
+        if (!MeasurementSheetWorkflow.canTransition(sheet.status, toStatus, comment)) return@withTransaction false
         val now = System.currentTimeMillis()
-        db.withTransaction {
-            measurementDao.insertReview(
-                MeasurementReviewEventEntity(
-                    sheetId = sheet.id,
-                    fromStatus = sheet.status,
-                    toStatus = toStatus,
-                    comment = comment.trim(),
-                    actor = actor,
-                    revision = sheet.revision,
-                    createdAt = now,
-                ),
-            )
-            measurementDao.updateSheet(
-                sheet.copy(
-                    status = toStatus,
-                    updatedAt = now,
-                    lockedAt = if (toStatus == SheetStatus.APPROVED) now else sheet.lockedAt,
-                ),
-            )
-        }
-        return true
+        measurementDao.insertReview(
+            MeasurementReviewEventEntity(
+                sheetId = sheet.id,
+                fromStatus = sheet.status,
+                toStatus = toStatus,
+                comment = comment.trim(),
+                actor = actor,
+                revision = sheet.revision,
+                createdAt = now,
+            ),
+        )
+        measurementDao.updateSheet(
+            sheet.copy(
+                status = toStatus,
+                updatedAt = now,
+                lockedAt = if (toStatus == SheetStatus.APPROVED) now else sheet.lockedAt,
+            ),
+        )
+        true
     }
 
-    suspend fun deleteMeasurement(id: Long): Boolean {
-        val row = measurementDao.getMeasurement(id) ?: return false
-        val sheet = measurementDao.getSheet(row.sheetId) ?: return false
-        if (sheet.status == SheetStatus.APPROVED || sheet.status == SheetStatus.CHECKED) return false
+    suspend fun deleteMeasurement(id: Long): Boolean = db.withTransaction {
+        val row = measurementDao.getMeasurement(id) ?: return@withTransaction false
+        val sheet = measurementDao.getSheet(row.sheetId) ?: return@withTransaction false
+        if (sheet.status !in listOf(SheetStatus.DRAFT, SheetStatus.RETURNED)) return@withTransaction false
         measurementDao.deleteMeasurement(id)
-        return true
+        true
     }
 
     suspend fun export(projectId: Long, sheetId: Long): SheetExport? {
         val project = projectDao.getProject(projectId) ?: return null
         val sheet = measurementDao.getSheet(sheetId) ?: return null
+        if(sheet.projectId!=projectId) return null
         val rows = measurementDao.measurementsForSheet(sheetId)
         return SheetExport(
             projectName = project.name,
@@ -259,6 +273,7 @@ class MeasurementRepository @Inject constructor(
             floorName = sheet.floorNameSnapshot,
             contractorName = sheet.contractorNameSnapshot,
             itemName = sheet.itemNameSnapshot,
+            boqRevision = sheet.boqRevision, rateSnapshot = sheet.rateSnapshot, contractBasis = sheet.contractBasis,
             formulaCode = sheet.formulaCode,
             status = sheet.status,
             unit = sheet.uomSnapshot,

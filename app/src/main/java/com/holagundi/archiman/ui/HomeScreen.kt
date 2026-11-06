@@ -1,5 +1,6 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,12 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,7 +46,8 @@ fun HomeScreen(
     portfolio: PortfolioViewModel = hiltViewModel(),
     session: SessionViewModel = hiltViewModel(),
 ) {
-    val role by session.currentRole.collectAsStateWithLifecycle()
+    val user by session.signedIn.collectAsStateWithLifecycle()
+    val role = user?.role
     val company by session.company.collectAsStateWithLifecycle()
     val projects by portfolio.projects.collectAsStateWithLifecycle()
     val recentProjects = projects.take(5)
@@ -72,7 +68,7 @@ fun HomeScreen(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    company?.name ?: "ArchiMan",
+                    company?.practiceName ?: "ArchiMan",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -96,13 +92,13 @@ fun HomeScreen(
                 QuickActionCard(
                     title = "Record Today's Work",
                     description = "Add daily log, measurements, or issues",
-                    icon = Icons.Default.Edit,
+                    icon = CarbonIcons.Edit,
                     onClick = onNavigateToToday
                 )
                 QuickActionCard(
                     title = "View Projects",
                     description = "${projects.size} active projects",
-                    icon = Icons.Default.CheckCircle,
+                    icon = CarbonIcons.CheckCircle,
                     onClick = onNavigateToProjects
                 )
             }
@@ -110,19 +106,19 @@ fun HomeScreen(
                 QuickActionCard(
                     title = "Daily Log",
                     description = "Record today's site progress",
-                    icon = Icons.Default.Engineering,
+                    icon = CarbonIcons.Engineering,
                     onClick = onNavigateToToday
                 )
                 QuickActionCard(
                     title = "Quick Measurement",
                     description = "Add measurement entry",
-                    icon = Icons.Default.Edit,
+                    icon = CarbonIcons.Edit,
                     onClick = onNavigateToToday
                 )
                 QuickActionCard(
                     title = "Report Issue",
                     description = "Add snag or NCR",
-                    icon = Icons.Default.Warning,
+                    icon = CarbonIcons.Warning,
                     onClick = onNavigateToToday
                 )
             }
@@ -130,13 +126,13 @@ fun HomeScreen(
                 QuickActionCard(
                     title = "Pending Approvals",
                     description = "Review and approve measurements",
-                    icon = Icons.Default.CheckCircle,
+                    icon = CarbonIcons.CheckCircle,
                     onClick = onNavigateToProjects
                 )
                 QuickActionCard(
                     title = "View Projects",
                     description = "${projects.size} active projects",
-                    icon = Icons.Default.Add,
+                    icon = CarbonIcons.Add,
                     onClick = onNavigateToProjects
                 )
             }
@@ -144,7 +140,7 @@ fun HomeScreen(
                 QuickActionCard(
                     title = "View Projects",
                     description = "${projects.size} projects",
-                    icon = Icons.Default.Add,
+                    icon = CarbonIcons.Add,
                     onClick = onNavigateToProjects
                 )
             }
@@ -163,7 +159,7 @@ fun HomeScreen(
                 ProjectCard(
                     code = project.projectCode,
                     name = project.name,
-                    location = project.location,
+                    location = project.siteLocation,
                     onClick = { onOpenProject(project.id) }
                 )
             }
@@ -197,7 +193,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun QuickActionCard(
+internal fun QuickActionCard(
     title: String,
     description: String,
     icon: ImageVector,

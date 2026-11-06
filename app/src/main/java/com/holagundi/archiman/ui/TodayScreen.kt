@@ -1,5 +1,6 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,12 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Engineering
-import androidx.compose.material.icons.filled.Report
-import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,7 +32,8 @@ fun TodayScreen(
     session: SessionViewModel = hiltViewModel(),
     portfolio: PortfolioViewModel = hiltViewModel(),
 ) {
-    val role by session.currentRole.collectAsStateWithLifecycle()
+    val user by session.signedIn.collectAsStateWithLifecycle()
+    val role = user?.role
     val projects by portfolio.projects.collectAsStateWithLifecycle()
     val today = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault()).format(Date())
 
@@ -88,19 +84,19 @@ fun TodayScreen(
                 QuickActionCard(
                     title = "Daily Site Log",
                     description = "Record today's manpower, materials, and progress",
-                    icon = Icons.Default.Engineering,
+                    icon = CarbonIcons.Engineering,
                     onClick = onNavigateToProjects
                 )
                 QuickActionCard(
                     title = "Quick Measurement",
                     description = "Add measurement entry to open sheet",
-                    icon = Icons.Default.Straighten,
+                    icon = CarbonIcons.Straighten,
                     onClick = onNavigateToProjects
                 )
                 QuickActionCard(
                     title = "Report Snag",
                     description = "Add new snag or NCR",
-                    icon = Icons.Default.Report,
+                    icon = CarbonIcons.Report,
                     onClick = onNavigateToProjects
                 )
             }
@@ -108,13 +104,13 @@ fun TodayScreen(
                 QuickActionCard(
                     title = "Review Measurements",
                     description = "Check and approve submitted sheets",
-                    icon = Icons.Default.CheckCircle,
+                    icon = CarbonIcons.CheckCircle,
                     onClick = onNavigateToProjects
                 )
                 QuickActionCard(
                     title = "View Projects",
                     description = "${projects.size} active projects",
-                    icon = Icons.Default.AddCircle,
+                    icon = CarbonIcons.AddCircle,
                     onClick = onNavigateToProjects
                 )
             }
@@ -122,7 +118,7 @@ fun TodayScreen(
                 QuickActionCard(
                     title = "Select Project",
                     description = "Choose a project to see today's actions",
-                    icon = Icons.Default.AddCircle,
+                    icon = CarbonIcons.AddCircle,
                     onClick = onNavigateToProjects
                 )
             }

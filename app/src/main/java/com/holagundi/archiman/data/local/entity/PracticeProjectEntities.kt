@@ -1,5 +1,6 @@
 package com.holagundi.archiman.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -42,6 +43,7 @@ data class ClientEntity(
     val preferredCommunication: String,
     val notes: String,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "''") val detailsJson: String = "",
 )
 
 @Entity(tableName = "local_users")
@@ -333,6 +335,7 @@ data class ContractorEntity(
     val phone: String,
     val contractorType: String,
     val createdAt: Long,
+    @ColumnInfo(defaultValue = "''") val detailsJson: String = "",
 )
 
 @Entity(

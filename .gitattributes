@@ -1,0 +1,3 @@
+# Preserve upstream generated template strings and verbatim license text.
+app/src/main/assets/carbon/vendor.js -whitespace
+third_party/**/LICENSE* -whitespace

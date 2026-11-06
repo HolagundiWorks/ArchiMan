@@ -1,5 +1,8 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonButton as Button
+import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,10 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
+import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.AbstractRow
 import com.holagundi.archiman.domain.QuantityAbstract
 import com.holagundi.archiman.ui.theme.ArchiField
@@ -96,6 +98,7 @@ fun SitemanPane(
                             Text(log.preparedBy.ifBlank { "Site" }, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                             Text(log.weather, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(log.workCompleted)
+                            RecordActions(RecordKind.LOG, log.id, "Daily site log")
                             if (log.manpower.isNotBlank()) Text("Manpower: ${log.manpower}", style = MaterialTheme.typography.bodySmall)
                             if (log.nextDayPlan.isNotBlank()) Text("Next: ${log.nextDayPlan}", style = MaterialTheme.typography.bodySmall)
                         }
@@ -113,8 +116,7 @@ fun SitemanPane(
                         ArchiField(preparedBy, { preparedBy = it }, stringResource(R.string.siteman_by))
                         Button(
                             onClick = {
-                                suite.addLog(weather, work, preparedBy, manpower, materials, delays, safety, nextDay)
-                                work = ""
+                                val submitted = listOf(work); suite.addLog(weather, work, preparedBy, manpower, materials, delays, safety, nextDay).onSuccess { if (listOf(work) == submitted) { work = "" } }
                             },
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(stringResource(R.string.siteman_save_log)) }
@@ -169,8 +171,10 @@ fun SitemanPane(
                             Text(order.referenceNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                             Text(order.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                             Text("${order.supplier} · ${order.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            RecordActions(RecordKind.ORDER, order.id, order.referenceNumber)
                             orderLines.forEach { line ->
                                 Text("${line.itemName} · ${line.quantity} ${line.unit}")
+                                RecordActions(RecordKind.ORDER_LINE, line.id, line.itemName)
                                 if (line.specification.isNotBlank()) {
                                     Text(line.specification, style = MaterialTheme.typography.bodySmall)
                                 }
@@ -191,18 +195,14 @@ fun SitemanPane(
                         ArchiField(unit, { unit = it }, stringResource(R.string.siteman_unit))
                         Button(
                             onClick = {
-                                suite.addOrder(
+                                val submitted = listOf(title, itemName, specification, quantity); suite.addOrder(
                                     title,
                                     supplier,
                                     itemName,
                                     specification,
                                     quantity.toDoubleOrNull() ?: 0.0,
                                     unit,
-                                )
-                                title = ""
-                                itemName = ""
-                                specification = ""
-                                quantity = ""
+                                ).onSuccess { if (listOf(title, itemName, specification, quantity) == submitted) { title = ""; itemName = ""; specification = ""; quantity = "" } }
                             },
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(stringResource(R.string.siteman_save_order)) }

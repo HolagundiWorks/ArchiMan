@@ -1,0 +1,9 @@
+{
+  "repository": "https://github.com/IBM/plex",
+  "commit": "48e8676114c04f29033b4b53da4ec579f8846297",
+  "fonts": [
+    "Regular",
+    "Medium",
+    "SemiBold"
+  ]
+}

@@ -1,7 +1,6 @@
 package com.holagundi.archiman
 
 import android.app.Application
-import android.content.pm.ApplicationInfo
 import com.holagundi.archiman.data.DatabaseSeeder
 import com.holagundi.archiman.data.SuiteRepository
 import dagger.hilt.android.HiltAndroidApp
@@ -15,15 +14,20 @@ import kotlinx.coroutines.launch
 class ArchiManApp : Application() {
     @Inject lateinit var seeder: DatabaseSeeder
     @Inject lateinit var suite: SuiteRepository
+    @Inject lateinit var demoStore: com.holagundi.archiman.data.DemoCompanyStore
+    @Inject lateinit var backups: com.holagundi.archiman.data.BackupRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         scope.launch {
-            val debuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
-            if (debuggable) seeder.seedIfEmpty()
+            // Sample data is opened explicitly from the welcome screen.
             suite.ensureDefaults()
+            demoStore.ensureDemoContractors()
+            try { backups.protectLegacyRecovery() }
+            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (error: Exception) { android.util.Log.e("ArchiManBackup","Could not protect legacy recovery copy; original retained.",error) }
         }
     }
 }

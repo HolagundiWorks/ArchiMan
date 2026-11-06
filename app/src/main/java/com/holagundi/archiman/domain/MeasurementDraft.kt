@@ -24,6 +24,11 @@ data class MeasurementDraft(
     val height: Double,
     val nos: Double,
     val deduction: Double,
+    val boqRevision: String = "",
+    val boqLineKey: String = "",
+    val rateSnapshot: Double = 0.0,
+    val contractBasis: String = "",
+
 )
 
 data class SheetExportRow(
@@ -50,6 +55,10 @@ data class SheetExport(
     val status: String,
     val unit: String,
     val rows: List<SheetExportRow>,
+    val boqRevision: String = "",
+    val rateSnapshot: Double = 0.0,
+    val contractBasis: String = "",
+
 )
 
 object MeasurementSheetCsv {
@@ -64,6 +73,8 @@ object MeasurementSheetCsv {
             appendLine("Work Item:,${csv(sheet.itemName)}")
             appendLine("Formula:,${csv(sheet.formulaCode)}")
             appendLine("Status:,${csv(sheet.status)}")
+            appendLine("Project item revision:,${csv(sheet.boqRevision)}")
+            appendLine("Contract basis:,${csv(sheet.contractBasis)}")
             appendLine()
             appendLine("No.,Description,Location,Length,Width,Height,Nos,Deduction,Quantity (${sheet.unit}),Remarks,Date")
             sheet.rows.forEachIndexed { index, row ->
@@ -95,7 +106,7 @@ object MeasurementSheetCsv {
         }
     }
 
-    private fun csv(value: String) = "\"" + value.replace("\"", "\"\"") + "\""
+    private fun csv(value: String) = CsvCell.quote(value)
 
     private fun formatDate(millis: Long): String =
         Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).toLocalDate().toString()

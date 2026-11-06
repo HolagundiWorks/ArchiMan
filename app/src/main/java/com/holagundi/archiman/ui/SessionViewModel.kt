@@ -39,6 +39,8 @@ class SessionViewModel @Inject constructor(
 
     private val _catalog = MutableStateFlow<DemoCompanyPackage?>(null)
     val catalog = _catalog.asStateFlow()
+    private val _initialized = MutableStateFlow(false)
+    val initialized = _initialized.asStateFlow()
     private val _signedIn = MutableStateFlow<LocalUserEntity?>(null)
     val signedIn = _signedIn.asStateFlow()
     private val _notice = MutableStateFlow<String?>(null)
@@ -48,15 +50,16 @@ class SessionViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _catalog.value = runCatching { demoCompanyStore.readPackage() }.getOrNull()
+            _catalog.value = withContext(Dispatchers.IO) { runCatching { demoCompanyStore.readPackage() }.getOrNull() }
             val restored = withContext(Dispatchers.IO) {
                 if (practiceDao.companyCount() > 0) suiteRepository.ensureDefaults()
                 val id = sessionStore.signedInUserId.first()
-                id?.let { practiceDao.user(it) }?.takeIf { it.isActive }
+                id?.let { practiceDao.activeUsers().firstOrNull() }
             }
             if (restored != null) {
                 _signedIn.value = restored
             }
+            _initialized.value = true
         }
     }
 
@@ -105,13 +108,14 @@ class SessionViewModel @Inject constructor(
                     sessionStore.markCompanyReady()
                 }
             }.exceptionOrNull()?.message
+            if (error == null) practiceDao.activeUsers().firstOrNull()?.let { signIn(it) }
             _notice.value = error ?: success
             _opening.value = false
         }
     }
 
     companion object {
-        const val OPENED = "Company file opened. Choose a role."
-        const val CREATED = "Company created. Choose a role."
+        const val OPENED = "Practice opened."
+        const val CREATED = "Practice created."
     }
 }

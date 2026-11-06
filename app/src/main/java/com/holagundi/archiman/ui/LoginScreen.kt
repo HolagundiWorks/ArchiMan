@@ -1,5 +1,9 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonButton as Button
+import com.holagundi.archiman.ui.theme.CarbonOutlinedButton as OutlinedButton
+import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
+
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -12,12 +16,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -32,6 +33,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import com.holagundi.archiman.ui.theme.GlassSurface
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
@@ -50,6 +53,7 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
     var step by rememberSaveable { mutableStateOf(LoginStep.COMPANY) }
     var confirmBuiltIn by rememberSaveable { mutableStateOf(false) }
     var confirmCreate by rememberSaveable { mutableStateOf(false) }
+    var showBackup by rememberSaveable { mutableStateOf(false) }
     var pendingUri by rememberSaveable { mutableStateOf<String?>(null) }
     var practiceName by rememberSaveable { mutableStateOf("") }
     var principalName by rememberSaveable { mutableStateOf("") }
@@ -60,7 +64,7 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
     }
 
     LaunchedEffect(notice) {
-        if (notice == SessionViewModel.OPENED || notice == SessionViewModel.CREATED) step = LoginStep.ROLE
+        if (notice == SessionViewModel.OPENED || notice == SessionViewModel.CREATED) { users.firstOrNull { it.isActive }?.let(viewModel::signIn); step = LoginStep.ROLE }
     }
 
     Scaffold { padding ->
@@ -106,10 +110,10 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
                 if (company != null) {
                     Text(company?.practiceName.orEmpty(), style = MaterialTheme.typography.titleMedium)
                     Button(
-                        onClick = { step = LoginStep.ROLE },
+                        onClick = { users.firstOrNull { it.isActive }?.let(viewModel::signIn) },
                         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                     ) {
-                        Text(stringResource(R.string.login_continue))
+                        Text("Open admin workspace")
                     }
                 }
                 Text(stringResource(R.string.login_builtin), style = MaterialTheme.typography.titleMedium)
@@ -136,6 +140,9 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text(stringResource(R.string.login_create))
+                }
+                OutlinedButton(onClick = { showBackup = true }, enabled = !opening) {
+                    Text(stringResource(R.string.backup_title))
                 }
             } else if (step == LoginStep.CREATE) {
                 ArchiField(
@@ -175,16 +182,26 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
                 if (users.isEmpty()) {
                     Text(stringResource(R.string.login_roles_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                users.filter { it.isActive }.forEach { user ->
-                    OutlinedButton(
-                        onClick = { viewModel.signIn(user) },
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                    ) {
-                        Text("${user.displayName} · ${user.role}")
-                    }
+                users.firstOrNull { it.isActive }?.let { admin ->
+                    Button(onClick = { viewModel.signIn(admin) }, modifier = Modifier.fillMaxWidth()) { Text("Open admin workspace") }
                 }
                 TextButton(onClick = { step = LoginStep.COMPANY }) {
                     Text(stringResource(R.string.login_change_company))
+                }
+            }
+        }
+    }
+
+    if (showBackup) {
+        Dialog(onDismissRequest = { showBackup = false }) {
+            GlassSurface {
+                Column {
+                    TextButton(onClick = { showBackup = false }) { Text(stringResource(R.string.cancel)) }
+                    BackupPane(onRestored = {
+                        viewModel.signOut()
+                        showBackup = false
+                        step = LoginStep.ROLE
+                    })
                 }
             }
         }

@@ -1,5 +1,8 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonButton as Button
+import com.holagundi.archiman.ui.theme.CarbonOutlinedButton as OutlinedButton
+
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -14,9 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -51,6 +52,9 @@ fun PortalPane(viewModel: PortalViewModel = hiltViewModel()) {
             SelectionContainer {
                 Text(state.address.orEmpty(), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.titleMedium)
             }
+            Text("Pair this browser", style = MaterialTheme.typography.titleMedium)
+            Text("Before entering the access code, open the browser certificate details and compare its SHA-256 fingerprint with this phone. Accept the local certificate only when every group matches. Repeat after the Wi-Fi address changes. Never bypass a mismatched certificate.")
+            SelectionContainer { Text(state.fingerprint.orEmpty(), fontFamily = FontFamily.Monospace) }
             Text(stringResource(R.string.portal_code), style = MaterialTheme.typography.labelLarge)
             SelectionContainer {
                 Text(state.code.orEmpty(), fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)

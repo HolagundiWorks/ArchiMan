@@ -32,7 +32,7 @@ class PortalService : Service() {
             this,
             NOTIFICATION_ID,
             notification(),
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+            if (android.os.Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC else 0,
         )
         portal.onStopped = {
             Handler(Looper.getMainLooper()).post {

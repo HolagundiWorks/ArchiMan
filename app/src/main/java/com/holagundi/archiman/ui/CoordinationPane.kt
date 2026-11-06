@@ -1,5 +1,9 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonButton as Button
+import com.holagundi.archiman.ui.theme.CarbonOutlinedButton as OutlinedButton
+import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,11 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
+import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.CoordinationWorkflow
 import com.holagundi.archiman.ui.theme.ArchiField
 import com.holagundi.archiman.ui.theme.ChoiceChip
@@ -72,6 +74,7 @@ fun CoordinationPane(suite: SuiteProjectViewModel) {
                         }
                     }
                     Text("${item.type} · ${item.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    RecordActions(RecordKind.COORDINATION, item.id, item.subject)
                     if (open) {
                         Text(item.questionOrRequirement)
                         if (item.response.isNotBlank()) Text("Response: ${item.response}")
@@ -106,9 +109,7 @@ fun CoordinationPane(suite: SuiteProjectViewModel) {
                 ArchiField(assignedTo, { assignedTo = it }, stringResource(R.string.snag_assigned))
                 Button(
                     onClick = {
-                        suite.addCoordination(type, subject, discipline, location, question, raisedBy, assignedTo)
-                        subject = ""
-                        question = ""
+                        val submitted = listOf(subject, question); suite.addCoordination(type, subject, discipline, location, question, raisedBy, assignedTo).onSuccess { if (listOf(subject, question) == submitted) { subject = ""; question = "" } }
                     },
                     modifier = Modifier.heightIn(min = 48.dp),
                 ) { Text(stringResource(R.string.coordination_save)) }

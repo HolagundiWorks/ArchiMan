@@ -1,0 +1,19 @@
+# Measurement capture — 1.2.0
+
+The recording screen has its own compact toolbar and keyboard viewport. Project-wide contractor revisions, negotiated rate snapshots, approval rules and tax-exclusive contractor billing remain unchanged.
+
+- Contractor selection opens when starting a recording session; the selected name is plain, single-line text. Change contractor is in the three-dot **Measurement options** menu.
+- The schedule/rate/tax line and duplicate project breadcrumb are removed from the form. Metric/Imperial selection is in Measurement options; dimension labels and calculated quantities still identify the active units. Changing units converts entered dimensions.
+- Floor, Assigned item and Room selectors show a Carbon down-arrow. Previous/next arrows browse recorded measurements for the selected contractor in chronological order, including entries for different work items. Assigned work selection remains a dropdown for new entries.
+- Top actions are Edit, Save, screen help and Measurement options. In a new entry, the pencil focuses Description and Save creates one draft measurement. For a selected recorded draft/returned entry, Edit unlocks its fields and Save updates the same record using its checked snapshot. Submitted/approved/archived entries remain read-only. Contractor, floor, room and work/revision snapshots are fixed for existing entries. New measurement and Reload recorded entry are available in the menu.
+- An info icon beside the three dots opens persistent, dismissible help. It explains item navigation, field navigation, keyboard modes and save behavior.
+- The built-in keyboard reserves **280 dp** in both alphanumeric and numeric modes. Tapping a field selects its keyboard; the keyboard arrows move between fields. Text mode supports shift, symbols, space and backspace. Cursor insertion, selected-text replacement and backspace preserve the active selection. Numeric input permits digits and one decimal point. Native selection/paste remain available. Numeric and text keyboard modes keep the same fixed height.
+- The system keyboard is **blocked on this screen**. Modern platform input sessions are intercepted; the legacy text-input adapter is disabled in the capture subtree and any previously open IME is dismissed. Other app screens retain their standard system keyboard. Large searchable selectors use their own fixed-keyboard picker, so search does not activate a second keyboard.
+- Count and applicable dimensions remain on one row. The form scrolls above the fixed keyboard; large text/narrow widths can scroll the dimension row sideways. The project navigation bar is omitted while capturing to leave room for the keyboard.
+- Unsaved values require confirmation before leaving, navigating to another recorded entry, or changing the contractor/work item. Repeated save submissions remain guarded, and failures retain the draft.
+
+Validation: 87 unit tests and four portal browser tests pass. Production/debug/audit/test builds passed. Lint passed with zero errors and 36 existing toolchain/dependency warnings; its test-source analysis required a serial rerun after an internal concurrent-analysis crash.
+
+The isolated device suite passed existing-entry update without duplicate insertion, saved-state restoration, stale-edit rejection, approved-entry protection and the existing backup/billing/import/security/concurrency/10,000-row checks. All 56 current practice tables compared unchanged.
+
+Phone UI checks verified actual text/numeric key input and backspace, equal keyboard bounds across modes, `mInputShown=false` while editing, new-entry creation, same-record editing without increasing the entry count, recorded-entry arrows, pending-review read-only controls, contextual help and menu placement. UI mutation checks used the disposable audit practice, not current practice records. Full supervised screen-reader certification remains outside this test coverage.

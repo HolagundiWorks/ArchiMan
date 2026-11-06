@@ -73,7 +73,36 @@ object ArchiManMigrations {
             statements.forEach(db::execSQL)
         }
     }
-    val ALL: Array<Migration> = arrayOf(MIGRATION_27_28)
+    val MIGRATION_28_29 = object : Migration(28, 29) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            listOf("fee_proposals", "work_contracts").forEach { table ->
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `detailsJson` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `$table` ADD COLUMN `documentText` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+    }
+    val MIGRATION_29_30 = object : Migration(29, 30) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE invoices ADD COLUMN taxJson TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE receipts ADD COLUMN tdsAmount REAL NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE receipts ADD COLUMN tdsReference TEXT NOT NULL DEFAULT ''")
+            db.execSQL("ALTER TABLE receipts ADD COLUMN tdsVerified INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE receipts ADD COLUMN bankKey TEXT NOT NULL DEFAULT ''")
+            db.execSQL("CREATE TABLE IF NOT EXISTS finance_records (`key` TEXT NOT NULL PRIMARY KEY, kind TEXT NOT NULL, json TEXT NOT NULL)")
+        }
+    }
+    val MIGRATION_30_31 = object : Migration(30, 31) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            listOf("clients", "contractors").forEach { db.execSQL("ALTER TABLE `$it` ADD COLUMN detailsJson TEXT NOT NULL DEFAULT ''") }
+            listOf("measurement_sheets", "measurements").forEach {
+                db.execSQL("ALTER TABLE `$it` ADD COLUMN boqRevision TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `$it` ADD COLUMN boqLineKey TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `$it` ADD COLUMN rateSnapshot REAL NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE `$it` ADD COLUMN contractBasis TEXT NOT NULL DEFAULT ''")
+            }
+        }
+    }
+    val ALL: Array<Migration> = arrayOf(MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31)
 
     private val statements = listOf(
         "CREATE TABLE IF NOT EXISTS `project_settings` (`projectId` INTEGER NOT NULL, `persona` TEXT NOT NULL, `consultancyType` TEXT NOT NULL, PRIMARY KEY(`projectId`), FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
@@ -151,6 +180,7 @@ object ArchiManMigrations {
         ProjectStageEntity::class,
         InvoiceEntity::class,
         ReceiptEntity::class,
+        com.holagundi.archiman.data.local.entity.FinanceRecordEntity::class,
         EnquiryEntity::class,
         PermitEntity::class,
         TimeEntryEntity::class,

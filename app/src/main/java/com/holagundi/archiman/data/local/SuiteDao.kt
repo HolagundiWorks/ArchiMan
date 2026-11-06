@@ -38,6 +38,47 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface SuiteDao {
+    @Query("SELECT * FROM invoices")
+    suspend fun allInvoices():List<InvoiceEntity>
+    @Query("SELECT * FROM receipts")
+    suspend fun allReceipts():List<ReceiptEntity>
+    @Query("SELECT `key` FROM finance_records WHERE `key` IN (:keys)")
+    suspend fun existingFinanceKeys(keys:List<String>):List<String>
+    @Insert(onConflict=OnConflictStrategy.IGNORE)
+    suspend fun insertFinanceBatch(rows:List<com.holagundi.archiman.data.local.entity.FinanceRecordEntity>):List<Long>
+    @Query("SELECT * FROM finance_records WHERE `key` = 'settings'")
+    fun observeFinanceSettings(): Flow<List<com.holagundi.archiman.data.local.entity.FinanceRecordEntity>>
+    @Query("SELECT * FROM finance_records WHERE kind IN (:kinds)")
+    fun observeFinanceKinds(kinds: List<String>): Flow<List<com.holagundi.archiman.data.local.entity.FinanceRecordEntity>>
+    @Query("SELECT * FROM finance_records WHERE kind IN (:kinds)")
+    suspend fun financeKinds(kinds: List<String>): List<com.holagundi.archiman.data.local.entity.FinanceRecordEntity>
+    @Query("SELECT * FROM finance_records")
+    fun observeFinance(): Flow<List<com.holagundi.archiman.data.local.entity.FinanceRecordEntity>>
+    @Query("SELECT * FROM finance_records WHERE `key` = :key")
+    suspend fun finance(key: String): com.holagundi.archiman.data.local.entity.FinanceRecordEntity?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun saveFinance(row: com.holagundi.archiman.data.local.entity.FinanceRecordEntity)
+
+    @Query("""SELECT
+        (SELECT COUNT(*) FROM project_tasks t JOIN projects p ON p.id = t.projectId WHERE p.status != 'ARCHIVED' AND t.status NOT IN ('DONE', 'COMPLETED')) AS openTasks,
+        (SELECT COUNT(*) FROM measurement_sheets s JOIN projects p ON p.id = s.projectId WHERE p.status != 'ARCHIVED' AND s.archivedAt IS NULL AND s.status IN ('SUBMITTED', 'CHECKED')) AS pendingReviews,
+        (SELECT COUNT(*) FROM site_issues i JOIN projects p ON p.id = i.projectId WHERE p.status != 'ARCHIVED' AND i.status != 'CLOSED') AS openIssues""")
+    fun observeDashboardMetrics(): Flow<DashboardMetrics>
+
+    @Query("""SELECT t.id, t.projectId, t.title, p.name AS projectName, t.dueDate FROM project_tasks t
+        JOIN projects p ON p.id = t.projectId WHERE p.status != 'ARCHIVED' AND t.status NOT IN ('DONE', 'COMPLETED')
+        ORDER BY t.dueDate IS NULL, t.dueDate, t.createdAt DESC LIMIT :limit""")
+    fun observeDashboardTasks(limit: Int = 4): Flow<List<DashboardTask>>
+
+    @Query("""SELECT s.id, s.projectId, s.sheetCode, p.name AS projectName, s.status FROM measurement_sheets s
+        JOIN projects p ON p.id = s.projectId WHERE p.status != 'ARCHIVED' AND s.archivedAt IS NULL AND s.status IN ('SUBMITTED', 'CHECKED')
+        ORDER BY s.updatedAt LIMIT :limit""")
+    fun observeDashboardReviews(limit: Int = 3): Flow<List<DashboardReview>>
+
+    @Query("""SELECT i.id, i.projectId, i.title, p.name AS projectName, i.severity FROM site_issues i
+        JOIN projects p ON p.id = i.projectId WHERE p.status != 'ARCHIVED' AND i.status != 'CLOSED'
+        ORDER BY CASE i.severity WHEN 'CRITICAL' THEN 0 WHEN 'ATTENTION' THEN 1 ELSE 2 END, i.updatedAt DESC LIMIT :limit""")
+    fun observeDashboardIssues(limit: Int = 3): Flow<List<DashboardIssue>>
     @Query("SELECT * FROM project_settings WHERE projectId = :projectId")
     fun observeSettings(projectId: Long): Flow<ProjectSettingsEntity?>
 
@@ -70,6 +111,12 @@ interface SuiteDao {
 
     @Insert
     suspend fun insertInvoice(invoice: InvoiceEntity): Long
+
+    @Query("SELECT * FROM invoices WHERE id = :id")
+    suspend fun invoice(id: Long): InvoiceEntity?
+
+    @Query("SELECT * FROM receipts WHERE invoiceId = :invoiceId")
+    suspend fun invoiceReceipts(invoiceId: Long): List<ReceiptEntity>
 
     @Query("UPDATE invoices SET status = :status WHERE id = :id")
     suspend fun setInvoiceStatus(id: Long, status: String)

@@ -1,5 +1,10 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonButton as Button
+import com.holagundi.archiman.ui.theme.CarbonOutlinedButton as OutlinedButton
+import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
+
+import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,18 +14,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material.icons.outlined.Info
-import androidx.compose.material.icons.outlined.PriorityHigh
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
+import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.data.local.entity.SiteIssueEntity
 import com.holagundi.archiman.domain.SiteIssueWorkflow
 import com.holagundi.archiman.ui.theme.ArchiField
@@ -46,10 +45,10 @@ import com.holagundi.archiman.ui.theme.announce
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun SiteIssuesPane(suite: SuiteProjectViewModel) {
+fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
     val issues by suite.issues.collectAsStateWithLifecycle()
     val notice by suite.notice.collectAsStateWithLifecycle()
-    var selectedId by rememberSaveable { mutableStateOf(-1L) }
+    var selectedId by rememberSaveable(focusId) { mutableStateOf(if (focusId > 0) focusId else -1L) }
     var type by rememberSaveable { mutableStateOf("SNAG") }
     var title by rememberSaveable { mutableStateOf("") }
     var location by rememberSaveable { mutableStateOf("") }
@@ -100,6 +99,7 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel) {
             val open = selectedId == issue.id
             GlassSurface(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    RecordActions(RecordKind.SNAG, issue.id, issue.title)
                     TextButton(onClick = { selectedId = if (open) -1L else issue.id }) {
                         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
                             Text(
@@ -180,7 +180,7 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel) {
                 ArchiField(evidence, { evidence = it }, stringResource(R.string.snag_evidence))
                 TextButton(
                     onClick = {
-                        suite.addIssue(
+                        val submitted = listOf(title, location, description, corrective, evidence, assignedTo); suite.addIssue(
                             type,
                             title,
                             location,
@@ -189,13 +189,7 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel) {
                             assignedTo,
                             corrective,
                             evidence,
-                        )
-                        title = ""
-                        location = ""
-                        description = ""
-                        corrective = ""
-                        evidence = ""
-                        assignedTo = ""
+                        ).onSuccess { if (listOf(title, location, description, corrective, evidence, assignedTo) == submitted) { title = ""; location = ""; description = ""; corrective = ""; evidence = ""; assignedTo = "" } }
                         severity = SiteIssueWorkflow.SEVERITY_NORMAL
                         type = "SNAG"
                     },
@@ -230,9 +224,9 @@ private fun SeverityRow(severity: String) {
 }
 
 private fun severityIcon(severity: String): ImageVector = when (severity) {
-    SiteIssueWorkflow.SEVERITY_CRITICAL -> Icons.Outlined.PriorityHigh
-    SiteIssueWorkflow.SEVERITY_ATTENTION -> Icons.Outlined.ErrorOutline
-    else -> Icons.Outlined.Info
+    SiteIssueWorkflow.SEVERITY_CRITICAL -> CarbonIcons.PriorityHigh
+    SiteIssueWorkflow.SEVERITY_ATTENTION -> CarbonIcons.ErrorOutline
+    else -> CarbonIcons.Info
 }
 
 @OptIn(ExperimentalLayoutApi::class)

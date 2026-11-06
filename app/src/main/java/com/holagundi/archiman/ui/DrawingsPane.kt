@@ -1,5 +1,7 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonButton as Button
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
+import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.SiteIssueWorkflow
 import com.holagundi.archiman.ui.theme.ArchiField
 import com.holagundi.archiman.ui.theme.ChoiceChip
@@ -74,6 +76,7 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                             Text(drawing.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                             Text("${drawing.discipline} · ${drawing.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text("Package: ${drawing.packageTag.ifBlank { "—" }}")
+                            RecordActions(RecordKind.DRAWING, drawing.id, drawing.drawingNumber)
                         }
                     }
                 }
@@ -85,9 +88,7 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                         ArchiField(packageTag, { packageTag = it }, stringResource(R.string.drawing_package))
                         Button(
                             onClick = {
-                                suite.addDrawing(number, title, discipline, packageTag)
-                                number = ""
-                                title = ""
+                                val submitted = listOf(number, title); suite.addDrawing(number, title, discipline, packageTag).onSuccess { if (listOf(number, title) == submitted) { number = ""; title = "" } }
                             },
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(stringResource(R.string.drawing_save)) }
@@ -101,6 +102,7 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                         Column {
                             Text("${drawing?.drawingNumber ?: "Drawing"} · ${revision.revisionCode}", style = MaterialTheme.typography.titleMedium)
                             Text(revision.revisionNotes, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            RecordActions(RecordKind.REVISION, revision.id, revision.revisionCode)
                             Text(
                                 buildString {
                                     append(revision.issueStatus)
@@ -132,8 +134,7 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                         Button(
                             onClick = {
                                 if (drawingId > 0L) {
-                                    suite.addRevision(drawingId, revisionCode, notes, asBuilt, severity, fileNote)
-                                    notes = ""
+                                    val submitted = listOf(notes); suite.addRevision(drawingId, revisionCode, notes, asBuilt, severity, fileNote).onSuccess { if (listOf(notes) == submitted) { notes = "" } }
                                 }
                             },
                             enabled = drawingId > 0L,
@@ -149,6 +150,7 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                             Text(item.transmittalNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                             Text(item.subject, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                             Text("${item.purpose} · ${item.recipients}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            RecordActions(RecordKind.TRANSMITTAL, item.id, item.transmittalNumber)
                         }
                     }
                 }
@@ -159,8 +161,7 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
                         ArchiField(purpose, { purpose = it }, stringResource(R.string.transmittal_purpose))
                         Button(
                             onClick = {
-                                suite.addTransmittal(subject, recipients, purpose)
-                                subject = ""
+                                val submitted = listOf(subject); suite.addTransmittal(subject, recipients, purpose).onSuccess { if (listOf(subject) == submitted) { subject = "" } }
                             },
                             modifier = Modifier.heightIn(min = 48.dp),
                         ) { Text(stringResource(R.string.transmittal_save)) }

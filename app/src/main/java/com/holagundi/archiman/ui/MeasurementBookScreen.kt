@@ -2,6 +2,8 @@
 
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -19,16 +21,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -36,6 +33,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +47,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.data.local.entity.MeasurementEntity
 import com.holagundi.archiman.data.local.entity.MeasurementSheetEntity
 import com.holagundi.archiman.domain.MeasurementSheetWorkflow
+import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.SheetStatus
 import com.holagundi.archiman.ui.theme.ArchiField
 import com.holagundi.archiman.ui.theme.ChoiceChip
@@ -59,6 +59,7 @@ import java.util.Locale
 @Composable
 fun MeasurementBookScreen(
     onRecord: () -> Unit,
+    focusId: Long = 0L,
     workspace: ProjectWorkspaceViewModel = hiltViewModel(),
     book: MeasurementBookViewModel = hiltViewModel(),
 ) {
@@ -66,35 +67,49 @@ fun MeasurementBookScreen(
     val sheets by workspace.sheets.collectAsStateWithLifecycle()
     val measurements by workspace.measurements.collectAsStateWithLifecycle()
     val notice by book.notice.collectAsStateWithLifecycle()
+    val pending by book.pending.collectAsStateWithLifecycle()
     var filter by rememberSaveable { mutableStateOf("ALL") }
     var query by rememberSaveable { mutableStateOf("") }
-    var openId by rememberSaveable { mutableStateOf<Long?>(null) }
+    var focused by rememberSaveable(focusId) { mutableStateOf(focusId) }
+    var openId by rememberSaveable(focusId) { mutableStateOf<Long?>(focusId.takeIf { it > 0 }) }
     var returnId by rememberSaveable { mutableStateOf<Long?>(null) }
     var comment by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
     val visible = sheets.filter { sheet ->
-        (filter == "ALL" || sheet.status == filter) &&
+        (focused == 0L || sheet.id == focused) && (filter == "ALL" || sheet.status == filter) &&
             listOf(sheet.sheetCode, sheet.itemNameSnapshot, sheet.contractorNameSnapshot, sheet.floorNameSnapshot)
                 .any { it.contains(query, true) }
     }
 
+    val grouped=androidx.compose.runtime.remember(measurements) { measurements.groupBy { it.sheetId } }
+    var sheetPage by rememberSaveable(query,filter) { mutableStateOf(0) }
+    var rowPage by rememberSaveable(openId) { mutableStateOf(0) }
+    val pageCount=((visible.size+24)/25).coerceAtLeast(1)
+    val currentPage=sheetPage.coerceAtMost(pageCount-1)
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         ScreenTitle("Measurement Book")
+        if (focused > 0) TextButton(onClick = { focused = 0L }) { Text("Show all project sheets") }
         Text("Quantity-only sheets. Draft, submitted, checked, approved or returned.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         TextButton(onClick = onRecord) { Text("Record measurement", color = MaterialTheme.colorScheme.primary) }
         ArchiField(query, { query = it }, "Search sheets", Modifier.fillMaxWidth())
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             (listOf("ALL") + SheetStatus.ALL).forEach { status ->
                 val count = if (status == "ALL") sheets.size else sheets.count { it.status == status }
-                ChoiceChip("$status $count", filter == status) { filter = status }
+                ChoiceChip("${sheetStatusLabel(status)} $count", filter == status) { filter = status }
             }
         }
         if (notice != null) {
-            Text(notice ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.announce())
+            notice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Measurement review", it.message, it.kind) }
             TextButton(onClick = book::clearNotice) { Text("Dismiss notice") }
         }
-        visible.forEach { sheet ->
-            val rows = measurements.filter { it.sheetId == sheet.id }
+        if (visible.size>25) Row {
+            TextButton(enabled=currentPage>0,onClick={sheetPage=currentPage-1}) { Text("Previous sheets") }
+            Text("Page ${currentPage+1} / $pageCount")
+            TextButton(enabled=currentPage+1<pageCount,onClick={sheetPage=currentPage+1}) { Text("Next sheets") }
+        }
+        visible.drop(currentPage*25).take(25).forEach { sheet ->
+            RecordActions(RecordKind.SHEET, sheet.id, sheet.sheetCode)
+            val rows = grouped[sheet.id].orEmpty()
             val total = rows.sumOf { it.quantity }
             
             // Physical book style sheet
@@ -125,7 +140,7 @@ fun MeasurementBookScreen(
                         )
                         Box(
                             Modifier
-                                .background(statusColor(sheet.status).copy(alpha = 0.2f))
+                                .background(statusBackground(sheet.status))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
@@ -190,37 +205,45 @@ fun MeasurementBookScreen(
                 if (openId == sheet.id) {
                     HorizontalDivider()
                     
+                    val tableScroll = rememberScrollState()
+                    // Header and entry rows share one horizontal coordinate system.
                     // Table header
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.secondaryContainer)
                             .padding(8.dp)
-                            .horizontalScroll(rememberScrollState())
+                            .horizontalScroll(tableScroll)
                     ) {
                         TableHeaderCell("Description", Modifier.width(120.dp))
                         TableHeaderCell("Location", Modifier.width(100.dp))
                         TableHeaderCell("Nos", Modifier.width(60.dp))
-                        TableHeaderCell("L", Modifier.width(70.dp))
-                        TableHeaderCell("B", Modifier.width(70.dp))
-                        TableHeaderCell("H", Modifier.width(70.dp))
-                        TableHeaderCell("Ded", Modifier.width(70.dp))
-                        TableHeaderCell("Quantity", Modifier.width(100.dp))
-                        if (sheet.status == SheetStatus.DRAFT || sheet.status == SheetStatus.RETURNED) {
-                            TableHeaderCell("", Modifier.width(50.dp))
-                        }
+                        TableHeaderCell("Length", Modifier.width(70.dp))
+                        TableHeaderCell("Breadth", Modifier.width(70.dp))
+                        TableHeaderCell("Height", Modifier.width(70.dp))
+                        TableHeaderCell("Deduction", Modifier.width(70.dp))
+                        TableHeaderCell("Quantity (${sheet.uomSnapshot})", Modifier.width(100.dp))
                     }
 
                     HorizontalDivider()
 
                     // Table rows
-                    rows.forEachIndexed { index, row ->
+                    val rowPages=((rows.size+99)/100).coerceAtLeast(1)
+                    val currentRowPage=rowPage.coerceAtMost(rowPages-1)
+                    if(rows.size>100) Row {
+                        TextButton(enabled=currentRowPage>0,onClick={rowPage=currentRowPage-1}) { Text("Previous entries") }
+                        Text("${currentRowPage+1} / $rowPages")
+                        TextButton(enabled=currentRowPage+1<rowPages,onClick={rowPage=currentRowPage+1}) { Text("Next entries") }
+                    }
+                    rows.drop(currentRowPage*100).take(100).forEachIndexed { offset, row ->
+                        val index=currentRowPage*100+offset
                         Row(
                             Modifier
                                 .fillMaxWidth()
                                 .background(if (index % 2 == 0) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                                 .padding(8.dp)
-                                .horizontalScroll(rememberScrollState()),
+                                .horizontalScroll(tableScroll)
+                                .clearAndSetSemantics { contentDescription = "Entry ${index + 1}. ${row.description}. Location ${row.location}. Count ${row.nos}. Length ${row.length}, breadth ${row.width}, height ${row.height}. Quantity ${row.quantity} ${sheet.uomSnapshot}." },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TableCell(row.description, Modifier.width(120.dp))
@@ -237,18 +260,9 @@ fun MeasurementBookScreen(
                                 MaterialTheme.colorScheme.primary,
                                 FontWeight.Bold
                             )
-                            if (sheet.status == SheetStatus.DRAFT || sheet.status == SheetStatus.RETURNED) {
-                                IconButton(
-                                    onClick = { book.deleteRow(row.id) },
-                                    modifier = Modifier.width(50.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
-                                }
-                            }
+                        }
+                        if (sheet.status == SheetStatus.DRAFT || sheet.status == SheetStatus.RETURNED) {
+                            RecordActions(RecordKind.MEASUREMENT, row.id, row.description.ifBlank { "Measurement ${index + 1}" })
                         }
                         HorizontalDivider()
                     }
@@ -269,7 +283,7 @@ fun MeasurementBookScreen(
                             Spacer(Modifier.height(8.dp))
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 MeasurementSheetWorkflow.allowedTransitions(sheet.status).forEach { next ->
-                                    TextButton(onClick = {
+                                    TextButton(enabled = "sheet:${sheet.id}" !in pending, onClick = {
                                         if (next == SheetStatus.RETURNED) returnId = sheet.id else book.transition(sheet.id, next, "")
                                     }) {
                                         Text("→ $next")
@@ -335,12 +349,25 @@ private fun TableCell(
     )
 }
 
-private fun statusLabel(sheet: MeasurementSheetEntity) = sheet.status
+private fun sheetStatusLabel(status: String) = when (status) {
+    "ALL" -> "All"; "DRAFT" -> "Draft"; "SUBMITTED" -> "Ready to check"; "CHECKED" -> "Awaiting approval"; "APPROVED" -> "Approved"; "RETURNED" -> "Returned with comments"; else -> status.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+}
+private fun statusLabel(sheet: MeasurementSheetEntity) = sheetStatusLabel(sheet.status)
 
 @Composable
 private fun statusColor(status: String) = when (status) {
-    SheetStatus.APPROVED -> MaterialTheme.colorScheme.tertiary
+    SheetStatus.APPROVED -> com.holagundi.archiman.ui.theme.carbonSupport.success
     SheetStatus.RETURNED -> MaterialTheme.colorScheme.error
-    SheetStatus.SUBMITTED, SheetStatus.CHECKED -> MaterialTheme.colorScheme.primary
+    SheetStatus.CHECKED -> com.holagundi.archiman.ui.theme.carbonSupport.warning
+    SheetStatus.SUBMITTED -> com.holagundi.archiman.ui.theme.carbonSupport.info
     else -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+@Composable
+private fun statusBackground(status: String) = when(status) {
+    SheetStatus.APPROVED -> com.holagundi.archiman.ui.theme.carbonSupport.successContainer
+    SheetStatus.RETURNED -> MaterialTheme.colorScheme.errorContainer
+    SheetStatus.CHECKED -> com.holagundi.archiman.ui.theme.carbonSupport.warningContainer
+    SheetStatus.SUBMITTED -> com.holagundi.archiman.ui.theme.carbonSupport.infoContainer
+    else -> MaterialTheme.colorScheme.surfaceContainerHigh
 }

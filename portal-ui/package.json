@@ -1,0 +1,20 @@
+{
+  "name": "archiman-carbon-portal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node prepare-tests.mjs && playwright test"
+  },
+  "dependencies": {
+    "@carbon/charts": "1.27.27",
+    "@carbon/icons": "11.92.0",
+    "@carbon/styles": "1.119.0",
+    "@carbon/web-components": "2.67.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "esbuild": "0.28.2",
+    "sass": "1.107.1"
+  }
+}

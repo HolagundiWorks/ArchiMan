@@ -1,5 +1,6 @@
 package com.holagundi.archiman.ui
 
+import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,11 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,7 +29,8 @@ fun ReportsScreen(
     session: SessionViewModel = hiltViewModel(),
     portfolio: PortfolioViewModel = hiltViewModel(),
 ) {
-    val role by session.currentRole.collectAsStateWithLifecycle()
+    val user by session.signedIn.collectAsStateWithLifecycle()
+    val role = user?.role
     val projects by portfolio.projects.collectAsStateWithLifecycle()
 
     Column(
@@ -69,28 +66,28 @@ fun ReportsScreen(
         QuickActionCard(
             title = "Measurement Book",
             description = "Export sheets in MB format (PDF/Excel)",
-            icon = Icons.Default.Description,
+            icon = CarbonIcons.Description,
             onClick = onNavigateToProjects
         )
 
         QuickActionCard(
             title = "Quantity Abstract",
             description = "Approved quantities summary (CSV)",
-            icon = Icons.Default.TableChart,
+            icon = CarbonIcons.TableChart,
             onClick = onNavigateToProjects
         )
 
         QuickActionCard(
             title = "Running Account Bill",
             description = "RA bill with rates and quantities",
-            icon = Icons.Default.Calculate,
+            icon = CarbonIcons.Calculate,
             onClick = onNavigateToProjects
         )
 
         QuickActionCard(
             title = "Daily Log Summary",
             description = "Site progress and manpower report",
-            icon = Icons.Default.Assessment,
+            icon = CarbonIcons.Assessment,
             onClick = onNavigateToProjects
         )
 

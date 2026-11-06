@@ -4,28 +4,116 @@
   "fictional": true,
   "practiceName": "Studio Holagundi",
   "index": [
-    { "key": "clients", "label": "Clients", "count": 2 },
-    { "key": "projects", "label": "Projects", "count": 2 },
-    { "key": "levels", "label": "Levels", "count": 4 },
-    { "key": "rooms", "label": "Rooms", "count": 6 },
-    { "key": "contractors", "label": "Contractors", "count": 1 },
-    { "key": "qualifiedItems", "label": "Qualified items", "count": 2 },
-    { "key": "workLibrary", "label": "Work library", "count": 5 },
-    { "key": "sheets", "label": "Measurement sheets", "count": 2 },
-    { "key": "measurements", "label": "Measurements", "count": 2 },
-    { "key": "tasks", "label": "Tasks", "count": 3 },
-    { "key": "letters", "label": "Letters", "count": 1 },
-    { "key": "proposals", "label": "Proposals", "count": 1 },
-    { "key": "contracts", "label": "Contracts", "count": 1 },
-    { "key": "visits", "label": "Site visits", "count": 1 },
-    { "key": "snags", "label": "Snags and NCRs", "count": 2 },
-    { "key": "coordination", "label": "Coordination", "count": 2 },
-    { "key": "drawings", "label": "Drawings", "count": 1 },
-    { "key": "revisions", "label": "Revisions", "count": 1 },
-    { "key": "transmittals", "label": "Transmittals", "count": 1 },
-    { "key": "logs", "label": "Daily logs", "count": 1 },
-    { "key": "orders", "label": "Purchase orders", "count": 1 },
-    { "key": "invoices", "label": "Invoices", "count": 1 }
+    {
+      "key": "clients",
+      "label": "Clients",
+      "count": 2
+    },
+    {
+      "key": "projects",
+      "label": "Projects",
+      "count": 2
+    },
+    {
+      "key": "levels",
+      "label": "Levels",
+      "count": 4
+    },
+    {
+      "key": "rooms",
+      "label": "Rooms",
+      "count": 6
+    },
+    {
+      "key": "contractors",
+      "label": "Contractors",
+      "count": 8
+    },
+    {
+      "key": "qualifiedItems",
+      "label": "Qualified items",
+      "count": 14
+    },
+    {
+      "key": "workLibrary",
+      "label": "Work library",
+      "count": 7
+    },
+    {
+      "key": "sheets",
+      "label": "Measurement sheets",
+      "count": 2
+    },
+    {
+      "key": "measurements",
+      "label": "Measurements",
+      "count": 2
+    },
+    {
+      "key": "tasks",
+      "label": "Tasks",
+      "count": 3
+    },
+    {
+      "key": "letters",
+      "label": "Letters",
+      "count": 1
+    },
+    {
+      "key": "proposals",
+      "label": "Proposals",
+      "count": 1
+    },
+    {
+      "key": "contracts",
+      "label": "Contracts",
+      "count": 1
+    },
+    {
+      "key": "visits",
+      "label": "Site visits",
+      "count": 1
+    },
+    {
+      "key": "snags",
+      "label": "Snags and NCRs",
+      "count": 2
+    },
+    {
+      "key": "coordination",
+      "label": "Coordination",
+      "count": 2
+    },
+    {
+      "key": "drawings",
+      "label": "Drawings",
+      "count": 1
+    },
+    {
+      "key": "revisions",
+      "label": "Revisions",
+      "count": 1
+    },
+    {
+      "key": "transmittals",
+      "label": "Transmittals",
+      "count": 1
+    },
+    {
+      "key": "logs",
+      "label": "Daily logs",
+      "count": 1
+    },
+    {
+      "key": "orders",
+      "label": "Purchase orders",
+      "count": 1
+    },
+    {
+      "key": "invoices",
+      "label": "Invoices",
+      "count": 1
+    }
   ],
   "company": {
     "practiceName": "Studio Holagundi",
@@ -73,11 +161,76 @@
     }
   ],
   "workItems": [
-    { "ref": "rcc", "itemCode": "CONC-RCCM-01", "workType": "Concrete & Structure", "name": "RCC M25 Column & Beams", "unit": "m³", "calculationType": "VOLUME", "specification": "Design mix M25 in columns, beams and lintels.", "sourceItemCode": "SR-02-12" },
-    { "ref": "brick", "itemCode": "MASO-BRIC-01", "workType": "Masonry", "name": "BrickWork 230mm in CM 1:6", "unit": "m²", "calculationType": "AREA", "specification": "First class bricks in cement mortar 1:6.", "sourceItemCode": "SR-03-02" },
-    { "ref": "plaster", "itemCode": "FINI-PLAS-01", "workType": "Finishes", "name": "Internal Cement Plaster 12mm", "unit": "m²", "calculationType": "WALL_PLASTER", "specification": "12mm cement plaster in CM 1:4.", "sourceItemCode": "SR-04-01" },
-    { "ref": "conduit", "itemCode": "ELEC-COND-01", "workType": "Electrical Works", "name": "Concealed Conduit 25mm", "unit": "m", "calculationType": "RUNNING_LENGTH", "specification": "Medium duty rigid PVC conduit.", "sourceItemCode": "SR-07-01" },
-    { "ref": "point", "itemCode": "ELEC-LPNT-01", "workType": "Electrical Works", "name": "Light Point Wiring", "unit": "Nos", "calculationType": "NOS", "specification": "Point wiring with 1.5 sq.mm FRLS copper.", "sourceItemCode": "SR-07-05" }
+    {
+      "ref": "rcc",
+      "itemCode": "CONC-RCCM-01",
+      "workType": "Concrete & Structure",
+      "name": "RCC M25 Column & Beams",
+      "unit": "m³",
+      "calculationType": "VOLUME",
+      "specification": "Design mix M25 in columns, beams and lintels.",
+      "sourceItemCode": "SR-02-12"
+    },
+    {
+      "ref": "brick",
+      "itemCode": "MASO-BRIC-01",
+      "workType": "Masonry",
+      "name": "BrickWork 230mm in CM 1:6",
+      "unit": "m²",
+      "calculationType": "AREA",
+      "specification": "First class bricks in cement mortar 1:6.",
+      "sourceItemCode": "SR-03-02"
+    },
+    {
+      "ref": "plaster",
+      "itemCode": "FINI-PLAS-01",
+      "workType": "Finishes",
+      "name": "Internal Cement Plaster 12mm",
+      "unit": "m²",
+      "calculationType": "WALL_PLASTER",
+      "specification": "12mm cement plaster in CM 1:4.",
+      "sourceItemCode": "SR-04-01"
+    },
+    {
+      "ref": "conduit",
+      "itemCode": "ELEC-COND-01",
+      "workType": "Electrical Works",
+      "name": "Concealed Conduit 25mm",
+      "unit": "m",
+      "calculationType": "RUNNING_LENGTH",
+      "specification": "Medium duty rigid PVC conduit.",
+      "sourceItemCode": "SR-07-01"
+    },
+    {
+      "ref": "point",
+      "itemCode": "ELEC-LPNT-01",
+      "workType": "Electrical Works",
+      "name": "Light Point Wiring",
+      "unit": "Nos",
+      "calculationType": "NOS",
+      "specification": "Point wiring with 1.5 sq.mm FRLS copper.",
+      "sourceItemCode": "SR-07-05"
+    },
+    {
+      "ref": "floor_tile",
+      "itemCode": "DEMO-FLOOR-01",
+      "workType": "Flooring",
+      "name": "Demo vitrified tile flooring",
+      "unit": "m²",
+      "calculationType": "AREA",
+      "specification": "Fictional demonstration item: floor tiles measured as length x breadth; confirm actual contract specification.",
+      "sourceItemCode": "DEMO-FLOOR-01"
+    },
+    {
+      "ref": "wall_paint",
+      "itemCode": "DEMO-PAINT-01",
+      "workType": "Finishes",
+      "name": "Demo internal wall painting",
+      "unit": "m²",
+      "calculationType": "WALL_PLASTER",
+      "specification": "Fictional demonstration item: wall painting measured as length x height less openings.",
+      "sourceItemCode": "DEMO-PAINT-01"
+    }
   ],
   "projects": [
     {
@@ -99,15 +252,37 @@
         "constraints": "Side setback is 2 m. The north wall cannot take a new opening."
       },
       "tasks": [
-        { "title": "Issue concept set", "status": "TO_DO" },
-        { "title": "Check plinth beam measure", "status": "DOING" },
-        { "title": "Record client brief", "status": "DONE" }
+        {
+          "title": "Issue concept set",
+          "status": "TO_DO"
+        },
+        {
+          "title": "Check plinth beam measure",
+          "status": "DOING"
+        },
+        {
+          "title": "Record client brief",
+          "status": "DONE"
+        }
       ],
       "letters": [
-        { "subject": "Commencement of architectural services", "body": "This letter confirms that Studio Holagundi has started architectural services for Skyline Villa Residence." }
+        {
+          "subject": "Commencement of architectural services",
+          "body": "This letter confirms that Studio Holagundi has started architectural services for Skyline Villa Residence."
+        }
       ],
-      "proposal": { "title": "Architectural services through working drawings", "amount": 850000, "status": "ISSUED" },
-      "contract": { "title": "Consultancy agreement", "party": "Dr. Ananya Rao", "kind": "Client", "amount": 850000, "status": "SIGNED" },
+      "proposal": {
+        "title": "Architectural services through working drawings",
+        "amount": 850000,
+        "status": "ISSUED"
+      },
+      "contract": {
+        "title": "Consultancy agreement",
+        "party": "Dr. Ananya Rao",
+        "kind": "Client",
+        "amount": 850000,
+        "status": "SIGNED"
+      },
       "visit": {
         "location": "Ground Floor living",
         "inspector": "Ar. Vishwabhiram Holagundi",
@@ -214,20 +389,138 @@
           "unit": "Nos"
         }
       ],
-      "invoice": { "number": "INV-2026-01", "title": "Commencement fee", "amount": 250000, "status": "DRAFT" },
+      "invoice": {
+        "number": "INV-2026-01",
+        "title": "Commencement fee",
+        "amount": 250000,
+        "status": "DRAFT"
+      },
       "floors": [
-        { "name": "Ground Floor", "rooms": ["Entrance Foyer", "Double Height Living Room", "Dining & Open Kitchen"] },
-        { "name": "First Floor", "rooms": ["Master Suite & Walk-in", "Bed 2 / Studio"] },
-        { "name": "Terrace & Deck", "rooms": [] }
+        {
+          "name": "Ground Floor",
+          "rooms": [
+            "Entrance Foyer",
+            "Double Height Living Room",
+            "Dining & Open Kitchen"
+          ]
+        },
+        {
+          "name": "First Floor",
+          "rooms": [
+            "Master Suite & Walk-in",
+            "Bed 2 / Studio"
+          ]
+        },
+        {
+          "name": "Terrace & Deck",
+          "rooms": []
+        }
       ],
       "contractors": [
         {
           "name": "Apex Civil Infrastructure",
           "type": "Civil",
-          "phone": "+91 99001 12233",
+          "phone": "",
           "qualified": [
-            { "workType": "Concrete & Structure", "itemRef": "rcc" },
-            { "workType": "Masonry", "itemRef": "brick" }
+            {
+              "workType": "Civil",
+              "itemRef": "rcc"
+            },
+            {
+              "workType": "Civil",
+              "itemRef": "brick"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "rcc",
+              "rate": "6200",
+              "basis": "WITH_MATERIAL",
+              "unit": "m³"
+            },
+            {
+              "itemRef": "brick",
+              "rate": "1100",
+              "basis": "WITH_MATERIAL",
+              "unit": "m²"
+            }
+          ]
+        },
+        {
+          "name": "Demo FinishCraft Plaster & Paint",
+          "type": "Finishes",
+          "phone": "",
+          "qualified": [
+            {
+              "workType": "Finishes",
+              "itemRef": "plaster"
+            },
+            {
+              "workType": "Finishes",
+              "itemRef": "wall_paint"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "plaster",
+              "rate": "240",
+              "basis": "LABOUR_ONLY",
+              "unit": "m²"
+            },
+            {
+              "itemRef": "wall_paint",
+              "rate": "90",
+              "basis": "LABOUR_ONLY",
+              "unit": "m²"
+            }
+          ]
+        },
+        {
+          "name": "Demo TileWorks Flooring",
+          "type": "Flooring",
+          "phone": "",
+          "qualified": [
+            {
+              "workType": "Flooring",
+              "itemRef": "floor_tile"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "floor_tile",
+              "rate": "85",
+              "basis": "WITH_MATERIAL",
+              "unit": "ft²"
+            }
+          ]
+        },
+        {
+          "name": "Demo BrightSpark Electrical",
+          "type": "Electrical",
+          "phone": "",
+          "qualified": [
+            {
+              "workType": "Electrical",
+              "itemRef": "conduit"
+            },
+            {
+              "workType": "Electrical",
+              "itemRef": "point"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "conduit",
+              "rate": "65",
+              "basis": "LABOUR_ONLY",
+              "unit": "m"
+            },
+            {
+              "itemRef": "point",
+              "rate": "450",
+              "basis": "WITH_MATERIAL",
+              "unit": "Nos"
+            }
           ]
         }
       ],
@@ -238,7 +531,12 @@
           "contractor": "Apex Civil Infrastructure",
           "itemRef": "rcc",
           "status": "APPROVED",
-          "review": { "from": "CHECKED", "to": "APPROVED", "comment": "Quantities agree with drawing S-03.", "actor": "Principal" },
+          "review": {
+            "from": "CHECKED",
+            "to": "APPROVED",
+            "comment": "Quantities agree with drawing S-03.",
+            "actor": "Principal"
+          },
           "rows": [
             {
               "description": "Ground floor plinth beams PB-1 to PB-6",
@@ -287,7 +585,120 @@
       "areaUnit": "m²",
       "createdAt": 1733000000000,
       "floors": [
-        { "name": "Concourse Level 0", "rooms": ["Public concourse"] }
+        {
+          "name": "Concourse Level 0",
+          "rooms": [
+            "Public concourse"
+          ]
+        }
+      ],
+      "contractors": [
+        {
+          "name": "Demo Metro Civil Works",
+          "type": "Civil",
+          "phone": "",
+          "qualified": [
+            {
+              "workType": "Civil",
+              "itemRef": "rcc"
+            },
+            {
+              "workType": "Civil",
+              "itemRef": "brick"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "rcc",
+              "rate": "6200",
+              "basis": "WITH_MATERIAL",
+              "unit": "m³"
+            },
+            {
+              "itemRef": "brick",
+              "rate": "1100",
+              "basis": "WITH_MATERIAL",
+              "unit": "m²"
+            }
+          ]
+        },
+        {
+          "name": "Demo Urban Finishes",
+          "type": "Finishes",
+          "phone": "",
+          "qualified": [
+            {
+              "workType": "Finishes",
+              "itemRef": "plaster"
+            },
+            {
+              "workType": "Finishes",
+              "itemRef": "wall_paint"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "plaster",
+              "rate": "240",
+              "basis": "LABOUR_ONLY",
+              "unit": "m²"
+            },
+            {
+              "itemRef": "wall_paint",
+              "rate": "90",
+              "basis": "LABOUR_ONLY",
+              "unit": "m²"
+            }
+          ]
+        },
+        {
+          "name": "Demo Pavilion Flooring",
+          "type": "Flooring",
+          "phone": "",
+          "qualified": [
+            {
+              "workType": "Flooring",
+              "itemRef": "floor_tile"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "floor_tile",
+              "rate": "850",
+              "basis": "WITH_MATERIAL",
+              "unit": "m²"
+            }
+          ]
+        },
+        {
+          "name": "Demo Metro Electrical",
+          "type": "Electrical",
+          "phone": "",
+          "qualified": [
+            {
+              "workType": "Electrical",
+              "itemRef": "conduit"
+            },
+            {
+              "workType": "Electrical",
+              "itemRef": "point"
+            }
+          ],
+          "scheduleItems": [
+            {
+              "itemRef": "conduit",
+              "rate": "65",
+              "basis": "LABOUR_ONLY",
+              "unit": "m"
+            },
+            {
+              "itemRef": "point",
+              "rate": "450",
+              "basis": "WITH_MATERIAL",
+              "unit": "Nos"
+            }
+          ]
+        }
       ]
     }
   ]

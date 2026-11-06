@@ -1,0 +1,11 @@
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
+const output=path.join(root,'app/build/audit');await mkdir(output,{recursive:true});
+const theme=await readFile(path.join(root,'app/src/main/java/com/holagundi/archiman/portal/CarbonWebTheme.kt'),'utf8');
+const literal=(source,label)=>source.split(label+' = """')[1].split('""".trimIndent()')[0];
+await writeFile(path.join(output,'theme.css'),literal(theme,'val css').replaceAll('$light',literal(theme,'val light')).replaceAll('$dark',literal(theme,'val dark')));
+await writeFile(path.join(output,'theme.js'),literal(theme,'val js'));
+const workspace=await readFile(path.join(root,'app/src/main/java/com/holagundi/archiman/portal/PortalWorkspaceAssets.kt'),'utf8');
+await writeFile(path.join(output,'workspace.css'),literal(workspace,'val css'));await writeFile(path.join(output,'workspace.js'),literal(workspace,'val js'));

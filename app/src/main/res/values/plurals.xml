@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="metric_projects">
+        <item quantity="one">%1$d project</item>
+        <item quantity="other">%1$d projects</item>
+    </plurals>
+    <plurals name="metric_clients">
+        <item quantity="one">%1$d client</item>
+        <item quantity="other">%1$d clients</item>
+    </plurals>
+    <plurals name="metric_invoices">
+        <item quantity="one">%1$d invoice</item>
+        <item quantity="other">%1$d invoices</item>
+    </plurals>
+    <plurals name="backup_missing">
+        <item quantity="one">%1$d attachment reference was unavailable when this backup was created. Its file is not included.</item>
+        <item quantity="other">%1$d attachment references were unavailable when this backup was created. Their files are not included.</item>
+    </plurals>
+</resources>

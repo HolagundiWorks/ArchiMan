@@ -10,22 +10,18 @@ import com.holagundi.archiman.data.local.entity.SiteIssueEntity
 
 object PortalPages {
     fun login(practiceName: String, users: List<LocalUserEntity>, csrf: String, error: String?): String {
-        val options = users.joinToString("") { user ->
-            "<option value=\"${user.id}\">${PortalHttp.escape(user.displayName)} · ${PortalHttp.escape(user.role)}</option>"
-        }
         val notice = error?.let { "<p class=\"notice\">${PortalHttp.escape(it)}</p>" }.orEmpty()
         return shell(
             "Sign in",
             """
             <h1>${PortalHttp.escape(practiceName.ifBlank { "ArchiMan" })}</h1>
-            <p>Enter the access code shown on the phone, then choose a role. This portal is read only.</p>
+            <p>Enter the access code shown on the phone, to open the admin workspace. Use the workspace to manage company documents and measurements.</p>
             $notice
             <form method="post" action="/">
               <input type="hidden" name="csrf" value="${PortalHttp.escape(csrf)}">
               <label for="code">Access code</label>
               <input id="code" name="code" autocomplete="off" required>
-              <label for="role">Role</label>
-              <select id="role" name="user">${options}</select>
+              <input type="hidden" name="user" value="${users.firstOrNull { it.isActive && it.role == "Admin" }?.id ?: 0}">
               <button type="submit">Open portal</button>
             </form>
             """.trimIndent(),
@@ -44,7 +40,8 @@ object PortalPages {
             "Projects",
             """
             <h1>${PortalHttp.escape(company?.practiceName ?: "Practice")}</h1>
-            <p>${PortalHttp.escape(role)} · read only. Rates and invoices stay on the phone.</p>
+            <p>${PortalHttp.escape(role)} · Your practice stays on the phone.</p>
+            <p><a href="/workspace">Open company, letterhead, item and measurement workspace</a></p>
             $rows
             ${signOut(csrf)}
             """.trimIndent(),
@@ -70,6 +67,7 @@ object PortalPages {
             <p><a href="/">Projects</a></p>
             <h1>${PortalHttp.escape(project.projectCode)} · ${PortalHttp.escape(project.name)}</h1>
             <p>${PortalHttp.escape(project.client)} · ${PortalHttp.escape(project.siteLocation)} · ${PortalHttp.escape(project.status)}</p>
+            <p><a href="/workspace?section=measure&amp;id=${project.id}">Record / import measurements and download reports</a></p>
             <h2>Brief</h2>
             <p>${PortalHttp.escape(brief.ifBlank { "No brief yet." })}</p>
             ${list("Daily logs", logs.take(20).map { PortalHttp.escape("${it.preparedBy}: ${it.workCompleted}") })}
@@ -97,20 +95,10 @@ object PortalPages {
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
           <title>${PortalHttp.escape(title)} · ArchiMan</title>
-          <style>
-            body{margin:0;background:#F5F5F1;color:#1A2424;font-family:Roboto,sans-serif;line-height:1.45}
-            main{max-width:720px;margin:0 auto;padding:24px}
-            a{color:#173B40} button,input,select{font:inherit;min-height:48px;box-sizing:border-box}
-            input,select{display:block;width:100%;margin:4px 0 12px;padding:8px 12px;border:1px solid #DCE5E3;border-radius:12px;background:#fff;color:inherit}
-            button{background:#173B40;color:#F5F5F1;border:0;border-radius:12px;padding:0 16px}
-            .notice{color:#6B4710}
-            @media (prefers-color-scheme: dark){
-              body{background:#101918;color:#F5F5F1}
-              input,select{background:#101918;color:#F5F5F1;border-color:#5E6E6B}
-              button{background:#9FDBD6;color:#101918}
-              a{color:#9FDBD6}
-            }
-          </style>
+          <link rel="stylesheet" href="/theme.css"><link rel="stylesheet" href="/carbon/vendor.css">
+          <script src="/carbon/vendor.js" defer></script>
+          <script src="/theme.js"></script>
+          <style>main{max-width:720px;margin:0 auto;padding:24px}input,select{display:block;width:100%;min-height:48px;margin:4px 0 12px}form{margin:16px 0}article{background:var(--layer);padding:16px;border:1px solid var(--border-subtle)}</style>
         </head>
         <body>
           <a href="#content">Skip to content</a>

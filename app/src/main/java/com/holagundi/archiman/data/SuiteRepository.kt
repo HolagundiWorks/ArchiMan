@@ -1,5 +1,9 @@
 package com.holagundi.archiman.data
 
+import androidx.room.withTransaction
+import com.holagundi.archiman.data.local.ArchiManDatabase
+import com.holagundi.archiman.domain.InvoiceBalance
+
 import com.holagundi.archiman.data.local.CatalogDao
 import com.holagundi.archiman.data.local.MeasurementDao
 import com.holagundi.archiman.data.local.PracticeDao
@@ -48,10 +52,12 @@ import com.holagundi.archiman.domain.StandardStages
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.combine
 
 @Singleton
 class SuiteRepository @Inject constructor(
+    private val database: ArchiManDatabase,
     private val suiteDao: SuiteDao,
     private val practiceDao: PracticeDao,
     private val projectDao: ProjectDao,
@@ -60,6 +66,10 @@ class SuiteRepository @Inject constructor(
     private val measurementRepository: MeasurementRepository,
 ) {
     fun observeUsers() = practiceDao.observeUsers()
+    fun observeDashboardMetrics() = suiteDao.observeDashboardMetrics()
+    fun observeDashboardTasks(limit: Int = 4) = suiteDao.observeDashboardTasks(limit)
+    fun observeDashboardReviews(limit: Int = 3) = suiteDao.observeDashboardReviews(limit)
+    fun observeDashboardIssues(limit: Int = 3) = suiteDao.observeDashboardIssues(limit)
     fun observeEnquiries() = suiteDao.observeEnquiries()
     fun observeLetters() = suiteDao.observeLetters()
     fun observeTransmittals(projectId: Long) = suiteDao.observeTransmittals(projectId)
@@ -94,32 +104,24 @@ class SuiteRepository @Inject constructor(
     fun observeApprovals(projectId: Long) = suiteDao.observeApprovals(projectId)
     fun observeOrders(projectId: Long) = suiteDao.observeOrders(projectId)
 
-    fun observeEstimate(projectId: Long): Flow<List<EstimateLine>> = combine(
-        measurementDao.observeMeasurements(projectId),
-        suiteDao.observeRates(),
-    ) { rows, rates ->
-        val quantities = rows.groupBy { it.itemName }.mapValues { entry ->
-            entry.value.sumOf { it.quantity } to entry.value.first().unit
+    fun observeEstimate(projectId: Long): Flow<List<EstimateLine>> = measurementDao.observeApprovedMeasurements(projectId).map { rows ->
+        rows.groupBy { listOf(it.itemName,it.unit,it.boqRevision,it.rateSnapshot.toString(),it.contractBasis) }.map { (_,group) ->
+            val first=group.first(); val quantity=group.sumOf { it.quantity }
+            EstimateLine("${first.itemName} | ${first.boqRevision.ifBlank { "Legacy: no rate snapshot" }} | ${first.contractBasis}",first.unit,quantity,first.rateSnapshot,InvoiceBalance.money(quantity*first.rateSnapshot).toDouble())
         }
-        EstimateBuilder.lines(quantities, rates.associate { it.itemName.lowercase() to it.rate })
     }
 
-    suspend fun ensureDefaults() {
-        if (practiceDao.userCount() == 0) {
-            val now = System.currentTimeMillis()
-            listOf("Owner", "Principal", "Accounts", "Document editor", "Auditor").forEach { role ->
-                practiceDao.insertUser(
-                    LocalUserEntity(
-                        username = role.lowercase().replace(' ', '.'),
-                        displayName = role,
-                        role = role,
-                        isActive = true,
-                        createdAt = now,
-                        updatedAt = now,
-                    ),
-                )
-            }
+    suspend fun ensureDefaults() = database.withTransaction {
+        val initialized = practiceDao.userCount() > 0
+        val candidates = practiceDao.activeUsers()
+        val priorAdminId = database.openHelper.writableDatabase.query("SELECT id FROM local_users WHERE username = 'admin' LIMIT 1").use { if (it.moveToFirst()) it.getLong(0) else null }
+        val admin = priorAdminId?.let { practiceDao.user(it) } ?: candidates.firstOrNull { it.role == "Owner" } ?: candidates.firstOrNull()
+        if (admin == null) practiceDao.insertUser(LocalUserEntity(username = "admin", displayName = "Admin", role = "Admin", isActive = true, createdAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis()))
+        else {
+            database.openHelper.writableDatabase.execSQL("UPDATE local_users SET isActive = 0 WHERE id <> ?", arrayOf(admin.id))
+            database.openHelper.writableDatabase.execSQL("UPDATE local_users SET username = 'admin', displayName = 'Admin', role = 'Admin', isActive = 1 WHERE id = ?", arrayOf(admin.id))
         }
+        if (initialized) return@withTransaction
         if (suiteDao.rateCount() == 0) {
             listOf(
                 RateBookItemEntity(itemName = "BrickWork 230mm in CM 1:6", unit = "m²", rate = 842.0, sourceName = "PWD SR"),
@@ -181,31 +183,34 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun addEnquiry(client: String, source: String, notes: String) {
-        if (client.isBlank()) return
+        require(client.isNotBlank()) { "Enter a client name." }
         suiteDao.insertEnquiry(
             EnquiryEntity(clientName = client.trim(), source = source.trim(), notes = notes.trim(), status = "OPEN", createdAt = System.currentTimeMillis()),
         )
     }
 
     suspend fun addLetter(projectId: Long?, subject: String, body: String) {
-        if (subject.isBlank()) return
+        require(subject.isNotBlank()) { "Enter a subject." }
         suiteDao.insertLetter(
             LetterEntity(projectId = projectId, subject = subject.trim(), body = body.trim(), status = "DRAFT", createdAt = System.currentTimeMillis()),
         )
     }
 
     suspend fun addRate(name: String, unit: String, rate: Double) {
-        if (name.isBlank()) return
+        require(name.isNotBlank()) { "Enter an item name." }
         suiteDao.insertRate(RateBookItemEntity(itemName = name.trim(), unit = unit.ifBlank { "m²" }, rate = rate, sourceName = "Office"))
     }
 
-    suspend fun billStage(projectId: Long, stage: ProjectStageEntity, amount: Double) {
+    suspend fun billStage(projectId: Long, stage: ProjectStageEntity, amount: Double) = database.withTransaction {
+        val current=database.openHelper.writableDatabase.query("SELECT status, projectId FROM project_stages WHERE id=?",arrayOf(stage.id)).use { cursor -> require(cursor.moveToFirst()) { "Stage no longer exists." }; cursor.getString(0) to cursor.getLong(1) }
+        require(current.first=="OPEN" && current.second==projectId) { "This stage was already billed or belongs to another project." }
+        require(InvoiceBalance.money(amount).signum()>0) { "Enter a positive stage fee." }
         val now = System.currentTimeMillis()
         suiteDao.insertInvoice(
             InvoiceEntity(
                 projectId = projectId,
                 stageId = stage.id,
-                number = "INV-${now % 100000}",
+                number = "INV-${java.util.UUID.randomUUID()}",
                 title = stage.title,
                 amount = amount,
                 status = "DRAFT",
@@ -215,23 +220,39 @@ class SuiteRepository @Inject constructor(
         suiteDao.setStageStatus(stage.id, "BILLED")
     }
 
-    suspend fun issueInvoice(id: Long) = suiteDao.setInvoiceStatus(id, "ISSUED")
+    suspend fun issueInvoice(id: Long) = database.withTransaction {
+        val current = requireNotNull(suiteDao.invoice(id)) { "Invoice no longer exists." }
+        require(current.status == "DRAFT") { "Only draft invoices can be issued." }
+        require(InvoiceBalance.money(current.amount).signum() > 0) { "Invoice amount must be greater than zero." }
+        val mode = suiteDao.finance("settings")?.let { org.json.JSONObject(it.json).optString("mode", "NONE") } ?: "NONE"
+        require(mode == "NONE" || current.taxJson.isNotBlank()) { "This older draft has no GST details. Recreate it from Invoices with GST details before issuing." }
+        suiteDao.setInvoiceStatus(id, "ISSUED")
+    }
 
-    suspend fun recordReceipt(projectId: Long, invoice: InvoiceEntity, amount: Double, note: String) {
+    suspend fun recordReceipt(projectId: Long, invoice: InvoiceEntity, amount: Double, note: String, tdsAmount: Double = 0.0, tdsReference: String = "", bankKey: String = "", paymentDate: Long = System.currentTimeMillis()) = database.withTransaction {
+        val current = requireNotNull(suiteDao.invoice(invoice.id)) { "Invoice no longer exists." }
+        require(current.projectId == projectId) { "Invoice belongs to another project." }
+        require(current.status == "ISSUED") { "Only issued invoices can receive payments." }
+        require(InvoiceBalance.money(amount).signum() >= 0 && InvoiceBalance.money(tdsAmount).signum() >= 0) { "Cash and TDS cannot be negative." }
+        require(tdsAmount == 0.0 || tdsReference.isNotBlank()) { "Enter the TDS deduction reference or explanation." }
+        val remaining = InvoiceBalance.afterPayment(
+            current.amount, suiteDao.invoiceReceipts(current.id).map { it.amount + it.tdsAmount }, amount + tdsAmount,
+        )
         suiteDao.insertReceipt(
             ReceiptEntity(
                 invoiceId = invoice.id,
                 projectId = projectId,
-                amount = amount,
+                amount = InvoiceBalance.money(amount).toDouble(),
                 note = note.trim(),
-                receivedAt = System.currentTimeMillis(),
+                tdsAmount = InvoiceBalance.money(tdsAmount).toDouble(), tdsReference = tdsReference.trim(), bankKey = bankKey,
+                receivedAt = paymentDate,
             ),
         )
-        suiteDao.setInvoiceStatus(invoice.id, "PAID")
+        suiteDao.setInvoiceStatus(current.id, if (remaining.signum() == 0) "PAID" else "ISSUED")
     }
 
     suspend fun addMeeting(projectId: Long, title: String, attendees: String, discussion: String) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         val now = System.currentTimeMillis()
         suiteDao.insertMeeting(
             MeetingMinutesEntity(
@@ -259,7 +280,7 @@ class SuiteRepository @Inject constructor(
         safety: String = "",
         nextDay: String = "",
     ) {
-        if (work.isBlank()) return
+        require(work.isNotBlank()) { "Describe the work completed." }
         val now = System.currentTimeMillis()
         suiteDao.insertLog(
             DailySiteReportEntity(
@@ -290,7 +311,7 @@ class SuiteRepository @Inject constructor(
         correctiveAction: String = "",
         evidenceUri: String = "",
     ) {
-        if (title.isBlank() || description.isBlank()) return
+        require(title.isNotBlank() && description.isNotBlank()) { "Enter a title and description." }
         val now = System.currentTimeMillis()
         val kind = when (type.uppercase()) {
             "NCR" -> "NCR"
@@ -369,7 +390,7 @@ class SuiteRepository @Inject constructor(
         raisedBy: String,
         assignedTo: String,
     ) {
-        if (subject.isBlank() || question.isBlank()) return
+        require(subject.isNotBlank() && question.isNotBlank()) { "Enter a subject and requirement." }
         val kind = when (type) {
             CoordinationWorkflow.SUBMITTAL, CoordinationWorkflow.SITE_INSTRUCTION -> type
             else -> CoordinationWorkflow.RFI
@@ -438,7 +459,7 @@ class SuiteRepository @Inject constructor(
         discipline: String,
         packageTag: String,
     ): Long {
-        if (number.isBlank() || title.isBlank()) return 0L
+        require(number.isNotBlank() && title.isNotBlank()) { "Enter the drawing number and title." }
         val now = System.currentTimeMillis()
         return suiteDao.insertDrawing(
             ProjectDrawingEntity(
@@ -463,7 +484,7 @@ class SuiteRepository @Inject constructor(
         severity: String,
         fileNote: String,
     ) {
-        if (revisionCode.isBlank()) return
+        require(revisionCode.isNotBlank()) { "Enter a revision code." }
         val now = System.currentTimeMillis()
         suiteDao.insertRevision(
             DrawingRevisionEntity(
@@ -486,7 +507,7 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun addInspection(projectId: Long, location: String, inspector: String, observation: String) {
-        if (observation.isBlank()) return
+        require(observation.isNotBlank()) { "Enter the site visit observations." }
         val now = System.currentTimeMillis()
         suiteDao.insertInspection(
             SiteInspectionEntity(
@@ -509,7 +530,7 @@ class SuiteRepository @Inject constructor(
         recipients: String,
         purpose: String = "For information",
     ) {
-        if (subject.isBlank()) return
+        require(subject.isNotBlank()) { "Enter a subject." }
         val now = System.currentTimeMillis()
         suiteDao.insertTransmittal(
             DrawingTransmittalEntity(
@@ -538,28 +559,28 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun addPermit(projectId: Long, title: String, authority: String) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         suiteDao.insertPermit(
             PermitEntity(projectId = projectId, title = title.trim(), authority = authority.trim(), status = "APPLIED", createdAt = System.currentTimeMillis()),
         )
     }
 
     suspend fun addTime(projectId: Long, person: String, minutes: Int, notes: String) {
-        if (person.isBlank() || minutes <= 0) return
+        require(person.isNotBlank() && minutes > 0) { "Enter a person and time greater than zero." }
         suiteDao.insertTime(
             TimeEntryEntity(projectId = projectId, person = person.trim(), minutes = minutes, notes = notes.trim(), workDate = System.currentTimeMillis()),
         )
     }
 
     suspend fun addProposal(projectId: Long, title: String, amount: Double) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         suiteDao.insertProposal(
             FeeProposalEntity(projectId = projectId, title = title.trim(), amount = amount, status = "DRAFT", createdAt = System.currentTimeMillis()),
         )
     }
 
     suspend fun addTask(projectId: Long, title: String) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         val now = System.currentTimeMillis()
         suiteDao.insertTask(
             ProjectTaskEntity(projectId = projectId, title = title.trim(), description = "", status = "TO_DO", createdAt = now),
@@ -604,13 +625,13 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun addFeeInvoice(projectId: Long, title: String, amount: Double) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         val now = System.currentTimeMillis()
         suiteDao.insertInvoice(
             InvoiceEntity(
                 projectId = projectId,
                 stageId = null,
-                number = "INV-${now % 100000}",
+                number = "INV-${java.util.UUID.randomUUID()}",
                 title = title.trim(),
                 amount = amount,
                 status = "DRAFT",
@@ -620,7 +641,7 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun addApproval(projectId: Long, title: String, type: String) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         suiteDao.insertApproval(
             ProjectApprovalEntity(
                 projectId = projectId,
@@ -636,7 +657,7 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun addContract(projectId: Long, title: String, party: String, kind: String, amount: Double) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         suiteDao.insertContract(
             WorkContractEntity(
                 projectId = projectId,
@@ -651,7 +672,7 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun addActivity(projectId: Long, title: String) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         suiteDao.insertActivity(
             ScheduleActivityEntity(projectId = projectId, title = title.trim(), progress = 0, status = "PLANNED", createdAt = System.currentTimeMillis()),
         )
@@ -666,7 +687,7 @@ class SuiteRepository @Inject constructor(
         quantity: Double = 0.0,
         unit: String = "",
     ) {
-        if (title.isBlank()) return
+        require(title.isNotBlank()) { "Enter a title." }
         val now = System.currentTimeMillis()
         val orderId = suiteDao.insertOrder(
             MaterialOrderEntity(

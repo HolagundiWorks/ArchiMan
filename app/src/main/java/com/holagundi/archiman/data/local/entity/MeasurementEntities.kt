@@ -1,5 +1,6 @@
 package com.holagundi.archiman.data.local.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -36,6 +37,11 @@ data class MeasurementSheetEntity(
     val archivedAt: Long? = null,
     val createdAt: Long,
     val updatedAt: Long,
+    @ColumnInfo(defaultValue = "''") val boqRevision: String = "",
+    @ColumnInfo(defaultValue = "''") val boqLineKey: String = "",
+    @ColumnInfo(defaultValue = "0") val rateSnapshot: Double = 0.0,
+    @ColumnInfo(defaultValue = "''") val contractBasis: String = "",
+
 )
 
 @Entity(
@@ -107,4 +113,9 @@ data class MeasurementEntity(
     val remarks: String,
     val photoUri: String? = null,
     val date: Long,
+    @ColumnInfo(defaultValue = "''") val boqRevision: String = "",
+    @ColumnInfo(defaultValue = "''") val boqLineKey: String = "",
+    @ColumnInfo(defaultValue = "0") val rateSnapshot: Double = 0.0,
+    @ColumnInfo(defaultValue = "''") val contractBasis: String = "",
+
 )

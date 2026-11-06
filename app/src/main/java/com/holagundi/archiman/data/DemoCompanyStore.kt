@@ -36,6 +36,7 @@ import com.holagundi.archiman.domain.QuantityCalculator
 import com.holagundi.archiman.domain.SheetStatus
 import com.holagundi.archiman.domain.SiteIssueWorkflow
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 import org.json.JSONArray
@@ -45,9 +46,24 @@ import org.json.JSONObject
 class DemoCompanyStore @Inject constructor(
     @ApplicationContext private val context: Context,
     private val db: ArchiManDatabase,
+    private val portal: com.holagundi.archiman.portal.PortalServer? = null,
 ) {
+    private fun readBoundedPackage(input: java.io.InputStream): String {
+        val output=java.io.ByteArrayOutputStream(); val buffer=ByteArray(8192)
+        while(true) { val count=input.read(buffer); if(count<0) break; require(output.size()+count<=5*1024*1024) { "Company files must be 5 MB or smaller." }; output.write(buffer,0,count) }
+        return output.toString("UTF-8")
+    }
+
+    private fun clearPracticeRows() {
+        val sql=db.openHelper.writableDatabase
+        check(sql.inTransaction()) { "Practice replacement must be transactional." }
+        sql.execSQL("PRAGMA defer_foreign_keys = ON")
+        val tables=sql.query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT IN ('android_metadata','room_master_table')").use { cursor -> buildList { while(cursor.moveToNext()) add(cursor.getString(0)) } }
+        tables.forEach { table -> sql.execSQL("DELETE FROM \"${table.replace("\"","\"\"")}\"") }
+    }
+
     fun readPackage(): DemoCompanyPackage {
-        val text = context.assets.open(DemoCompanyPackage.ASSET).bufferedReader().use { it.readText() }
+        val text = context.assets.open(DemoCompanyPackage.ASSET).use(::readBoundedPackage)
         return DemoCompanyPackage.parse(text).also { it.requireOpenable() }
     }
 
@@ -55,8 +71,48 @@ class DemoCompanyStore @Inject constructor(
         openPackage(readPackage())
     }
 
+    /** Additive sample upgrade; never opens/replaces a practice or changes real projects. */
+    suspend fun ensureDemoContractors() = ensureDemoContractors(readPackage())
+
+    private suspend fun ensureDemoContractors(pack: DemoCompanyPackage) = db.withTransaction {
+        val profile = db.practiceDao().company() ?: return@withTransaction
+        val company = pack.source.getJSONObject("company")
+        if (!pack.fictional || profile.practiceName != company.getString("practiceName") || profile.legalName != company.getString("legalName")) return@withTransaction
+        val projects = db.projectDao().projects()
+        val itemSpecs = pack.source.getJSONArray("workItems").objects().associateBy { it.getString("ref") }
+        val schedules = ProjectScheduleRepository(db)
+        pack.source.getJSONArray("projects").objects().forEach { spec ->
+            val project = projects.firstOrNull { it.projectCode == spec.getString("code") && it.name == spec.getString("name") } ?: return@forEach
+            val marker = "demo-contractor-works-v1-${project.id}"
+            if (db.suiteDao().finance(marker) != null || schedules.revisions(project.id).any { it.status == "DRAFT" }) return@forEach
+            val contractorSpecs = spec.optJSONArray("contractors").objects().filter { it.optJSONArray("scheduleItems") != null }
+            if (contractorSpecs.isEmpty()) return@forEach
+            val existingItems = db.catalogDao().observeActiveItems().first().associateBy { it.itemCode }.toMutableMap()
+            val existingContractors = db.catalogDao().observeContractors(project.id).first().associateBy { it.name }.toMutableMap()
+            val active = schedules.active(project.id)
+            val additions = mutableListOf<Triple<Long, com.holagundi.archiman.data.local.entity.ItemMasterEntity, JSONObject>>()
+            contractorSpecs.forEach { contractorSpec ->
+                val name = contractorSpec.getString("name")
+                val contractor = existingContractors[name] ?: ContractorEntity(projectId=project.id,name=name,address="Fictional demo address",contactNo="",phone="",contractorType=contractorSpec.getString("type"),createdAt=System.currentTimeMillis(),detailsJson=JSONObject().put("notes","Fictional demo contractor. Example rates exclude taxes and are not market quotations.").put("email","demo@example.test").toString()).let { it.copy(id=db.catalogDao().insertContractor(it)) }.also { existingContractors[name]=it }
+                contractorSpec.getJSONArray("scheduleItems").objects().forEach { work ->
+                    val itemSpec = itemSpecs.getValue(work.getString("itemRef"))
+                    val code = itemSpec.getString("itemCode")
+                    val item = existingItems[code] ?: ItemMasterEntity(itemCode=code,workType=itemSpec.getString("workType"),name=itemSpec.getString("name"),unit=itemSpec.getString("unit"),calculationType=itemSpec.getString("calculationType"),specification=itemSpec.getString("specification"),sourceName="Fictional demo item",sourceItemCode=itemSpec.getString("sourceItemCode"),isPredefined=true,isActive=true).let { it.copy(id=db.catalogDao().insertItem(it)) }.also { existingItems[code]=it }
+                    if (db.catalogDao().observeQualified(contractor.id).first().none { it.itemName == item.name }) db.catalogDao().insertQualified(ContractorQualifiedItemEntity(contractorId=contractor.id,workType=item.workType,itemName=item.name,uom=work.getString("unit"),calculationType=item.calculationType))
+                    if (active?.lines.orEmpty().none { it.contractorId==contractor.id && it.itemId==item.id }) additions.add(Triple(contractor.id,item,work))
+                }
+            }
+            if (additions.isNotEmpty()) {
+                val revision=schedules.create(project.id)
+                additions.forEach { (contractor,item,work) -> schedules.line(revision.key,contractor,item.id,item.name,work.getString("unit"),work.getString("rate"),work.getString("basis")) }
+                schedules.activate(revision.key)
+            }
+            db.suiteDao().saveFinance(com.holagundi.archiman.data.local.entity.FinanceRecordEntity(marker,"DEMO_SEED",JSONObject().put("projectId",project.id).put("fictional",true).toString()))
+        }
+    }
+
     suspend fun openFromUri(uri: Uri) {
-        val text = context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+        val text = context.contentResolver.openInputStream(uri)?.use(::readBoundedPackage)
             ?: error("Could not read the company file.")
         openPackage(DemoCompanyPackage.parse(text).also { it.requireOpenable() })
     }
@@ -65,8 +121,9 @@ class DemoCompanyStore @Inject constructor(
         val name = practiceName.trim()
         require(name.isNotEmpty()) { "Practice name is required." }
         val now = System.currentTimeMillis()
-        db.clearAllTables()
+        portal?.stop(notify = true)
         db.withTransaction {
+            clearPracticeRows()
             db.practiceDao().upsertCompany(
                 CompanyProfileEntity(
                     practiceName = name,
@@ -95,8 +152,9 @@ class DemoCompanyStore @Inject constructor(
     private suspend fun openPackage(pack: DemoCompanyPackage) {
         val json = pack.source
         val now = json.optLong("createdAt", 1735689600000L)
-        db.clearAllTables()
+        portal?.stop(notify = true)
         db.withTransaction {
+            clearPracticeRows()
             val company = json.getJSONObject("company")
             db.practiceDao().upsertCompany(
                 CompanyProfileEntity(
@@ -161,6 +219,8 @@ class DemoCompanyStore @Inject constructor(
             json.getJSONArray("projects").objects().forEach { project ->
                 writeProject(project, clients, clientNames, items, now)
             }
+            ensureDemoContractors(pack)
+            db.openHelper.writableDatabase.query("PRAGMA foreign_key_check").use { require(!it.moveToFirst()) { "The company file has invalid record relationships." } }
         }
     }
 

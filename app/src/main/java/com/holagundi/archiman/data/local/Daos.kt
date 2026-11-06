@@ -153,12 +153,14 @@ interface MeasurementDao {
           AND contractorId = :contractorId
           AND itemNameSnapshot = :itemName
           AND floorId = :floorId
-          AND status != 'APPROVED'
+          AND status IN ('DRAFT', 'RETURNED')
+          AND uomSnapshot = :unit AND formulaCode = :formula
+          AND boqRevision = :boqRevision AND boqLineKey = :boqLineKey
           AND archivedAt IS NULL
         LIMIT 1
         """,
     )
-    suspend fun findOpenSheet(projectId: Long, contractorId: Long, itemName: String, floorId: Long): MeasurementSheetEntity?
+    suspend fun findOpenSheet(projectId: Long, contractorId: Long, itemName: String, floorId: Long, unit: String, formula: String, boqRevision: String, boqLineKey: String): MeasurementSheetEntity?
 
     @Query("SELECT COUNT(*) FROM measurement_sheets WHERE projectId = :projectId")
     suspend fun sheetCount(projectId: Long): Int

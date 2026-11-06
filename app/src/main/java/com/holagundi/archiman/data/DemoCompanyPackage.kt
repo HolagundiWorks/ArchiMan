@@ -17,7 +17,7 @@ data class DemoCompanyPackage(
 ) {
     fun requireOpenable() {
         require(source.optString("format") == FORMAT) { "This file is not an ArchiMan company package." }
-        require(schemaVersion == SchemaContract.VERSION) {
+        require(schemaVersion in 28..SchemaContract.VERSION) {
             "Demo file is schema $schemaVersion. This app opens schema ${SchemaContract.VERSION}."
         }
         require(fictional) { "Built-in demo packages must be marked fictional." }
@@ -38,6 +38,7 @@ data class DemoCompanyPackage(
         const val ASSET = "ArchiMan-Demo-Company.archimandb.json"
 
         fun parse(text: String): DemoCompanyPackage {
+            com.holagundi.archiman.domain.JsonSafety.check(text)
             val json = JSONObject(text)
             val indexJson = json.getJSONArray("index")
             val index = buildList {
