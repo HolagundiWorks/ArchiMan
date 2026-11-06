@@ -6,7 +6,7 @@ The original gap was systematic: most lists could create and display records but
 
 | Surface | Added operations | Protection / existing behavior |
 | --- | --- | --- |
-| Projects, Home and project workspace | Edit details, select another existing client, archive/reopen, permanently delete | Project deletion requires typing DELETE and names the linked data it removes. Shared clients and item library remain. Project list adds search and Active/Archived/All filters. |
+| Projects and project workspace | Edit details, select another existing client, archive/reopen, permanently delete | Project deletion requires typing DELETE and names the linked data it removes. Shared clients and item library remain. Project list adds search and Active/Archived/All filters. |
 | Clients | Edit contact/profile details, delete unused clients | Linked clients cannot be deleted. Renaming updates project client labels. |
 | Practice profile | Edit practice identity and letterhead fields | Profile deletion is intentionally unavailable. |
 | Tasks | Edit title/description, confirmed delete | Existing To do/Doing/Done and Reopen actions remain. |
@@ -27,7 +27,7 @@ The original gap was systematic: most lists could create and display records but
 | Drawing revisions | Edit/delete drafts | Issued revisions are corrected by adding a new revision. |
 | Transmittals | Explicit retained-history explanation | Issued transmittals are corrected through a new transmittal. |
 
-Shared controls were also added to the existing meetings, approvals and schedule panes. Those panes are not currently linked from project navigation; this change does not claim they became reachable. The time/enquiry model definitions have editing rules in the shared allowlist but their legacy lists are not part of the current product navigation.
+Shared edit/delete rules remain in the record-operations allowlist for older meeting, approval, schedule and time models. Those list UIs were removed from the product; do not treat them as reachable surfaces.
 
 ## Integrity rules
 

@@ -35,9 +35,7 @@ fun FeatureRow(title: String, description: String, icon: ImageVector, onClick: (
             headlineContent = { Text(title) },
             supportingContent = { Text(description) },
             leadingContent = {
-                Surface(color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer, shape = MaterialTheme.shapes.small) {
-                    Icon(icon, null, Modifier.padding(10.dp).size(24.dp))
-                }
+                Icon(icon, null, Modifier.size(24.dp), tint = MaterialTheme.colorScheme.primary)
             },
             trailingContent = { Icon(CarbonIcons.ArrowForward, null) },
             colors = ListItemDefaults.colors(containerColor = Color.Transparent),

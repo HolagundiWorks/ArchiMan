@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalLayoutApi::class, androidx.compose.material3.ExperimentalMaterial3Api::class)
 
 package com.holagundi.archiman.ui
 
@@ -8,7 +8,6 @@ import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
 import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.activity.compose.BackHandler
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,12 +25,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,9 +41,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.Color
-import androidx.compose.material3.ListItemDefaults
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
@@ -57,7 +52,6 @@ import com.holagundi.archiman.data.local.entity.ClientEntity
 import com.holagundi.archiman.data.local.entity.CompanyProfileEntity
 import com.holagundi.archiman.data.local.entity.InvoiceEntity
 import com.holagundi.archiman.data.local.entity.ProjectEntity
-import com.holagundi.archiman.ui.shell.EmptyDestination
 import com.holagundi.archiman.ui.shell.PracticeDestination
 import com.holagundi.archiman.ui.shell.PracticeScaffold
 import com.holagundi.archiman.ui.shell.WorkspacePage
@@ -100,7 +94,10 @@ fun PortfolioScreen(
     var destination by rememberSaveable { mutableStateOf(PracticeDestination.HOME) }
     var confirmDemo by rememberSaveable { mutableStateOf(false) }
     var showCreate by rememberSaveable { mutableStateOf(false) }
+    var showSearch by rememberSaveable { mutableStateOf(false) }
+    var pickProjectFor by rememberSaveable { mutableStateOf<String?>(null) }
     var practicePage by rememberSaveable { mutableStateOf<PracticeRegistry?>(null) }
+    val currentProjects = projects.filter { it.status != "ARCHIVED" }
 
     PracticeScaffold(
         destination = destination,
@@ -109,11 +106,28 @@ fun PortfolioScreen(
             inbox = null
             destination = it
         },
-        onNewProject = if (destination == PracticeDestination.PROJECTS) {
-            { showCreate = true }
-        } else {
-            null
-        },
+        onSearch = { showSearch = true },
+        createActions = listOf(
+            com.holagundi.archiman.ui.shell.PracticeFabAction(
+                stringResource(R.string.new_project),
+                CarbonIcons.Apartment,
+            ) { showCreate = true },
+            com.holagundi.archiman.ui.shell.PracticeFabAction(
+                stringResource(R.string.create_task),
+                CarbonIcons.Assignment,
+            ) { pickProjectFor = "tasks" },
+            com.holagundi.archiman.ui.shell.PracticeFabAction(
+                stringResource(R.string.create_site_issue),
+                CarbonIcons.ReportProblem,
+            ) { pickProjectFor = "issues" },
+            com.holagundi.archiman.ui.shell.PracticeFabAction(
+                stringResource(R.string.create_invoice),
+                CarbonIcons.ReceiptLong,
+            ) {
+                practicePage = PracticeRegistry.INVOICES
+                destination = PracticeDestination.PRACTICE
+            },
+        ),
         onSignOut = onSignOut,
     ) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
@@ -165,6 +179,39 @@ fun PortfolioScreen(
         }
     }
 
+    if (showSearch) {
+        PracticeSearchSheet(
+            viewModel = viewModel,
+            onDismiss = { showSearch = false },
+            onOpenProject = {
+                showSearch = false
+                onOpenProject(it)
+            },
+            onOpenRecord = { projectId, page, recordId ->
+                showSearch = false
+                onOpenRecord(projectId, page, recordId)
+            },
+            onOpenPracticeInvoices = {
+                showSearch = false
+                practicePage = PracticeRegistry.INVOICES
+                destination = PracticeDestination.PRACTICE
+            },
+        )
+    }
+
+    if (pickProjectFor != null) {
+        ProjectPickSheet(
+            projects = currentProjects,
+            title = if (pickProjectFor == "issues") stringResource(R.string.pick_project_for_issue) else stringResource(R.string.pick_project_for_task),
+            onDismiss = { pickProjectFor = null },
+            onPick = { projectId ->
+                val page = if (pickProjectFor == "issues") WorkspacePage.SNAGS else WorkspacePage.TASKS
+                pickProjectFor = null
+                onOpenPage(projectId, page)
+            },
+        )
+    }
+
     if (showCreate) {
         CreateProjectDialog(
             busy = "createProject" in pending,
@@ -182,59 +229,13 @@ fun PortfolioScreen(
 }
 
 @Composable
-private fun HomePane(
-    company: CompanyProfileEntity?,
-    projects: List<ProjectEntity>,
-    clientCount: Int,
-    invoiceCount: Int,
-    onOpen: (Long) -> Unit,
-) {
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            Text(
-                company?.practiceName ?: stringResource(R.string.opening_practice),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Metric(pluralStringResource(R.plurals.metric_projects, projects.size, projects.size), Modifier.weight(1f))
-                Metric(pluralStringResource(R.plurals.metric_clients, clientCount, clientCount), Modifier.weight(1f))
-                Metric(pluralStringResource(R.plurals.metric_invoices, invoiceCount, invoiceCount), Modifier.weight(1f))
-            }
-        }
-        if (projects.isEmpty()) {
-            item { Text(stringResource(R.string.no_projects), color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-        items(projects, key = { it.id }) { project ->
-            ProjectCard(project, onOpen)
-        }
-    }
-}
-
-@Composable
-private fun Metric(label: String, modifier: Modifier = Modifier) {
-    Card(modifier) {
-        Text(
-            label,
-            modifier = Modifier.padding(12.dp),
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
-}
-
-@Composable
 private fun ProjectList(projects: List<ProjectEntity>, onOpen: (Long) -> Unit) {
-    var search by rememberSaveable { mutableStateOf("") }
     var filter by rememberSaveable { mutableStateOf("Active") }
     val visible = projects.filter { project ->
-        (filter == "All" || (project.status == "ARCHIVED") == (filter == "Archived")) &&
-            listOf(project.name, project.projectCode, project.client, project.siteLocation).any { it.contains(search, ignoreCase = true) }
+        filter == "All" || (project.status == "ARCHIVED") == (filter == "Archived")
     }
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
-            ArchiField(search, { search = it }, "Search projects")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Active", "Archived", "All").forEach { option -> ChoiceChip(option, filter == option) { filter = option } }
             }
@@ -251,24 +252,32 @@ private fun ProjectList(projects: List<ProjectEntity>, onOpen: (Long) -> Unit) {
 @Composable
 internal fun ProjectCard(project: ProjectEntity, onOpen: (Long) -> Unit) {
     ArchiCard(onClick = { onOpen(project.id) }, modifier = Modifier.fillMaxWidth()) {
-        ListItem(
-            headlineContent = { Text(project.name) },
-            overlineContent = {
-                Text(project.projectCode, fontFamily = FontFamily.Monospace)
-            },
-            supportingContent = {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                CarbonIcons.Apartment,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(end = 12.dp),
+            )
+            Column(Modifier.weight(1f).padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(project.projectCode, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(project.name, style = MaterialTheme.typography.titleMedium)
                 Text(
                     listOf(project.client, project.siteLocation).filter { it.isNotBlank() }.joinToString(" · "),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
                 )
-            },
-            leadingContent = {
-                Icon(CarbonIcons.Apartment, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            },
-            trailingContent = { RecordActions(RecordKind.PROJECT, project.id, project.name) },
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-        )
-        Text(project.status.lowercase().replaceFirstChar { it.uppercase() }, modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                Text(
+                    project.status.lowercase().replaceFirstChar { it.uppercase() },
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+            RecordActions(RecordKind.PROJECT, project.id, project.name)
+        }
     }
 }
 
@@ -350,47 +359,6 @@ private fun DemoPane(
 }
 
 @Composable
-private fun PulsePane(
-    projects: List<ProjectEntity>,
-    stages: List<com.holagundi.archiman.data.local.entity.ProjectStageEntity>,
-    invoices: List<com.holagundi.archiman.data.local.entity.InvoiceEntity>,
-    receipts: List<com.holagundi.archiman.data.local.entity.ReceiptEntity>,
-    enquiries: List<com.holagundi.archiman.data.local.entity.EnquiryEntity>,
-    viewModel: PortfolioViewModel,
-) {
-    var client by rememberSaveable { mutableStateOf("") }
-    var source by rememberSaveable { mutableStateOf("Referral") }
-    var notes by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("Pulse", style = MaterialTheme.typography.titleLarge)
-        projects.forEach { project ->
-            val projectStages = stages.filter { it.projectId == project.id }
-            val projectInvoices = invoices.filter { it.projectId == project.id }
-            val paid = receipts.map { it.invoiceId }.toSet()
-            val next = com.holagundi.archiman.domain.ProjectPath.next(
-                hasStages = projectStages.isNotEmpty(),
-                hasOpenStage = projectStages.any { it.status == "OPEN" },
-                hasDraftInvoice = projectInvoices.any { it.status == "DRAFT" },
-                hasUnpaidInvoice = projectInvoices.any { it.status == "ISSUED" && it.id !in paid },
-            )
-            Text(project.name, style = MaterialTheme.typography.titleMedium)
-            Text(next, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-        }
-        Text("Enquiries", style = MaterialTheme.typography.titleMedium)
-        enquiries.forEach { enquiry ->
-            Text("${enquiry.clientName} · ${enquiry.status}", style = MaterialTheme.typography.bodyMedium)
-            Text(enquiry.notes, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        }
-        ArchiField(client, { client = it }, "New enquiry")
-        ArchiField(source, { source = it }, "Source")
-        ArchiField(notes, { notes = it }, "Notes", singleLine = false)
-        TextButton(onClick = {
-            val submitted = listOf(client, notes); viewModel.addEnquiry(client, source, notes).onSuccess { if (listOf(client, notes) == submitted) { client = ""; notes = "" } }
-        }) { Text("Save enquiry", color = MaterialTheme.colorScheme.primary) }
-    }
-}
-
-@Composable
 private fun ClientsPane(
     clients: List<com.holagundi.archiman.data.local.entity.ClientEntity>,
     viewModel: PortfolioViewModel,
@@ -411,42 +379,6 @@ private fun ClientsPane(
         TextButton(onClick = {
             val submitted = listOf(name, phone, email); viewModel.addClient(name, phone, email).onSuccess { if (listOf(name, phone, email) == submitted) { name = ""; phone = ""; email = "" } }
         }) { Text("Save client", color = MaterialTheme.colorScheme.primary) }
-    }
-}
-
-@Composable
-private fun DocumentsPane(
-    letters: List<com.holagundi.archiman.data.local.entity.LetterEntity>,
-    transmittals: List<com.holagundi.archiman.data.local.entity.DrawingTransmittalEntity>,
-    projects: List<ProjectEntity>,
-    library: List<Pair<String, String>>,
-    viewModel: PortfolioViewModel,
-) {
-    var subject by rememberSaveable { mutableStateOf("") }
-    var body by rememberSaveable { mutableStateOf("") }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Letters", style = MaterialTheme.typography.titleLarge)
-        letters.forEach { letter ->
-            Text(letter.subject, style = MaterialTheme.typography.titleMedium)
-            Text(letter.body, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        }
-        ArchiField(subject, { subject = it }, "Subject")
-        ArchiField(body, { body = it }, "Body", singleLine = false)
-        TextButton(onClick = {
-            val submitted = listOf(subject, body); viewModel.addLetter(subject, body).onSuccess { if (listOf(subject, body) == submitted) { subject = ""; body = "" } }
-        }) { Text("Save letter", color = MaterialTheme.colorScheme.primary) }
-        Text("Transmittals", style = MaterialTheme.typography.titleMedium)
-        if (transmittals.isEmpty()) Text("Issue a transmittal from the project letters page.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        transmittals.forEach { item ->
-            val project = projects.find { it.id == item.projectId }?.name ?: "Project"
-            Text("${item.transmittalNumber} · $project", style = MaterialTheme.typography.bodyMedium)
-            Text("${item.subject} · ${item.recipients}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        }
-        Text("Work library", style = MaterialTheme.typography.titleMedium)
-        library.forEach { (name, detail) ->
-            Text(name, style = MaterialTheme.typography.bodyMedium)
-            Text(detail, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        }
     }
 }
 
@@ -529,6 +461,108 @@ private fun CreateProjectDialog(
                 }
             }
         }
+        }
+    }
+}
+
+@Composable
+private fun PracticeSearchSheet(
+    viewModel: PortfolioViewModel,
+    onDismiss: () -> Unit,
+    onOpenProject: (Long) -> Unit,
+    onOpenRecord: (Long, WorkspacePage, Long) -> Unit,
+    onOpenPracticeInvoices: () -> Unit,
+) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val projects by viewModel.projects.collectAsStateWithLifecycle()
+    val tasks by viewModel.dashboardTasks.collectAsStateWithLifecycle()
+    val reviews by viewModel.dashboardReviews.collectAsStateWithLifecycle()
+    val issues by viewModel.dashboardIssues.collectAsStateWithLifecycle()
+    val invoices by viewModel.invoices.collectAsStateWithLifecycle()
+    val q = query.trim()
+    val projectHits = projects.filter { project ->
+        q.isBlank() || listOf(project.name, project.projectCode, project.client, project.siteLocation).any { it.contains(q, true) }
+    }.take(8)
+    val taskHits = tasks.filter { q.isBlank() || it.title.contains(q, true) || it.projectName.contains(q, true) }.take(6)
+    val reviewHits = reviews.filter { q.isBlank() || it.sheetCode.contains(q, true) || it.projectName.contains(q, true) }.take(6)
+    val issueHits = issues.filter { q.isBlank() || it.title.contains(q, true) || it.projectName.contains(q, true) }.take(6)
+    val invoiceHits = invoices.filter { q.isBlank() || it.number.contains(q, true) || it.title.contains(q, true) }.take(6)
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(stringResource(R.string.practice_search), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            ArchiField(query, { query = it }, stringResource(R.string.practice_search_hint), Modifier.fillMaxWidth())
+            LazyColumn(Modifier.height(420.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (projectHits.isNotEmpty()) {
+                    item { Text("Projects", style = MaterialTheme.typography.titleMedium) }
+                    items(projectHits, key = { "p-${it.id}" }) { project ->
+                        FeatureRow(project.name, listOf(project.projectCode, project.client).filter { it.isNotBlank() }.joinToString(" · "), CarbonIcons.Apartment) {
+                            onOpenProject(project.id)
+                        }
+                    }
+                }
+                if (taskHits.isNotEmpty()) {
+                    item { Text("Tasks", style = MaterialTheme.typography.titleMedium) }
+                    items(taskHits, key = { "t-${it.id}" }) { task ->
+                        FeatureRow(task.title, task.projectName, CarbonIcons.Assignment) {
+                            onOpenRecord(task.projectId, WorkspacePage.TASKS, task.id)
+                        }
+                    }
+                }
+                if (reviewHits.isNotEmpty()) {
+                    item { Text("Sheets to review", style = MaterialTheme.typography.titleMedium) }
+                    items(reviewHits, key = { "r-${it.id}" }) { review ->
+                        FeatureRow(review.sheetCode, review.projectName, CarbonIcons.FactCheck) {
+                            onOpenRecord(review.projectId, WorkspacePage.BOOK, review.id)
+                        }
+                    }
+                }
+                if (issueHits.isNotEmpty()) {
+                    item { Text("Site issues", style = MaterialTheme.typography.titleMedium) }
+                    items(issueHits, key = { "i-${it.id}" }) { issue ->
+                        FeatureRow(issue.title, issue.projectName, CarbonIcons.ReportProblem) {
+                            onOpenRecord(issue.projectId, WorkspacePage.SNAGS, issue.id)
+                        }
+                    }
+                }
+                if (invoiceHits.isNotEmpty()) {
+                    item { Text("Invoices", style = MaterialTheme.typography.titleMedium) }
+                    items(invoiceHits, key = { "inv-${it.id}" }) { invoice ->
+                        FeatureRow(invoice.number, invoice.title, CarbonIcons.ReceiptLong, onOpenPracticeInvoices)
+                    }
+                }
+                if (projectHits.isEmpty() && taskHits.isEmpty() && reviewHits.isEmpty() && issueHits.isEmpty() && invoiceHits.isEmpty()) {
+                    item { Text("No matches.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProjectPickSheet(
+    projects: List<ProjectEntity>,
+    title: String,
+    onDismiss: () -> Unit,
+    onPick: (Long) -> Unit,
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            if (projects.isEmpty()) {
+                Text(stringResource(R.string.no_projects), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            } else {
+                LazyColumn(Modifier.height(360.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(projects, key = { it.id }) { project ->
+                        FeatureRow(project.name, project.client, CarbonIcons.Apartment) { onPick(project.id) }
+                    }
+                }
+            }
         }
     }
 }

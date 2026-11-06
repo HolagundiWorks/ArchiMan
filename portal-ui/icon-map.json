@@ -51,6 +51,8 @@
   "Warning": "warning--alt",
   "AddCircle": "add--alt",
   "Save": "save",
+  "Search": "search",
+  "Close": "close",
   "Backspace": "delete",
   "ChevronDown": "chevron--down"
 }

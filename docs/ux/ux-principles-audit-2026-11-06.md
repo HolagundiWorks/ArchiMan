@@ -6,7 +6,7 @@ Remediation: the subsequent [1.1.1 implementation](ux-remediation-2026-11-06.md)
 
 ## Scope and interpretation
 
-This is a source-based heuristic audit, supported by the existing phone and browser verification from the Carbon implementation. It is not a new usability study, full screen-reader assessment or accessibility certification. No practice data was changed for this audit. The React prototype under `src/` is outside scope.
+This is a source-based heuristic audit, supported by the existing phone and browser verification from the Carbon implementation. It is not a new usability study, full screen-reader assessment or accessibility certification. No practice data was changed for this audit. Scope is the native Kotlin Compose app and the optional HTTPS portal; there is no React product tree in this repository.
 
 Evidence below uses repository-relative paths; native UI paths are under `app/src/main/java/com/holagundi/archiman/ui/`, portal paths under `app/src/main/java/com/holagundi/archiman/portal/`. “Confirmed” means directly present in the implementation; a source observation does not establish how often real users encounter the problem. Items explicitly marked for device testing remain risks, not reproduced failures.
 
@@ -18,7 +18,7 @@ Priority: P0 blocks safe completion or exposes established major loss; P1 affect
 
 | Principle | Current strengths | Gap and user impact | Assessment / priority |
 |---|---|---|---|
-| 1. Clarity over cleverness | Labeled navigation and CTAs; record menus expose Edit details, Archive and Delete; units/formulas are visible. | Android Running bill opens `EstimatePane`, whose content is a rate book. Measurement filters expose raw uppercase workflow codes. Users cannot reliably predict the destination or interpret every state. | Needs work — P1, F02/F09 |
+| 1. Clarity over cleverness | Labeled navigation and CTAs; record menus expose Edit details, Archive and Delete; units/formulas are visible. | Measurement filters may still expose raw uppercase workflow codes in places; users cannot always predict every state label. Running bill now uses `RunningBillsPane` (approved quantities + portal handoff), not the old rate-book pane. | Needs work — P1, F09 |
 | 2. Consistency builds confidence | Shared Carbon palette, Plex, icons, square cards/buttons and navigation; shared record management. | Measurement dimensions use separate outlined controls; generic editors make every field multiline. Finance and project notices bypass typed notifications. Validation and save behavior differ across modules. | Partial — P1/P2, F03/F07/F09 |
 | 3. Visibility of system status | Record actions show Loading actions and Saving; backup has busy/error state; dashboards show loading/empty data; portal pagination reports visible counts. | Measurement capture has no saving state or disabled-while-saving action. Shared project mutations surface errors but no general busy/success state. A disappearing dialog or changed list is often the only confirmation. | Needs work — P1, F03 |
 | 4. Recognition over recall | Project groups and nested hubs; searchable projects, measurement sheets and portal tables; action restrictions explain why an operation is disabled. | Assigned-item/contractor dropdowns are unsearchable. Mobile setup tells the user to use the portal without a direct contextual setup route. Finding an exact attention item opens the module, not the record. | Partial — P1/P2, F04/F08 |
@@ -41,13 +41,11 @@ Remedy: return an operation result, retain the complete draft on failure and cle
 
 Acceptance: simulate delayed success, validation rejection and storage failure. Success clears the submitted draft once; failures retain every input and selection; retry produces one record. Cover tasks and visits first, then reuse the same pattern across forms.
 
-### F02 — Make Running bill lead to actual billing (P1)
+### F02 — Make Running bill lead to actual billing (P1) — addressed
 
-Evidence: `shell/Destinations.kt` defines BILL; `strings.xml` labels it Running bill; `ProjectWorkspaceScreen.kt` maps it to `EstimatePane`; `ProjectPages.kt` renders rate entries and Save rate there. `PortalContractorBills.kt` contains the actual contractor bill workflow.
+Evidence (current): `ProjectWorkspaceScreen.kt` maps BILL to `RunningBillsPane` (`ProjectPortalHandoff.kt`): approved quantities, unbilled context and a project-specific portal billing handoff. The old rate-book `EstimatePane` was removed. Portal contractor bills remain in `PortalContractorBills.kt`.
 
-Remedy: replace this destination with a project-specific contractor-billing overview. Show approved unbilled quantities, contractor, revision, prior billed/current quantities and the next action. Until native billing is available, explicitly label and explain the portal handoff, with a project-specific route. Keep the legacy rate book separately named if it remains useful.
-
-Acceptance: following Running bill never lands in an unrelated rate editor; the user can identify the contractor, eligible quantities and how to create the bill. Contractor measurements/bills remain tax-exclusive; architect fee GST/TDS remains separate.
+Acceptance (met by remediation): Running bill no longer opens an unrelated rate editor; the user sees contractor/quantity context and how to continue billing. Contractor measurements/bills remain tax-exclusive; architect fee GST/TDS remains separate.
 
 ### F03 — Standardize operation state and prevent repeat submission (P1)
 
@@ -149,4 +147,4 @@ With representative freelance architects, measure completion without assistance,
 
 ## Relationship to earlier audits
 
-This document is the current principles-based assessment. Earlier `ui-redesign-plan.md` includes historical teal styling and navigation findings that were subsequently addressed. `carbon-components.md` records the shipped visual/component foundation and its checks. Neither should be interpreted as proof that every workflow now satisfies all 12 principles. No implementation changes are included in this audit.
+This document is the current principles-based assessment. Earlier redesign notes (teal styling and pre-Carbon navigation) were removed as superseded. `carbon-components.md` and `carbon-colour-system.md` record the shipped visual/component foundation. Neither this audit nor those notes should be read as proof that every workflow satisfies all 12 principles. No implementation changes are included in this audit.

@@ -128,6 +128,15 @@
     <string name="nav_bill">Running bill</string>
     <string name="back_to_practice">Back to practice</string>
     <string name="new_project">New project</string>
+    <string name="create">Create</string>
+    <string name="create_task">Task</string>
+    <string name="create_site_issue">Site issue</string>
+    <string name="create_invoice">Invoice</string>
+    <string name="close_create_menu">Close create menu</string>
+    <string name="practice_search">Search practice</string>
+    <string name="practice_search_hint">Search projects, tasks, reviews and issues</string>
+    <string name="pick_project_for_task">Choose a project for the new task</string>
+    <string name="pick_project_for_issue">Choose a project for the new site issue</string>
     <string name="opening_project">Opening project…</string>
     <string name="opening_practice">Opening the practice…</string>
     <string name="no_projects">No projects yet. Use New project to add the first one.</string>
