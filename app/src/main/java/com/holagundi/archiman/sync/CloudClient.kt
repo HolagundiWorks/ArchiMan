@@ -100,7 +100,12 @@ interface HubApi {
 }
 
 /** Neon Data API over HTTPS with a Neon Auth access token. Row level security in the database decides what this person may see and change. */
-class HubDataApi(baseUrl: String, private val http: HttpTransport, private val token: () -> String) : HubApi {
+class HubDataApi(
+    baseUrl: String,
+    private val http: HttpTransport,
+    private val retryDelayMs: Long = 1_500,
+    private val token: () -> String,
+) : HubApi {
     private val base = baseUrl.trimEnd('/')
 
     init {
@@ -122,7 +127,23 @@ class HubDataApi(baseUrl: String, private val http: HttpTransport, private val t
         return JSONArray(send("GET", "record?company_id=eq.$c&seq=gt.$fromSeq&order=seq.asc&limit=$limit&select=kind,sync_id,rev,seq,deleted,body", null))
     }
 
+    // Observed on dev: a token is sometimes accepted before the database can tell who it belongs to ("not signed in", or 401). A fresh token and a
+    // short wait fixes it, so a request is tried up to three times for exactly that and nothing else.
     private fun send(method: String, path: String, body: String?): String {
+        var attempt = 1
+        while (true) {
+            try {
+                return sendOnce(method, path, body)
+            } catch (e: CloudException) {
+                val transient = e.code == 401 || e.message.orEmpty().contains("not signed in", ignoreCase = true)
+                if (!transient || attempt >= 3) throw e
+                Thread.sleep(retryDelayMs * attempt)
+                attempt++
+            }
+        }
+    }
+
+    private fun sendOnce(method: String, path: String, body: String?): String {
         val headers = mutableMapOf("Authorization" to "Bearer ${token()}", "Accept-Profile" to "hub")
         if (body != null) {
             headers["Content-Profile"] = "hub"

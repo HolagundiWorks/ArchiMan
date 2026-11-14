@@ -57,7 +57,7 @@ class CloudClientTest {
         val http = Fake { _, url, _, _ ->
             if (url.endsWith("push_records")) HttpResponse(403, emptyMap(), """{"message":"not a member of this company"}""") else HttpResponse(200, emptyMap(), "[]")
         }
-        val api = HubDataApi("https://api.example.test/db/rest/v1", http) { "tok" }
+        val api = HubDataApi("https://api.example.test/db/rest/v1", http, 0) { "tok" }
         api.pull("co 1", 5, 500)
         assertEquals("Bearer tok", http.seen[0].third["Authorization"])
         assertEquals("hub", http.seen[0].third["Accept-Profile"])
@@ -65,6 +65,22 @@ class CloudClientTest {
         val e = assertThrows(CloudException::class.java) { api.push("co-1", emptyList()) }
         assertEquals("not a member of this company", e.message)
         assertEquals("hub", http.seen[1].third["Content-Profile"])
+    }
+
+    @Test fun a_not_signed_in_answer_is_retried_with_a_fresh_token_and_then_succeeds() {
+        var calls = 0
+        var tokens = 0
+        val http = Fake { _, _, _, _ -> if (++calls < 3) HttpResponse(400, emptyMap(), """{"message":"not signed in"}""") else HttpResponse(200, emptyMap(), "[]") }
+        HubDataApi("https://api.example.test/rest/v1", http, 0) { "t${++tokens}" }.pull("co-1", 0, 10)
+        assertEquals(3, calls)
+        assertEquals(3, tokens)
+    }
+
+    @Test fun other_refusals_are_not_retried() {
+        var calls = 0
+        val http = Fake { _, _, _, _ -> calls++; HttpResponse(403, emptyMap(), """{"message":"not a member of this company"}""") }
+        assertThrows(CloudException::class.java) { HubDataApi("https://api.example.test/rest/v1", http, 0) { "t" }.push("co-1", emptyList()) }
+        assertEquals(1, calls)
     }
 
     @Test fun companies_are_listed_from_the_membership_filtered_table() {
