@@ -83,6 +83,7 @@ private enum class PracticeRegistry(val labelRes: Int, val icon: ImageVector, va
     INVOICES(R.string.nav_invoices, CarbonIcons.ReceiptLong, "Client invoices across all projects", "Finance"),
     FINANCE(R.string.finance_title, CarbonIcons.ReceiptLong, "GST settings, bank imports and TDS reconciliation", "Finance"),
     BACKUP(R.string.backup_title, CarbonIcons.Backup, "Save your records or recover a practice", "Data and access"),
+    CLOUD(R.string.cloud_sync_title, CarbonIcons.Backup, "Sign in and keep clients, projects and tasks in step with MynaHub", "Data and access"),
     PORTAL(R.string.practice_portal, CarbonIcons.Wifi, "Company letterhead, item revisions and documents on local Wi-Fi", "Data and access"),
     DEMO(R.string.nav_demo, CarbonIcons.HelpOutline, "Explore the sample company", "Help and sample data"),
 }
@@ -519,6 +520,7 @@ private fun PracticeRegistries(
                 PracticeRegistry.INVOICES -> AccountsPane(viewModel, projects, onOpenRecord, onCreateInvoice)
                 PracticeRegistry.FINANCE -> FinancePane()
                 PracticeRegistry.DEMO -> DemoPane(demoCatalog, demoNotice, openingDemo, onOpenDemo)
+                PracticeRegistry.CLOUD -> CloudSyncPane()
                 PracticeRegistry.PORTAL -> PortalPane()
                 PracticeRegistry.BACKUP -> BackupPane(onRestored)
             }

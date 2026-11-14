@@ -175,6 +175,7 @@
     <string name="portal_notification">Desktop access is on for this Wi-Fi.</string>
     <string name="portal_notification_url">Open %1$s on a computer on this Wi-Fi. Tap Stop portal when finished.</string>
     <string name="portal_notification_denied">Notification permission is off. The portal can still run, but Android may hide the ongoing status notice.</string>
+    <string name="cloud_sync_title">Cloud sync</string>
     <string name="backup_title">Backup and restore</string>
     <string name="backup_description">Save all practice records and accessible attachments to a file you control. Keep a copy away from this phone.</string>
     <string name="backup_privacy">New backups require a password and use authenticated encryption. Keep the password separately: forgotten passwords cannot be recovered. Older unencrypted backups can still be restored. The safe size limit depends on device memory (up to 64 MB; database metadata up to 8 MB).</string>

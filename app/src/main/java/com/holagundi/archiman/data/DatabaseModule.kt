@@ -4,6 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import com.holagundi.archiman.data.local.ArchiManDatabase
 import com.holagundi.archiman.data.local.ArchiManMigrations
+import com.holagundi.archiman.sync.SqlDb
+import com.holagundi.archiman.sync.SyncSchema
+import androidx.room.RoomDatabase
+import androidx.sqlite.db.SupportSQLiteDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -19,6 +23,17 @@ object DatabaseModule {
     fun provideDatabase(@ApplicationContext context: Context): ArchiManDatabase =
         Room.databaseBuilder(context, ArchiManDatabase::class.java, "archiman.db")
             .addMigrations(*ArchiManMigrations.ALL)
+            // The sync tracking tables are not Room entities: create them on every open (idempotent), on fresh installs and after a restore.
+            .addCallback(object : RoomDatabase.Callback() {
+                override fun onOpen(db: SupportSQLiteDatabase) {
+                    SyncSchema.ensure(object : SqlDb {
+                        override fun exec(sql: String, vararg args: Any?) = db.execSQL(sql)
+                        override fun query(sql: String, vararg args: Any?) = emptyList<Map<String, Any?>>()
+                        override fun lastInsertId() = 0L
+                        override fun <T> transaction(block: () -> T) = block()
+                    })
+                }
+            })
             .build()
 
     @Provides fun practiceDao(db: ArchiManDatabase) = db.practiceDao()

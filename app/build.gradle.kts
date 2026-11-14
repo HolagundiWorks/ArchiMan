@@ -16,6 +16,12 @@ val releaseSecrets = Properties().apply {
 }
 fun releaseSecret(name: String): String? = providers.environmentVariable("ARCHIMAN_" + name.uppercase()).orNull
     ?: releaseSecrets.getProperty(name)
+// Public cloud addresses (not credentials) for the MynaHub sync; kept out of git in local.properties or the build environment.
+val localProps = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.isFile) file.inputStream().use(::load)
+}
+fun publicConfig(name: String): String = providers.environmentVariable(name).orNull ?: localProps.getProperty(name) ?: ""
 val releaseKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
 val hasReleaseSigning = releaseKeys.all { !releaseSecret(it).isNullOrBlank() }
 require(releaseKeys.none { !releaseSecret(it).isNullOrBlank() } || hasReleaseSigning) { "Incomplete release signing configuration; provide all four ARCHIMAN signing values or .signing/release.properties." }
@@ -30,6 +36,8 @@ android {
         targetSdk = 35
         versionCode = 8
         versionName = "1.2.0"
+        buildConfigField("String", "NEON_AUTH_URL", "\"${publicConfig("NEON_AUTH_BASE_URL")}\"")
+        buildConfigField("String", "NEON_DATA_API_URL", "\"${publicConfig("NEON_DATA_API_URL")}\"")
         testInstrumentationRunner = "com.holagundi.archiman.BackupDeviceChecks"
     }
 
@@ -119,6 +127,7 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     testImplementation(libs.junit)
     testImplementation(libs.org.json)
+    testImplementation(libs.sqlite.jdbc)
     androidTestImplementation(libs.androidx.test.uiautomator)
 }
 
