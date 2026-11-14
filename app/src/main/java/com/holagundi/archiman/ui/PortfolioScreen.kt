@@ -82,6 +82,7 @@ private enum class PracticeRegistry(val labelRes: Int, val icon: ImageVector, va
     CLIENTS(R.string.nav_clients, CarbonIcons.People, "Client contacts and project relationships", "Your practice"),
     INVOICES(R.string.nav_invoices, CarbonIcons.ReceiptLong, "Client invoices across all projects", "Finance"),
     FINANCE(R.string.finance_title, CarbonIcons.ReceiptLong, "GST settings, bank imports and TDS reconciliation", "Finance"),
+    BOOKS(R.string.books_title, CarbonIcons.MenuBook, "Trial balance, journals and manual entries", "Finance"),
     BACKUP(R.string.backup_title, CarbonIcons.Backup, "Save your records or recover a practice", "Data and access"),
     PORTAL(R.string.practice_portal, CarbonIcons.Wifi, "Company letterhead, item revisions and documents on local Wi-Fi", "Data and access"),
     DEMO(R.string.nav_demo, CarbonIcons.HelpOutline, "Explore the sample company", "Help and sample data"),
@@ -518,6 +519,7 @@ private fun PracticeRegistries(
                 PracticeRegistry.CLIENTS -> ClientsPane(viewModel)
                 PracticeRegistry.INVOICES -> AccountsPane(viewModel, projects, onOpenRecord, onCreateInvoice)
                 PracticeRegistry.FINANCE -> FinancePane()
+                PracticeRegistry.BOOKS -> LedgerPane()
                 PracticeRegistry.DEMO -> DemoPane(demoCatalog, demoNotice, openingDemo, onOpenDemo)
                 PracticeRegistry.PORTAL -> PortalPane()
                 PracticeRegistry.BACKUP -> BackupPane(onRestored)
