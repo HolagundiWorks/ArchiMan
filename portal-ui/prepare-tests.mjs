@@ -4,7 +4,7 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const output=path.join(root,'app/build/audit');await mkdir(output,{recursive:true});
 const theme=await readFile(path.join(root,'app/src/main/java/com/holagundi/archiman/portal/CarbonWebTheme.kt'),'utf8');
-const literal=(source,label)=>source.split(label+' = """')[1].split('""".trimIndent()')[0];
+const literal=(source,label)=>{const at=source.indexOf(label);if(at<0)throw new Error('Missing '+label);const start=source.indexOf('"""',at)+3;return source.slice(start,source.indexOf('""".trimIndent()',start));};
 await writeFile(path.join(output,'theme.css'),literal(theme,'val css').replaceAll('$light',literal(theme,'val light')).replaceAll('$dark',literal(theme,'val dark')));
 await writeFile(path.join(output,'theme.js'),literal(theme,'val js'));
 const workspace=await readFile(path.join(root,'app/src/main/java/com/holagundi/archiman/portal/PortalWorkspaceAssets.kt'),'utf8');
