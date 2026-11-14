@@ -118,6 +118,7 @@ class SuiteRepository @Inject constructor(
     }
 
     suspend fun ensureDefaults() = database.withTransaction {
+        LedgerChart.ensure(database)
         val initialized = practiceDao.userCount() > 0
         val candidates = practiceDao.activeUsers()
         val priorAdminId = database.openHelper.writableDatabase.query("SELECT id FROM local_users WHERE username = 'admin' LIMIT 1").use { if (it.moveToFirst()) it.getLong(0) else null }

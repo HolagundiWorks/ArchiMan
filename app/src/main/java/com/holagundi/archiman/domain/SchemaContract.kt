@@ -5,5 +5,5 @@ package com.holagundi.archiman.domain
  * Future upgrades must be explicit preserving migrations. Destructive fallback is not allowed.
  */
 object SchemaContract {
-    const val VERSION = 33
+    const val VERSION = 34
 }
