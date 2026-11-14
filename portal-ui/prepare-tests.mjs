@@ -6,6 +6,7 @@ const output=path.join(root,'app/build/audit');await mkdir(output,{recursive:tru
 const theme=await readFile(path.join(root,'app/src/main/java/com/holagundi/archiman/portal/CarbonWebTheme.kt'),'utf8');
 const literal=(source,label)=>{const at=source.indexOf(label);if(at<0)throw new Error('Missing '+label);const start=source.indexOf('"""',at)+3;return source.slice(start,source.indexOf('""".trimIndent()',start));};
 await writeFile(path.join(output,'theme.css'),literal(theme,'val css').replaceAll('$light',literal(theme,'val light')).replaceAll('$dark',literal(theme,'val dark')));
-await writeFile(path.join(output,'theme.js'),literal(theme,'val js'));
+// The toggle icons are Kotlin template values; the browser tests only need the script to run, so use empty markup.
+await writeFile(path.join(output,'theme.js'),literal(theme,'val js').replaceAll('$asleep',"''").replaceAll('$awake',"''"));
 const workspace=await readFile(path.join(root,'app/src/main/java/com/holagundi/archiman/portal/PortalWorkspaceAssets.kt'),'utf8');
 await writeFile(path.join(output,'workspace.css'),literal(workspace,'val css'));await writeFile(path.join(output,'workspace.js'),literal(workspace,'val js'));

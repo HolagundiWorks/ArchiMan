@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 let server,origin;
 const rows=Array.from({length:60},(_,i)=>`<tr><td>Project ${i+1}</td><td>${i===0?'1,000.00':i===1?'99.00':String(i+1000)+'.00'}</td></tr>`).join('');
-const fixture=`<!doctype html><html><head><meta charset=utf-8><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/carbon/vendor.css><link rel=stylesheet href=/workspace.css><script src=/theme.js></script><script src=/carbon/vendor.js defer></script></head><body><a href=#content>Skip to content</a><main id=content><h1>Practice overview</h1><p role=status data-kind=success>Saved safely.</p><form id=entry><label>Project<input name=project value="Project 1"></label><label>Unit<select name=unit><option value=m>Metric</option></select></label><label><input name=reviewed type=checkbox value=yes>Reviewed quantities</label><button type=submit>Save entry</button></form><div class=carbon-insights><section class=carbon-insight><h2>Project mix</h2><div class=carbon-chart data-carbon-chart=donut data-rows='[{"group":"Active","value":2},{"group":"Archived","value":1}]'></div></section><section class=carbon-insight><h2>Fee balances</h2><div class=carbon-chart data-carbon-chart=bar data-rows='[{"group":"Cash received","value":900},{"group":"TDS withheld","value":100},{"group":"Outstanding","value":0}]'></div></section></div><div class=tablewrap><table><caption>Project rates</caption><thead><tr><th>Project</th><th>Rate</th></tr></thead><tbody>${rows}</tbody></table></div></main></body></html>`;
+const fixture=`<!doctype html><html><head><meta charset=utf-8><link rel=stylesheet href=/theme.css><link rel=stylesheet href=/carbon/vendor.css><link rel=stylesheet href=/workspace.css><script src=/theme.js></script><script src=/carbon/vendor.js defer></script></head><body><a href=#content>Skip to content</a><button id=theme-toggle type=button aria-label='Switch to dark theme' aria-pressed=false></button><main id=content><h1>Practice overview</h1><p role=status data-kind=success>Saved safely.</p><form id=entry><label>Project<input name=project value="Project 1"></label><label>Unit<select name=unit><option value=m>Metric</option></select></label><label><input name=reviewed type=checkbox value=yes>Reviewed quantities</label><button type=submit>Save entry</button></form><div class=carbon-insights><section class=carbon-insight><h2>Project mix</h2><div class=carbon-chart data-carbon-chart=donut data-rows='[{"group":"Active","value":2},{"group":"Archived","value":1}]'></div></section><section class=carbon-insight><h2>Fee balances</h2><div class=carbon-chart data-carbon-chart=bar data-rows='[{"group":"Cash received","value":900},{"group":"TDS withheld","value":100},{"group":"Outstanding","value":0}]'></div></section></div><div class=tablewrap><table><caption>Project rates</caption><thead><tr><th>Project</th><th>Rate</th></tr></thead><tbody>${rows}</tbody></table></div></main></body></html>`;
 test.beforeAll(async()=>{
  server=http.createServer(async(req,res)=>{
   try{
@@ -32,7 +32,7 @@ test('official components, fonts, charts and form values work under the portal C
  await page.getByText('Reviewed quantities',{exact:true}).click();
  expect(await page.locator('#entry').evaluate(form=>Object.fromEntries(new FormData(form)))).toEqual({project:'Project 1',unit:'m',reviewed:'yes'});
  await page.screenshot({path:path.join(root,'app/build/audit/carbon-portal-light.png'),fullPage:true});
- await page.getByRole('combobox',{name:'Color theme'}).selectOption('dark');
+ await page.locator('#theme-toggle').click();
  await expect(page.locator('body')).toHaveCSS('background-color','rgb(22, 22, 22)');
  expect(await page.locator('cds-inline-notification').evaluate(el=>getComputedStyle(el).getPropertyValue('--cds-notification-background-info').trim())).toBe('#001d6c');
  await page.screenshot({path:path.join(root,'app/build/audit/carbon-portal-dark.png'),fullPage:true});
@@ -42,7 +42,7 @@ test('official components, fonts, charts and form values work under the portal C
 test('table search, numeric sorting, pagination and keyboard controls retain rows',async({page})=>{
  await page.goto(origin);const body=page.locator('tbody');await expect(body.locator('tr:visible')).toHaveCount(25);
  await page.getByRole('button',{name:'Next',exact:true}).click();await expect(page.getByText('26–50 of 60',{exact:true})).toBeVisible();
- const search=page.getByRole('searchbox',{name:'Search Project rates'});await search.fill('Project 60');await expect(body.locator('tr:visible')).toHaveCount(1);await expect(body.locator('tr:visible')).toContainText('Project 60');
+ const search=page.getByRole('searchbox',{name:'Filter Project rates'});await search.fill('Project 60');await expect(body.locator('tr:visible')).toHaveCount(1);await expect(body.locator('tr:visible')).toContainText('Project 60');
  await search.fill('');await page.getByRole('button',{name:'Rate',exact:true}).click();await expect(body.locator('tr:visible').first()).toContainText('99.00');
  await expect(page.getByRole('columnheader',{name:'Rate'})).toHaveAttribute('aria-sort','ascending');
  await page.getByRole('combobox',{name:'Rows per page'}).selectOption('100');await expect(body.locator('tr:visible')).toHaveCount(60);await expect(body.locator('tr')).toHaveCount(60);
@@ -52,7 +52,7 @@ test('table search, numeric sorting, pagination and keyboard controls retain row
 test('typed feedback, named tables and narrow layout preserve accessible controls',async({page})=>{
  await page.setViewportSize({width:320,height:800});await page.goto(origin);
  await expect(page.locator('cds-inline-notification')).toHaveAttribute('kind','success');
- await expect(page.getByRole('searchbox',{name:'Search Project rates'})).toBeVisible();
+ await expect(page.getByRole('searchbox',{name:'Filter Project rates'})).toBeVisible();
  await expect(page.locator('caption')).toContainText('Project rates');
  await page.locator('[name=project]').fill('Unsaved project');
  await page.reload();
