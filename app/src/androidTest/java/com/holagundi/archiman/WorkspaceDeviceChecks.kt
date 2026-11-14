@@ -87,7 +87,7 @@ object WorkspaceDeviceChecks {
             check(request("GET","/carbon/vendor.js").contains("application/javascript"))
             check(request("GET","/carbon/unknown.txt").startsWith("HTTP/1.1 404"))
             val themeCss=request("GET","/theme.css")
-            check(themeCss.contains("--button-primary:#0f62fe") && themeCss.contains("--background:#161616") && themeCss.contains("--warning-icon:#f1c21b"))
+            check(themeCss.contains("--button-primary:#b83e16") && themeCss.contains("--background:#161616") && themeCss.contains("--warning-icon:#f1c21b"))
             check(request("GET","/theme.js").contains("archiman-theme"))
             val login=request("GET","/")
             check(login.contains("/theme.css") && login.contains("/theme.js"))

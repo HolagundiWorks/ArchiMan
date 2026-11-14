@@ -119,6 +119,38 @@ class BackupRepository @Inject constructor(
                 entries["database.json"] = data.toString().toByteArray(Charsets.UTF_8)
                 originalVersion
             }
+            // Schema 34 adds the ledger. A schema 33 backup has no ledger rows, so restore them with the standard chart of accounts.
+            originalVersion == 33 -> {
+                require(data.getString("identity") == "008241d3807f803f69fa85b294ff757b") { "Unknown schema 33 backup identity." }
+                val tables = data.getJSONObject("tables")
+                require(tables.keys().asSequence().none { it.startsWith("ledger_") }) { "Invalid schema 33 backup." }
+                val sqlite = db.openHelper.writableDatabase
+                fun columnsOf(name: String) = sqlite.query("SELECT * FROM `$name` LIMIT 0").use { it.columnNames.toList() }
+                val now = System.currentTimeMillis()
+                val accountColumns = columnsOf("ledger_accounts")
+                val accountRows = JSONArray()
+                com.holagundi.archiman.domain.ChartOfAccounts.SEED.forEach { seed ->
+                    val row = accountColumns.associateWith { column ->
+                        when (column) {
+                            "id" -> JSONObject.NULL
+                            "code" -> seed.code
+                            "name" -> seed.name
+                            "type" -> seed.type
+                            "isSystem", "active" -> 1
+                            "createdAt" -> now
+                            else -> throw IllegalStateException("Unexpected ledger column $column")
+                        }
+                    }
+                    accountRows.put(JSONArray(accountColumns.map { row.getValue(it) }))
+                }
+                tables.put("ledger_accounts", JSONObject().put("columns", JSONArray(accountColumns)).put("rows", accountRows))
+                listOf("ledger_journals", "ledger_journal_lines", "ledger_periods").forEach { name ->
+                    tables.put(name, JSONObject().put("columns", JSONArray(columnsOf(name))).put("rows", JSONArray()))
+                }
+                data.put("schemaVersion", SchemaContract.VERSION).put("identity", identity(sqlite))
+                entries["database.json"] = data.toString().toByteArray(Charsets.UTF_8)
+                33
+            }
             // Schema 32 only adds indexes; row shapes match schema 31.
             originalVersion == 31 -> {
                 require(data.getString("identity") == "f10be1fd4ecc259d1daebcf7cc86b9d8") { "Unknown schema 31 backup identity." }

@@ -102,9 +102,10 @@ object LedgerDeviceChecks {
                 rejectsSql { migrated.execSQL("UPDATE ledger_journals SET narration = 'changed'") }
                 rejectsSql { migrated.execSQL("DELETE FROM ledger_journals") }
                 migrated.close()
+                schema33Restore(isolated, results)
                 results.putString("migration", "passed: migration tables match entities; immutability triggers reject change and delete")
             }
-            results.putString("stream", "\nLedger checks PASSED\n" + listOf("chart", "post", "tds", "asOf", "rules", "once", "closed", "reverse", "migration").joinToString("\n") { results.getString(it).orEmpty() } + "\n")
+            results.putString("stream", "\nLedger checks PASSED\n" + listOf("chart", "post", "tds", "asOf", "rules", "once", "closed", "reverse", "migration", "schema33").joinToString("\n") { results.getString(it).orEmpty() } + "\n")
             instrumentation.finish(Activity.RESULT_OK, results)
         } catch (error: Throwable) {
             results.putString("stream", "\nLedger checks FAILED: ${error.message}\n")
@@ -159,5 +160,28 @@ object LedgerDeviceChecks {
             "index $name unique=$unique cols=${cols.joinToString(",")}"
         }
         return (columns + indexLines).joinToString("\n")
+    }
+
+    /** A schema 33 backup (no ledger tables) restores into schema 34 with the standard chart. */
+    private suspend fun schema33Restore(context: android.content.Context, results: Bundle) {
+        val db = Room.inMemoryDatabaseBuilder(context, ArchiManDatabase::class.java).build()
+        DemoCompanyStore(context, db).openBuiltIn()
+        val backups = com.holagundi.archiman.data.BackupRepository(context, db, com.holagundi.archiman.portal.PortalServer(db, context))
+        val projectsBefore = db.projectDao().projects().size
+        val exported = java.io.ByteArrayOutputStream().also { backups.export(it) }.toByteArray()
+        val entries = com.holagundi.archiman.data.BackupArchive.read(java.io.ByteArrayInputStream(exported)).toMutableMap()
+        val data = org.json.JSONObject(String(entries.getValue("database.json"), Charsets.UTF_8))
+        val tables = data.getJSONObject("tables")
+        tables.keys().asSequence().filter { it.startsWith("ledger_") }.toList().forEach { tables.remove(it) }
+        data.put("schemaVersion", 33).put("identity", "008241d3807f803f69fa85b294ff757b")
+        entries["database.json"] = data.toString().toByteArray(Charsets.UTF_8)
+        val tampered = java.io.ByteArrayOutputStream().also { com.holagundi.archiman.data.BackupArchive.write(entries, it) }.toByteArray()
+        val prepared = backups.prepare(java.io.ByteArrayInputStream(tampered))
+        check(prepared.preview.upgradedFrom == 33) { "upgradedFrom was ${prepared.preview.upgradedFrom}" }
+        backups.restore(prepared)
+        check(db.projectDao().projects().size == projectsBefore) { "projects changed on restore" }
+        check(LedgerRepository(db).accounts().size == 35) { "restored chart has ${LedgerRepository(db).accounts().size} accounts" }
+        check(LedgerRepository(db).trialBalance("2026-12-31").let { it.balanced && it.debitPaise == 0L }) { "restored ledger is not empty" }
+        results.putString("schema33", "passed: schema 33 backup restores into schema 34 with the 35-account chart and no ledger journals")
     }
 }
