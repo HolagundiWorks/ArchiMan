@@ -3,6 +3,7 @@ package com.holagundi.archiman.data
 import androidx.room.withTransaction
 import com.holagundi.archiman.data.local.ArchiManDatabase
 import com.holagundi.archiman.data.local.LedgerTrialRow
+import com.holagundi.archiman.data.local.entity.InvoiceEntity
 import com.holagundi.archiman.data.local.entity.LedgerAccountEntity
 import com.holagundi.archiman.data.local.entity.LedgerJournalEntity
 import com.holagundi.archiman.data.local.entity.LedgerJournalLineEntity
@@ -11,6 +12,7 @@ import com.holagundi.archiman.domain.ChartOfAccounts
 import com.holagundi.archiman.domain.LedgerLine
 import com.holagundi.archiman.domain.LedgerRules
 import java.time.LocalDate
+import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -120,12 +122,77 @@ class LedgerRepository @Inject constructor(private val db: ArchiManDatabase) {
         )
     }
 
+    /** Books a tax invoice when it is issued: receivable, fee income and GST output (MynaHub post_invoice). */
+    suspend fun postInvoice(invoice: InvoiceEntity, clientId: Long?, date: String): Long {
+        val tax = invoice.taxJson.takeIf { it.isNotBlank() }?.let { JSONObject(it) }
+        val base = tax?.optString("base")?.takeIf { it.isNotBlank() }?.let(::paise) ?: paise(invoice.amount)
+        val cgst = tax?.optString("cgst")?.takeIf { it.isNotBlank() }?.let(::paise) ?: 0L
+        val sgst = tax?.optString("sgst")?.takeIf { it.isNotBlank() }?.let(::paise) ?: 0L
+        val igst = tax?.optString("igst")?.takeIf { it.isNotBlank() }?.let(::paise) ?: 0L
+        val total = base + cgst + sgst + igst
+        return post(
+            actorId = null,
+            date = date,
+            narration = "Invoice ${invoice.number}",
+            lines = listOf(
+                LedgerLine(accountId("1200"), total, 0, clientId = clientId, projectId = invoice.projectId),
+                LedgerLine(accountId("4000"), 0, base),
+                LedgerLine(accountId("2100"), 0, cgst),
+                LedgerLine(accountId("2110"), 0, sgst),
+                LedgerLine(accountId("2120"), 0, igst),
+            ),
+            sourceType = "invoice",
+            sourceId = invoice.id,
+        )
+    }
+
+    /** Books a receipt: cash to the bank, TDS to the client's deduction account, receivable cleared. A negative amount is a reversal and posts the mirror image. */
+    suspend fun postReceipt(receiptId: Long, projectId: Long, amount: Double, tdsAmount: Double, clientId: Long?, receivedAt: Long): Long {
+        val cash = paise(amount)
+        val tds = paise(tdsAmount)
+        val reversal = cash < 0 || (cash == 0L && tds < 0)
+        val positive = listOf(
+            LedgerLine(accountId("1010"), abs(cash), 0),
+            LedgerLine(accountId("1210"), abs(tds), 0),
+            LedgerLine(accountId("1200"), 0, abs(cash) + abs(tds), clientId = clientId, projectId = projectId),
+        )
+        val date = java.time.Instant.ofEpochMilli(receivedAt).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
+        return post(
+            actorId = null,
+            date = date,
+            narration = if (reversal) "Reversal of receipt $receiptId" else "Receipt $receiptId",
+            lines = if (reversal) LedgerRules.mirror(positive) else positive,
+            sourceType = "receipt",
+            sourceId = receiptId,
+        )
+    }
+
+    /** Cancels the journal posted for a business event, if there is one (for example a voided invoice). */
+    suspend fun reverseBySource(sourceType: String, sourceId: Long, reason: String): Long? {
+        val journal = dao.journalFor(sourceType, sourceId) ?: return null
+        return reverse(null, journal.id, reason)
+    }
+
     /** Totals of posted journals up to [asOf], one row per account. */
     suspend fun trialBalance(asOf: String): TrialBalance = db.withTransaction {
         parseDate(asOf)
         val rows = dao.trialRows(asOf)
         TrialBalance(asOf, rows, rows.sumOf { it.debitPaise }, rows.sumOf { it.creditPaise })
     }
+
+    /** The chart is created on demand, so a practice that predates the ledger still books correctly. */
+    private suspend fun accountId(code: String): Long {
+        dao.accountIdByCode(code)?.let { return it }
+        LedgerChart.ensure(db)
+        return requireNotNull(dao.accountIdByCode(code)) { "Ledger account $code is missing." }
+    }
+
+    private fun paise(amount: Double): Long = paise(java.math.BigDecimal.valueOf(amount).toPlainString())
+
+    private fun paise(text: String): Long =
+        java.math.BigDecimal(text).movePointRight(2).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact()
+
+    private fun abs(value: Long): Long = if (value < 0) -value else value
 
     private fun parseDate(text: String): LocalDate =
         try {

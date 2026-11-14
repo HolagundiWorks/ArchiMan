@@ -257,6 +257,8 @@ class SuiteRepository @Inject constructor(
         val mode = suiteDao.finance("settings")?.let { org.json.JSONObject(it.json).optString("mode", "NONE") } ?: "NONE"
         require(mode == "NONE" || current.taxJson.isNotBlank()) { "This older draft has no GST details. Recreate it from Invoices with GST details before issuing." }
         suiteDao.setInvoiceStatus(id, "ISSUED")
+        val clientId = projectDao.getProject(current.projectId)?.clientId
+        LedgerRepository(database).postInvoice(current, clientId, java.time.LocalDate.now().toString())
     }
 
     suspend fun recordReceipt(projectId: Long, invoice: InvoiceEntity, amount: Double, note: String, tdsAmount: Double = 0.0, tdsReference: String = "", bankKey: String = "", paymentDate: Long = System.currentTimeMillis()) = database.withTransaction {
@@ -268,7 +270,7 @@ class SuiteRepository @Inject constructor(
         val remaining = InvoiceBalance.afterPayment(
             current.amount, suiteDao.invoiceReceipts(current.id).map { it.amount + it.tdsAmount }, amount + tdsAmount,
         )
-        suiteDao.insertReceipt(
+        val receiptId = suiteDao.insertReceipt(
             ReceiptEntity(
                 invoiceId = invoice.id,
                 projectId = projectId,
@@ -277,6 +279,14 @@ class SuiteRepository @Inject constructor(
                 tdsAmount = InvoiceBalance.money(tdsAmount).toDouble(), tdsReference = tdsReference.trim(), bankKey = bankKey,
                 receivedAt = paymentDate,
             ),
+        )
+        LedgerRepository(database).postReceipt(
+            receiptId = receiptId,
+            projectId = projectId,
+            amount = InvoiceBalance.money(amount).toDouble(),
+            tdsAmount = InvoiceBalance.money(tdsAmount).toDouble(),
+            clientId = projectDao.getProject(projectId)?.clientId,
+            receivedAt = paymentDate,
         )
         suiteDao.setInvoiceStatus(current.id, if (remaining.signum() == 0) "PAID" else "ISSUED")
     }

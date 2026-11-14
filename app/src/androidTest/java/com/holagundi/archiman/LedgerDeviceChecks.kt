@@ -102,13 +102,14 @@ object LedgerDeviceChecks {
                 rejectsSql { migrated.execSQL("UPDATE ledger_journals SET narration = 'changed'") }
                 rejectsSql { migrated.execSQL("DELETE FROM ledger_journals") }
                 migrated.close()
+                postings(context, results)
                 schema33Restore(isolated, results)
                 results.putString("migration", "passed: migration tables match entities; immutability triggers reject change and delete")
             }
-            results.putString("stream", "\nLedger checks PASSED\n" + listOf("chart", "post", "tds", "asOf", "rules", "once", "closed", "reverse", "migration", "schema33").joinToString("\n") { results.getString(it).orEmpty() } + "\n")
+            results.putString("stream", "\nLedger checks PASSED\n" + listOf("chart", "post", "tds", "asOf", "rules", "once", "closed", "reverse", "migration", "issue", "receipt", "schema33").joinToString("\n") { results.getString(it).orEmpty() } + "\n")
             instrumentation.finish(Activity.RESULT_OK, results)
         } catch (error: Throwable) {
-            results.putString("stream", "\nLedger checks FAILED: ${error.message}\n")
+            results.putString("stream", "\nLedger checks FAILED: $error\n" + error.stackTrace.take(8).joinToString("\n") + "\n")
             instrumentation.finish(Activity.RESULT_CANCELED, results)
         }
     }
@@ -183,5 +184,44 @@ object LedgerDeviceChecks {
         check(LedgerRepository(db).accounts().size == 35) { "restored chart has ${LedgerRepository(db).accounts().size} accounts" }
         check(LedgerRepository(db).trialBalance("2026-12-31").let { it.balanced && it.debitPaise == 0L }) { "restored ledger is not empty" }
         results.putString("schema33", "passed: schema 33 backup restores into schema 34 with the 35-account chart and no ledger journals")
+    }
+
+    /** Issuing an invoice and recording a receipt post journals in the same transaction; the trial balance stays equal. */
+    private fun row(tb: com.holagundi.archiman.data.TrialBalance, code: String) =
+        tb.rows.firstOrNull { it.code == code } ?: error("no ledger row $code; rows=${tb.rows.map { it.code }}")
+
+    private suspend fun postings(context: android.content.Context, results: Bundle) {
+        val db = Room.inMemoryDatabaseBuilder(context, ArchiManDatabase::class.java).build()
+        DemoCompanyStore(context, db).openBuiltIn()
+        val suite = com.holagundi.archiman.data.SuiteRepository(
+            db, db.suiteDao(), db.practiceDao(), db.projectDao(), db.catalogDao(), db.measurementDao(),
+            com.holagundi.archiman.data.MeasurementRepository(db, db.measurementDao(), db.catalogDao(), db.projectDao()),
+        )
+        val ledger = LedgerRepository(db)
+        val (invoiceId, projectId) = db.openHelper.writableDatabase.query("SELECT id, projectId FROM invoices WHERE status = 'DRAFT' ORDER BY id LIMIT 1").use {
+            check(it.moveToFirst()) { "demo company has no draft invoice" }
+            it.getLong(0) to it.getLong(1)
+        }
+        val amount = db.suiteDao().invoice(invoiceId)!!.amount
+        suite.issueInvoice(invoiceId)
+        val issued = ledger.trialBalance(java.time.LocalDate.now().toString())
+        check(ledger.accounts().isNotEmpty() && ledger.journals("2000-01-01", "2100-12-31").isNotEmpty()) { "issue posted nothing: status=${db.suiteDao().invoice(invoiceId)!!.status} accounts=${ledger.accounts().size} journals=${ledger.journals("2000-01-01", "2100-12-31").size} invoiceId=$invoiceId" }
+        check(issued.balanced) { "trial balance unequal after issue" }
+        val receivable = row(issued, "1200")
+        check(receivable.debitPaise == com.holagundi.archiman.domain.LedgerRules.parsePaise(String.format(java.util.Locale.US, "%.2f", amount))!!) {
+            "receivable ${receivable.debitPaise} does not equal invoice amount $amount"
+        }
+        check(row(issued, "4000").creditPaise == receivable.debitPaise) { "fee income does not match the invoice" }
+        results.putString("issue", "passed: issuing the demo invoice books the receivable and fee income, trial balance equal")
+
+        val invoice = db.suiteDao().invoice(invoiceId)!!
+        suite.recordReceipt(projectId, invoice, 1000.0, "Part payment", 50.0, "26AS-DEVICE-CHECK", "", System.currentTimeMillis())
+        val paid = ledger.trialBalance(java.time.LocalDate.now().toString())
+        check(paid.balanced) { "trial balance unequal after receipt" }
+        check(row(paid, "1210").debitPaise == 50_00L) { "TDS receivable not booked" }
+        check(row(paid, "1010").debitPaise == 1000_00L) { "bank not debited with cash receipt" }
+        check(row(paid, "1200").creditPaise == 1050_00L) { "receivable not cleared by cash plus TDS" }
+        results.putString("receipt", "passed: a receipt with TDS books bank, TDS receivable and clears the receivable, trial balance equal")
+        db.close()
     }
 }

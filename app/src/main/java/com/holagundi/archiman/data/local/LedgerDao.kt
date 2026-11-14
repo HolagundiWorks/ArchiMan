@@ -54,6 +54,9 @@ interface LedgerDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertPeriodIgnore(period: LedgerPeriodEntity): Long
 
+    @Query("SELECT id FROM ledger_accounts WHERE code = :code")
+    suspend fun accountIdByCode(code: String): Long?
+
     @Query("SELECT COUNT(*) FROM ledger_periods WHERE fy = :fy AND status = 'closed'")
     suspend fun closedPeriodCount(fy: String): Int
 
