@@ -15,6 +15,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import com.holagundi.archiman.ui.theme.ArchiCard
+import com.holagundi.archiman.ui.theme.CarbonSpacing
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.data.local.entity.ProjectEntity
 import com.holagundi.archiman.ui.shell.ProjectGroup
@@ -38,7 +39,7 @@ fun FeatureRow(title: String, description: String, icon: ImageVector, onClick: (
 @Composable
 fun ProjectSectionHub(group: ProjectGroup, parent: WorkspacePage? = null, onOpen: (WorkspacePage) -> Unit) {
     val pages = WorkspacePage.entries.filter { it.group == group && it.parent == parent && it != WorkspacePage.OVERVIEW }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+    LazyColumn(verticalArrangement = CarbonSpacing.stackArrangement, contentPadding = PaddingValues(vertical = CarbonSpacing.stackTight)) {
         item { Text(stringResource(parent?.labelRes ?: group.labelRes), style = MaterialTheme.typography.headlineSmall) }
         items(pages, key = { it.name }) { page ->
             FeatureRow(stringResource(page.labelRes), pageDescription(page), page.icon) { onOpen(page) }
@@ -75,10 +76,10 @@ fun ProjectDashboard(project: ProjectEntity, sheetCount: Int, suite: SuiteProjec
     val openTasks = overview.openTasks
     val openIssues = overview.openIssues
     val outstanding = feeSummary?.outstanding
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+    LazyColumn(verticalArrangement = CarbonSpacing.stackArrangement, contentPadding = PaddingValues(vertical = CarbonSpacing.stackTight)) {
         item {
             Surface(color = MaterialTheme.colorScheme.primaryContainer, shape = MaterialTheme.shapes.large) {
-                Column(Modifier.fillMaxWidth().padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(Modifier.fillMaxWidth().padding(CarbonSpacing.card), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight)) {
                     Text("Project overview", style = MaterialTheme.typography.labelLarge)
                     Text(project.client, style = MaterialTheme.typography.headlineSmall)
                     if (project.siteLocation.isNotBlank()) Text(project.siteLocation)

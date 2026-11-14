@@ -31,7 +31,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -54,7 +53,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
@@ -64,12 +62,20 @@ import com.holagundi.archiman.ui.shell.PracticeDestination
 import com.holagundi.archiman.ui.shell.PracticeScaffold
 import com.holagundi.archiman.ui.shell.WorkspacePage
 import com.holagundi.archiman.ui.theme.ArchiCard
+import com.holagundi.archiman.ui.theme.CarbonBreadcrumb
+import com.holagundi.archiman.ui.theme.CarbonContentSwitcher
+import com.holagundi.archiman.ui.theme.CarbonDropdown
+import com.holagundi.archiman.ui.theme.CarbonDropdownOption
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonSearch
+import com.holagundi.archiman.ui.theme.CarbonSpacing
+import com.holagundi.archiman.ui.theme.CarbonTag
+import com.holagundi.archiman.ui.theme.CarbonTextInput
+import com.holagundi.archiman.ui.theme.CarbonTile
 import com.holagundi.archiman.data.DemoCompanyPackage
 import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.ui.theme.ArchiField
 import com.holagundi.archiman.ui.theme.announce
-import com.holagundi.archiman.ui.theme.ChoiceChip
-import com.holagundi.archiman.ui.theme.GlassSurface
 
 private enum class PracticeRegistry(val labelRes: Int, val icon: ImageVector, val description: String, val category: String) {
     PROFILE(R.string.practice_profile, CarbonIcons.Business, "Practice identity and letterhead", "Your practice"),
@@ -100,17 +106,86 @@ fun PortfolioScreen(
     var destination by rememberSaveable { mutableStateOf(PracticeDestination.HOME) }
     var confirmDemo by rememberSaveable { mutableStateOf(false) }
     var showCreate by rememberSaveable { mutableStateOf(false) }
+    var showCreateTask by rememberSaveable { mutableStateOf(false) }
+    var showCreateIssue by rememberSaveable { mutableStateOf(false) }
+    var showCreateInvoice by rememberSaveable { mutableStateOf(false) }
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var pickProjectFor by rememberSaveable { mutableStateOf<String?>(null) }
     var practicePage by rememberSaveable { mutableStateOf<PracticeRegistry?>(null) }
     val currentProjects = projects.filter { it.status != "ARCHIVED" }
+    val openCreateTask = {
+        showCreateTask = true
+    }
+    val openCreateInvoice = {
+        when {
+            currentProjects.size == 1 -> onOpenPage(currentProjects.first().id, WorkspacePage.INVOICE)
+            currentProjects.isNotEmpty() -> showCreateInvoice = true
+            else -> {
+                practicePage = PracticeRegistry.INVOICES
+                destination = PracticeDestination.PRACTICE
+            }
+        }
+    }
 
     if (showSearch) {
         BackHandler {
             showSearch = false
             searchQuery = ""
         }
+    }
+
+    val goHome = {
+        inbox = null
+        showSearch = false
+        searchQuery = ""
+        practicePage = null
+        destination = PracticeDestination.HOME
+    }
+    val goPractice = {
+        inbox = null
+        showSearch = false
+        searchQuery = ""
+        practicePage = null
+        destination = PracticeDestination.PRACTICE
+    }
+    val breadcrumbs = when {
+        showSearch -> listOf(
+            CarbonBreadcrumb(stringResource(R.string.nav_home), goHome),
+            CarbonBreadcrumb(stringResource(R.string.practice_search)),
+        )
+        inbox != null -> listOf(
+            CarbonBreadcrumb(stringResource(R.string.nav_home), goHome),
+            CarbonBreadcrumb(
+                when (inbox) {
+                    "tasks" -> "Open tasks"
+                    "reviews" -> "Sheets to review"
+                    else -> "Open site issues"
+                },
+            ),
+        )
+        destination == PracticeDestination.HOME -> listOf(
+            CarbonBreadcrumb("Practice", goPractice),
+            CarbonBreadcrumb(stringResource(R.string.nav_home)),
+        )
+        destination == PracticeDestination.PROJECTS -> listOf(
+            CarbonBreadcrumb("Practice", goPractice),
+            CarbonBreadcrumb(stringResource(R.string.nav_projects)),
+        )
+        destination == PracticeDestination.TASKS -> listOf(
+            CarbonBreadcrumb("Practice", goPractice),
+            CarbonBreadcrumb(stringResource(R.string.nav_tasks)),
+        )
+        destination == PracticeDestination.ISSUES -> listOf(
+            CarbonBreadcrumb("Practice", goPractice),
+            CarbonBreadcrumb(stringResource(R.string.nav_issues)),
+        )
+        destination == PracticeDestination.PRACTICE && practicePage != null -> listOf(
+            CarbonBreadcrumb("Practice", goPractice),
+            CarbonBreadcrumb(stringResource(practicePage!!.labelRes)),
+        )
+        else -> listOf(
+            CarbonBreadcrumb(stringResource(R.string.nav_practice)),
+        )
     }
 
     PracticeScaffold(
@@ -122,34 +197,56 @@ fun PortfolioScreen(
             searchQuery = ""
             destination = it
         },
+        breadcrumbs = breadcrumbs,
         onSearch = { showSearch = true },
         searchOpen = showSearch,
-        createActions = listOf(
-            com.holagundi.archiman.ui.shell.PracticeFabAction(
-                stringResource(R.string.new_project),
-                CarbonIcons.Apartment,
-            ) { showCreate = true },
-            com.holagundi.archiman.ui.shell.PracticeFabAction(
-                stringResource(R.string.create_task),
-                CarbonIcons.Assignment,
-            ) { pickProjectFor = "tasks" },
-            com.holagundi.archiman.ui.shell.PracticeFabAction(
-                stringResource(R.string.create_site_issue),
-                CarbonIcons.ReportProblem,
-            ) { pickProjectFor = "issues" },
-            com.holagundi.archiman.ui.shell.PracticeFabAction(
-                stringResource(R.string.create_invoice),
-                CarbonIcons.ReceiptLong,
-            ) {
-                practicePage = PracticeRegistry.INVOICES
-                destination = PracticeDestination.PRACTICE
-            },
-        ),
+        createActions = when (destination) {
+            PracticeDestination.TASKS -> listOf(
+                com.holagundi.archiman.ui.shell.PracticeFabAction(
+                    stringResource(R.string.create_task),
+                    CarbonIcons.Assignment,
+                    openCreateTask,
+                ),
+            )
+            PracticeDestination.ISSUES -> listOf(
+                com.holagundi.archiman.ui.shell.PracticeFabAction(
+                    stringResource(R.string.create_site_issue),
+                    CarbonIcons.ReportProblem,
+                ) { showCreateIssue = true },
+            )
+            else -> listOf(
+                com.holagundi.archiman.ui.shell.PracticeFabAction(
+                    stringResource(R.string.new_project),
+                    CarbonIcons.Apartment,
+                ) { showCreate = true },
+                com.holagundi.archiman.ui.shell.PracticeFabAction(
+                    stringResource(R.string.create_task),
+                    CarbonIcons.Assignment,
+                    openCreateTask,
+                ),
+                com.holagundi.archiman.ui.shell.PracticeFabAction(
+                    stringResource(R.string.create_site_issue),
+                    CarbonIcons.ReportProblem,
+                ) { showCreateIssue = true },
+                com.holagundi.archiman.ui.shell.PracticeFabAction(
+                    stringResource(R.string.create_invoice),
+                    CarbonIcons.ReceiptLong,
+                    openCreateInvoice,
+                ),
+            )
+        },
         onSignOut = onSignOut,
     ) { innerPadding ->
         Box(Modifier.fillMaxSize().padding(innerPadding)) {
             Column(Modifier.fillMaxSize()) {
-                operationNotice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Practice update", it.message, it.kind); TextButton(onClick = viewModel.operations::dismiss) { Text("Dismiss update") } }
+                operationNotice?.let {
+                    com.holagundi.archiman.ui.theme.CarbonInlineNotification(
+                        title = "Practice update",
+                        body = it.message,
+                        kind = it.kind,
+                        onDismiss = viewModel.operations::dismiss,
+                    )
+                }
                 if (pending.isNotEmpty()) Text("Saving…")
                 Box(Modifier.weight(1f)) {
                     if (showSearch && searchQuery.isNotBlank()) {
@@ -167,13 +264,6 @@ fun PortfolioScreen(
                                 viewModel.setPracticeSearchQuery("")
                                 onOpenRecord(projectId, page, recordId)
                             },
-                            onOpenPracticeInvoices = {
-                                showSearch = false
-                                searchQuery = ""
-                                viewModel.setPracticeSearchQuery("")
-                                practicePage = PracticeRegistry.INVOICES
-                                destination = PracticeDestination.PRACTICE
-                            },
                         )
                     } else if (inbox != null) {
                         AttentionInbox(viewModel, inbox!!, { inbox = null }, onOpenRecord)
@@ -189,12 +279,22 @@ fun PortfolioScreen(
                             onAttention = { inbox = it },
                         )
                         PracticeDestination.PROJECTS -> ProjectList(projects, onOpenProject)
+                        PracticeDestination.TASKS -> PracticeKanban(
+                            viewModel = viewModel,
+                            onOpenRecord = onOpenRecord,
+                        )
+                        PracticeDestination.ISSUES -> PracticeIssues(
+                            viewModel = viewModel,
+                            onOpenRecord = onOpenRecord,
+                        )
                         PracticeDestination.PRACTICE -> PracticeRegistries(
                             company, projects, viewModel, demoCatalog, demoNotice, openingDemo,
                             onOpenDemo = { confirmDemo = true },
                             onRestored = onSignOut,
                             page = practicePage,
                             onPageChange = { practicePage = it },
+                            onOpenRecord = onOpenRecord,
+                            onCreateInvoice = openCreateInvoice,
                         )
                     }
                 }
@@ -223,34 +323,16 @@ fun PortfolioScreen(
     }
 
     if (confirmDemo) {
-        Dialog(onDismissRequest = { confirmDemo = false }) {
-            GlassSurface(Modifier.fillMaxWidth()) {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(stringResource(R.string.demo_confirm_title), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-                    Text(stringResource(R.string.demo_confirm_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { confirmDemo = false }) { Text(stringResource(R.string.cancel)) }
-                        Spacer(Modifier.width(8.dp))
-                        Button(onClick = {
-                            confirmDemo = false
-                            viewModel.openBuiltInDemo()
-                        }) { Text(stringResource(R.string.demo_open)) }
-                    }
-                }
-            }
-        }
-    }
-
-    if (pickProjectFor != null) {
-        ProjectPickSheet(
-            projects = currentProjects,
-            title = if (pickProjectFor == "issues") stringResource(R.string.pick_project_for_issue) else stringResource(R.string.pick_project_for_task),
-            onDismiss = { pickProjectFor = null },
-            onPick = { projectId ->
-                val page = if (pickProjectFor == "issues") WorkspacePage.SNAGS else WorkspacePage.TASKS
-                pickProjectFor = null
-                onOpenPage(projectId, page)
+        CarbonModal(
+            title = stringResource(R.string.demo_confirm_title),
+            description = stringResource(R.string.demo_confirm_body),
+            onDismiss = { confirmDemo = false },
+            primaryLabel = stringResource(R.string.demo_open),
+            onPrimary = {
+                confirmDemo = false
+                viewModel.openBuiltInDemo()
             },
+            secondaryLabel = stringResource(R.string.cancel),
         )
     }
 
@@ -268,43 +350,105 @@ fun PortfolioScreen(
             },
         )
     }
+
+    if (showCreateTask) {
+        CreatePracticeTaskDialog(
+            projects = currentProjects,
+            preferredProjectId = currentProjects.firstOrNull()?.id ?: 0L,
+            busy = "addTask" in pending,
+            onDismiss = { showCreateTask = false },
+            onCreate = { projectId, title, priority ->
+                viewModel.addBoardTask(projectId, title, priority).onSuccess {
+                    showCreateTask = false
+                    destination = PracticeDestination.TASKS
+                }
+            },
+        )
+    }
+
+    if (showCreateIssue) {
+        CreatePracticeIssueDialog(
+            projects = currentProjects,
+            preferredProjectId = currentProjects.firstOrNull()?.id ?: 0L,
+            busy = "addIssue" in pending,
+            onDismiss = { showCreateIssue = false },
+            onCreate = { projectId, title, description, severity ->
+                viewModel.addBoardIssue(projectId, title, description, severity).onSuccess {
+                    showCreateIssue = false
+                    destination = PracticeDestination.ISSUES
+                }
+            },
+        )
+    }
+
+    if (showCreateInvoice) {
+        CreatePracticeInvoiceDialog(
+            projects = currentProjects,
+            preferredProjectId = currentProjects.firstOrNull()?.id ?: 0L,
+            onDismiss = { showCreateInvoice = false },
+            onOpen = { projectId ->
+                showCreateInvoice = false
+                onOpenPage(projectId, WorkspacePage.INVOICE)
+            },
+        )
+    }
 }
 
 @Composable
 private fun ProjectList(projects: List<ProjectEntity>, onOpen: (Long) -> Unit) {
-    var filter by rememberSaveable { mutableStateOf("Active") }
+    val filters = listOf("Active", "Archived", "All")
+    var filterIndex by rememberSaveable { mutableStateOf(0) }
+    val filter = filters[filterIndex.coerceIn(0, filters.lastIndex)]
     val visible = projects.filter { project ->
         filter == "All" || (project.status == "ARCHIVED") == (filter == "Archived")
     }
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(Modifier.fillMaxSize().padding(CarbonSpacing.screen), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stack)) {
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Active", "Archived", "All").forEach { option -> ChoiceChip(option, filter == option) { filter = option } }
-            }
+            CarbonContentSwitcher(
+                options = filters,
+                selectedIndex = filterIndex,
+                onSelected = { filterIndex = it },
+            )
         }
         if (visible.isEmpty()) {
             item { Text(stringResource(R.string.no_projects), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
-        items(visible, key = { it.id }) { project ->
-            ProjectCard(project, onOpen)
+        item {
+            com.holagundi.archiman.ui.theme.CarbonTileGrid(com.holagundi.archiman.ui.theme.CarbonTileSize.LARGE) {
+                visible.forEach { project ->
+                    item { ProjectCard(project, onOpen) }
+                }
+            }
         }
     }
 }
 
 @Composable
 internal fun ProjectCard(project: ProjectEntity, onOpen: (Long) -> Unit) {
-    ArchiCard(onClick = { onOpen(project.id) }, modifier = Modifier.fillMaxWidth()) {
+    val alert = when (project.status.uppercase()) {
+        "ACTIVE" -> com.holagundi.archiman.ui.theme.CarbonAlertTone.OK
+        "ON_HOLD" -> com.holagundi.archiman.ui.theme.CarbonAlertTone.WARNING
+        "COMPLETED" -> com.holagundi.archiman.ui.theme.CarbonAlertTone.OK
+        else -> com.holagundi.archiman.ui.theme.CarbonAlertTone.NONE
+    }
+    CarbonTile(
+        onClick = { onOpen(project.id) },
+        modifier = Modifier.fillMaxWidth(),
+        contentPadding = false,
+        alert = alert,
+        size = com.holagundi.archiman.ui.theme.CarbonTileSize.LARGE,
+    ) {
         Row(
-            Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            Modifier.fillMaxWidth().padding(start = CarbonSpacing.card, end = CarbonSpacing.micro, top = CarbonSpacing.stackTight, bottom = CarbonSpacing.stackTight),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 CarbonIcons.Apartment,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = 12.dp),
+                modifier = Modifier.padding(end = CarbonSpacing.stack),
             )
-            Column(Modifier.weight(1f).padding(vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.weight(1f).padding(vertical = CarbonSpacing.micro), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.hairline)) {
                 Text(project.projectCode, fontFamily = FontFamily.Monospace, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(project.name, style = MaterialTheme.typography.titleMedium)
                 Text(
@@ -312,11 +456,7 @@ internal fun ProjectCard(project: ProjectEntity, onOpen: (Long) -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )
-                Text(
-                    project.status.lowercase().replaceFirstChar { it.uppercase() },
-                    color = MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.labelLarge,
-                )
+                CarbonTag(project.status.lowercase().replaceFirstChar { it.uppercase() }, alert = alert)
             }
             RecordActions(RecordKind.PROJECT, project.id, project.name)
         }
@@ -335,28 +475,48 @@ private fun PracticeRegistries(
     onRestored: () -> Unit,
     page: PracticeRegistry?,
     onPageChange: (PracticeRegistry?) -> Unit,
+    onOpenRecord: (Long, WorkspacePage, Long) -> Unit,
+    onCreateInvoice: () -> Unit,
 ) {
     BackHandler(enabled = page != null) { onPageChange(null) }
     Column(Modifier.fillMaxSize()) {
         if (page != null) TextButton(onClick = { onPageChange(null) }) {
             Icon(CarbonIcons.ArrowBack, null)
-            Spacer(Modifier.width(8.dp))
+            Spacer(Modifier.width(CarbonSpacing.stackTight))
             Text("Practice menu")
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (page) {
-                null -> LazyColumn(Modifier.fillMaxSize().padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 16.dp)) {
+                null -> LazyColumn(Modifier.fillMaxSize().padding(horizontal = CarbonSpacing.screen), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stack), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = CarbonSpacing.scrollBottom)) {
                     item { com.holagundi.archiman.ui.theme.AppearanceCard() }
-                    PracticeRegistry.entries.groupBy { it.category }.forEach { (category, registries) ->
-                        item { Text(category, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp)) }
-                        items(registries, key = { it.name }) { registry ->
-                            FeatureRow(stringResource(registry.labelRes), registry.description, registry.icon) { onPageChange(registry) }
+                    item {
+                        Text("Company", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = CarbonSpacing.micro))
+                        Text(
+                            "Cards with ⋮ actions. Tap a section to disclose details.",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(vertical = CarbonSpacing.micro),
+                        )
+                    }
+                    item { CompanyProfilePreviewCard(company) { onPageChange(PracticeRegistry.PROFILE) } }
+                    item {
+                        FeatureRow(stringResource(R.string.nav_clients), "Client contacts — cards, ⋮ menu and disclosures", CarbonIcons.People) {
+                            onPageChange(PracticeRegistry.CLIENTS)
                         }
                     }
+                    PracticeRegistry.entries
+                        .filter { it != PracticeRegistry.PROFILE && it != PracticeRegistry.CLIENTS }
+                        .groupBy { it.category }
+                        .forEach { (category, registries) ->
+                            item { Text(category, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = CarbonSpacing.stack)) }
+                            items(registries, key = { it.name }) { registry ->
+                                FeatureRow(stringResource(registry.labelRes), registry.description, registry.icon) { onPageChange(registry) }
+                            }
+                        }
                 }
                 PracticeRegistry.PROFILE -> OfficePane(company)
                 PracticeRegistry.CLIENTS -> ClientsPane(viewModel)
-                PracticeRegistry.INVOICES -> AccountsPane(viewModel, projects)
+                PracticeRegistry.INVOICES -> AccountsPane(viewModel, projects, onOpenRecord, onCreateInvoice)
                 PracticeRegistry.FINANCE -> FinancePane()
                 PracticeRegistry.DEMO -> DemoPane(demoCatalog, demoNotice, openingDemo, onOpenDemo)
                 PracticeRegistry.PORTAL -> PortalPane()
@@ -373,7 +533,7 @@ private fun DemoPane(
     opening: Boolean,
     onOpen: () -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(CarbonSpacing.screen), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight)) {
         Text(stringResource(R.string.demo_heading), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         Text(stringResource(R.string.demo_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (catalog == null) {
@@ -404,27 +564,75 @@ private fun ClientsPane(viewModel: PortfolioViewModel) {
     var name by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
+    var openIds by rememberSaveable { mutableStateOf(setOf<Long>()) }
     LazyColumn(
-        Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
+        Modifier.fillMaxSize().padding(horizontal = CarbonSpacing.screen),
+        verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stack),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(top = CarbonSpacing.screen, bottom = CarbonSpacing.scrollBottom),
     ) {
-        item { Text("Clients", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() }) }
+        item {
+            Text("Clients", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(
+                "Tap a card to disclose company details. Use ⋮ to edit or delete.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = CarbonSpacing.micro),
+            )
+        }
+        if (clients.isEmpty()) {
+            item { Text("No clients yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        }
         items(clients, key = { it.id }) { client ->
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(client.name, style = MaterialTheme.typography.titleMedium)
-                Text("${client.clientType} · ${client.contactNo.ifBlank { "No phone" }} · ${client.email}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                RecordActions(RecordKind.CLIENT, client.id, client.name)
+            val open = client.id in openIds
+            val extras = remember(client.detailsJson) {
+                runCatching { org.json.JSONObject(client.detailsJson.ifBlank { "{}" }) }.getOrElse { org.json.JSONObject() }
+            }
+            com.holagundi.archiman.ui.theme.DisclosureCard(
+                title = client.name,
+                summary = listOf(
+                    client.clientType,
+                    client.contactPerson,
+                    client.contactNo.ifBlank { client.email },
+                ).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "No contact details" },
+                expanded = open,
+                onExpandedChange = { next ->
+                    openIds = if (next) openIds + client.id else openIds - client.id
+                },
+                leadingIcon = CarbonIcons.People,
+                menu = { RecordActions(RecordKind.CLIENT, client.id, client.name) },
+            ) {
+                com.holagundi.archiman.ui.theme.DetailRow("Type", client.clientType)
+                com.holagundi.archiman.ui.theme.DetailRow("Primary contact", client.contactPerson)
+                com.holagundi.archiman.ui.theme.DetailRow("Phone", client.contactNo)
+                com.holagundi.archiman.ui.theme.DetailRow("Email", client.email)
+                com.holagundi.archiman.ui.theme.DetailRow("Preferred communication", client.preferredCommunication)
+                com.holagundi.archiman.ui.theme.DetailRow("Billing address", client.address)
+                com.holagundi.archiman.ui.theme.DetailRow("Correspondence address", client.correspondenceAddress)
+                com.holagundi.archiman.ui.theme.DetailRow("Legal name", extras.optString("legalName"))
+                com.holagundi.archiman.ui.theme.DetailRow("GSTIN", extras.optString("gstin"), monospace = true)
+                com.holagundi.archiman.ui.theme.DetailRow("PAN", extras.optString("pan"), monospace = true)
+                com.holagundi.archiman.ui.theme.DetailRow("TAN", extras.optString("tan"), monospace = true)
+                com.holagundi.archiman.ui.theme.DetailRow("Notes", client.notes)
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ArchiField(name, { name = it }, "Client name")
-                ArchiField(phone, { phone = it }, "Phone")
-                ArchiField(email, { email = it }, "Email")
-                TextButton(onClick = {
-                    val submitted = listOf(name, phone, email); viewModel.addClient(name, phone, email).onSuccess { if (listOf(name, phone, email) == submitted) { name = ""; phone = ""; email = "" } }
-                }) { Text("Save client", color = MaterialTheme.colorScheme.primary) }
+            ArchiCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(CarbonSpacing.card), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight)) {
+                    Text("Add client", style = MaterialTheme.typography.titleMedium)
+                    ArchiField(name, { name = it }, "Client name")
+                    ArchiField(phone, { phone = it }, "Phone")
+                    ArchiField(email, { email = it }, "Email")
+                    TextButton(onClick = {
+                        val submitted = listOf(name, phone, email)
+                        viewModel.addClient(name, phone, email).onSuccess {
+                            if (listOf(name, phone, email) == submitted) {
+                                name = ""
+                                phone = ""
+                                email = ""
+                            }
+                        }
+                    }) { Text("Save client", color = MaterialTheme.colorScheme.primary) }
+                }
             }
         }
     }
@@ -434,49 +642,238 @@ private fun ClientsPane(viewModel: PortfolioViewModel) {
 private fun AccountsPane(
     viewModel: PortfolioViewModel,
     projects: List<ProjectEntity>,
+    onOpenRecord: (Long, WorkspacePage, Long) -> Unit,
+    onCreateInvoice: () -> Unit,
 ) {
     val invoices by viewModel.invoices.collectAsStateWithLifecycle()
     LazyColumn(
-        Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
+        Modifier.fillMaxSize().padding(CarbonSpacing.screen),
+        verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = CarbonSpacing.scrollBottom),
     ) {
         item { Text("Invoices", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() }) }
         item {
-            Text("Fee invoices raised from a project. Open the project to issue one.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+            Text(
+                "Tap an invoice to open it on the project. Use Create invoice to draft a new fee.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        item {
+            Button(onClick = onCreateInvoice) { Text(stringResource(R.string.create_invoice)) }
         }
         if (invoices.isEmpty()) {
             item { Text("No invoices yet.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
         items(invoices, key = { it.id }) { invoice ->
             val project = projects.find { it.id == invoice.projectId }?.name ?: "Project"
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("${invoice.number} · $project", style = MaterialTheme.typography.titleMedium)
-                Text("${invoice.title} · ${invoice.status} · ${invoice.amount}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                RecordActions(RecordKind.INVOICE, invoice.id, invoice.number)
+            CarbonTile(
+                onClick = { onOpenRecord(invoice.projectId, WorkspacePage.INVOICE, invoice.id) },
+                contentPadding = false,
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(CarbonSpacing.cardDense),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight),
+                ) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("${invoice.number} · $project", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "${invoice.title} · ${invoice.status} · ${invoice.amount}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        InvoiceTaxSummary(invoice.taxJson)
+                    }
+                    RecordActions(RecordKind.INVOICE, invoice.id, invoice.number)
+                }
             }
         }
     }
 }
 
 @Composable
-private fun OfficePane(
-    company: com.holagundi.archiman.data.local.entity.CompanyProfileEntity?,
+private fun CreatePracticeInvoiceDialog(
+    projects: List<ProjectEntity>,
+    preferredProjectId: Long,
+    onDismiss: () -> Unit,
+    onOpen: (Long) -> Unit,
 ) {
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (company == null) {
-            Text("Opening the practice…", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            return@Column
+    var projectId by rememberSaveable(preferredProjectId) {
+        mutableStateOf(
+            preferredProjectId.takeIf { id -> projects.any { it.id == id } }
+                ?: projects.firstOrNull()?.id
+                ?: 0L,
+        )
+    }
+    val options = remember(projects) {
+        projects.map { CarbonDropdownOption(it.id.toString(), it.name) }
+    }
+    CarbonModal(
+        title = "New invoice",
+        description = "Choose a project. You will draft the fee invoice with GST details there.",
+        onDismiss = onDismiss,
+        primaryLabel = "Open invoices",
+        onPrimary = { onOpen(projectId) },
+        primaryEnabled = projectId != 0L,
+    ) {
+        CarbonDropdown(
+            label = "Project",
+            options = options,
+            selectedId = projectId.takeIf { it != 0L }?.toString(),
+            onSelected = { projectId = it.toLongOrNull() ?: 0L },
+            placeholder = "Choose a project",
+            size = com.holagundi.archiman.ui.theme.CarbonDropdownSize.Medium,
+        )
+    }
+}
+
+@Composable
+private fun CompanyProfilePreviewCard(company: CompanyProfileEntity?, onOpenFull: () -> Unit) {
+    if (company == null) {
+        ArchiCard(Modifier.fillMaxWidth()) {
+            Text("Opening the practice…", Modifier.padding(CarbonSpacing.card), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(company.practiceName, style = MaterialTheme.typography.headlineMedium)
-        RecordActions(RecordKind.PRACTICE, company.id, company.practiceName)
-        Text(company.legalName, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("${company.address}, ${company.city} ${company.pinCode}")
-        Text("CoA ${company.coaRegistrationNumber}", fontFamily = FontFamily.Monospace, color = MaterialTheme.colorScheme.primary)
-        Text(company.principalName, style = MaterialTheme.typography.titleMedium)
-        Text(company.principalQualification, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("GSTIN ${company.gstin}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        Text("This block is the letterhead used on letters and invoices.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        return
+    }
+    var open by rememberSaveable { mutableStateOf(true) }
+    com.holagundi.archiman.ui.theme.DisclosureCard(
+        title = company.practiceName,
+        summary = listOf(company.legalName, company.gstin.takeIf { it.isNotBlank() }?.let { "GSTIN $it" })
+            .filter { !it.isNullOrBlank() }
+            .joinToString(" · ")
+            .ifBlank { "Tap to disclose company details" },
+        expanded = open,
+        onExpandedChange = { open = it },
+        leadingIcon = CarbonIcons.Business,
+        menu = { RecordActions(RecordKind.PRACTICE, company.id, company.practiceName) },
+    ) {
+        com.holagundi.archiman.ui.theme.DetailRow("Legal name", company.legalName)
+        com.holagundi.archiman.ui.theme.DetailRow("Principal", company.principalName)
+        com.holagundi.archiman.ui.theme.DetailRow("Phone", company.phone)
+        com.holagundi.archiman.ui.theme.DetailRow("Email", company.email)
+        com.holagundi.archiman.ui.theme.DetailRow("GSTIN", company.gstin, monospace = true)
+        TextButton(onClick = onOpenFull) {
+            Text("Open full company profile", color = MaterialTheme.colorScheme.primary)
+        }
+    }
+}
+
+@Composable
+private fun OfficePane(
+    company: CompanyProfileEntity?,
+) {
+    if (company == null) {
+        Column(Modifier.fillMaxSize().padding(CarbonSpacing.screen)) {
+            Text("Opening the practice…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        return
+    }
+    var identityOpen by rememberSaveable { mutableStateOf(true) }
+    var addressOpen by rememberSaveable { mutableStateOf(true) }
+    var registrationOpen by rememberSaveable { mutableStateOf(true) }
+    var principalOpen by rememberSaveable { mutableStateOf(true) }
+    val place = listOf(company.city, company.state, company.pinCode).filter { it.isNotBlank() }.joinToString(" ")
+    LazyColumn(
+        Modifier.fillMaxSize().padding(horizontal = CarbonSpacing.screen),
+        verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stack),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(top = CarbonSpacing.screen, bottom = CarbonSpacing.scrollBottom),
+    ) {
+        item {
+            Text("Company profile", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
+            Text(
+                "Letterhead identity used on letters, invoices and the Wi‑Fi portal.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(top = CarbonSpacing.micro),
+            )
+        }
+        item {
+            ArchiCard(Modifier.fillMaxWidth()) {
+                Row(
+                    Modifier.fillMaxWidth().padding(start = CarbonSpacing.card, end = CarbonSpacing.micro, top = CarbonSpacing.stackTight, bottom = CarbonSpacing.stackTight),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(CarbonIcons.Business, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(end = CarbonSpacing.stack))
+                    Column(Modifier.weight(1f).padding(vertical = CarbonSpacing.micro), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.hairline)) {
+                        Text(company.practiceName, style = MaterialTheme.typography.titleLarge)
+                        if (company.legalName.isNotBlank() && company.legalName != company.practiceName) {
+                            Text(company.legalName, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        if (company.companyType.isNotBlank()) {
+                            Text(company.companyType, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                    RecordActions(RecordKind.PRACTICE, company.id, company.practiceName)
+                }
+            }
+        }
+        item {
+            com.holagundi.archiman.ui.theme.DisclosureCard(
+                title = "Identity",
+                summary = listOf(company.practiceName, company.companyType).filter { it.isNotBlank() }.joinToString(" · "),
+                expanded = identityOpen,
+                onExpandedChange = { identityOpen = it },
+                leadingIcon = CarbonIcons.Business,
+            ) {
+                com.holagundi.archiman.ui.theme.DetailRow("Practice name", company.practiceName)
+                com.holagundi.archiman.ui.theme.DetailRow("Legal name", company.legalName)
+                com.holagundi.archiman.ui.theme.DetailRow("Company type", company.companyType)
+                com.holagundi.archiman.ui.theme.DetailRow("Website", company.website)
+            }
+        }
+        item {
+            com.holagundi.archiman.ui.theme.DisclosureCard(
+                title = "Address & contact",
+                summary = listOf(place, company.phone, company.email).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "No contact details yet" },
+                expanded = addressOpen,
+                onExpandedChange = { addressOpen = it },
+                leadingIcon = CarbonIcons.Place,
+            ) {
+                com.holagundi.archiman.ui.theme.DetailRow("Address", company.address)
+                com.holagundi.archiman.ui.theme.DetailRow("City / state / PIN", place)
+                com.holagundi.archiman.ui.theme.DetailRow("Country", company.country)
+                com.holagundi.archiman.ui.theme.DetailRow("Phone", company.phone)
+                com.holagundi.archiman.ui.theme.DetailRow("Email", company.email)
+            }
+        }
+        item {
+            com.holagundi.archiman.ui.theme.DisclosureCard(
+                title = "Registration & tax",
+                summary = listOf(
+                    company.coaRegistrationNumber.takeIf { it.isNotBlank() }?.let { "CoA $it" },
+                    company.gstin.takeIf { it.isNotBlank() }?.let { "GSTIN $it" },
+                    company.pan.takeIf { it.isNotBlank() }?.let { "PAN $it" },
+                ).filterNotNull().joinToString(" · ").ifBlank { "No registrations yet" },
+                expanded = registrationOpen,
+                onExpandedChange = { registrationOpen = it },
+                leadingIcon = CarbonIcons.Description,
+            ) {
+                com.holagundi.archiman.ui.theme.DetailRow("CoA registration", company.coaRegistrationNumber, monospace = true)
+                com.holagundi.archiman.ui.theme.DetailRow("PAN", company.pan, monospace = true)
+                com.holagundi.archiman.ui.theme.DetailRow("GSTIN", company.gstin, monospace = true)
+                com.holagundi.archiman.ui.theme.DetailRow("Practice registration", company.practiceRegistrationDetails)
+            }
+        }
+        item {
+            com.holagundi.archiman.ui.theme.DisclosureCard(
+                title = "Principal",
+                summary = listOf(company.principalName, company.principalQualification).filter { it.isNotBlank() }.joinToString(" · ").ifBlank { "No principal recorded" },
+                expanded = principalOpen,
+                onExpandedChange = { principalOpen = it },
+                leadingIcon = CarbonIcons.People,
+            ) {
+                com.holagundi.archiman.ui.theme.DetailRow("Name", company.principalName)
+                com.holagundi.archiman.ui.theme.DetailRow("Qualification", company.principalQualification)
+            }
+        }
+        item {
+            Text(
+                "Edit any section with the ⋮ menu on the company card. Changes apply to letterhead exports and the portal.",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
 }
 
@@ -493,34 +890,30 @@ private fun CreateProjectDialog(
     var client by rememberSaveable { mutableStateOf("") }
     var type by rememberSaveable { mutableStateOf("Residential") }
     var site by rememberSaveable { mutableStateOf("") }
-    Dialog(onDismissRequest = { if (!busy) onDismiss() }, properties = androidx.compose.ui.window.DialogProperties(decorFitsSystemWindows = false)) {
-        androidx.compose.foundation.layout.Box(Modifier.imePadding().safeDrawingPadding()) {
-        GlassSurface(Modifier.fillMaxWidth()) {
-            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                saveNotice?.takeIf { it.kind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR }?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Could not create project", it.message, it.kind) }
-                Text("New project", style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-                Text("A Ground Floor is added so measurement can start.", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                ArchiField(name, { name = it }, "Project name (required)", Modifier.fillMaxWidth(), enabled = !busy)
-                ArchiField(code, { code = it }, "Code (optional)", Modifier.fillMaxWidth(), enabled = !busy)
-                ArchiField(client, { client = it }, "Client (required)", Modifier.fillMaxWidth(), enabled = !busy)
-                ArchiField(site, { site = it }, "Site address", Modifier.fillMaxWidth(), enabled = !busy)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Residential", "Commercial", "Institutional", "Interior").forEach { option ->
-                        ChoiceChip(option, type == option) { type = option }
-                    }
-                }
-                Text("Architect: ${architect.ifBlank { "Practice principal" }}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(enabled = !busy, onClick = onDismiss) { Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-                    Spacer(Modifier.width(8.dp))
-                    Button(
-                        enabled = !busy && name.isNotBlank() && client.isNotBlank(),
-                        onClick = { if (name.isNotBlank() && client.isNotBlank()) onCreate(name, code, client, type, site) },
-                    ) { Text(if (busy) "Creating…" else "Create") }
-                }
-            }
+    val types = listOf("Residential", "Commercial", "Institutional", "Interior")
+    CarbonModal(
+        title = "New project",
+        description = "A Ground Floor is added so measurement can start. Architect: ${architect.ifBlank { "Practice principal" }}",
+        onDismiss = onDismiss,
+        primaryLabel = "Create",
+        onPrimary = { if (name.isNotBlank() && client.isNotBlank()) onCreate(name, code, client, type, site) },
+        primaryEnabled = !busy && name.isNotBlank() && client.isNotBlank(),
+        primaryBusy = busy,
+    ) {
+        saveNotice?.takeIf { it.kind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR }?.let {
+            com.holagundi.archiman.ui.theme.CarbonInlineNotification("Could not create project", it.message, it.kind)
         }
-        }
+        CarbonTextInput(name, { name = it }, "Project name", enabled = !busy)
+        CarbonTextInput(code, { code = it }, "Code", helperText = "Optional", enabled = !busy)
+        CarbonTextInput(client, { client = it }, "Client", enabled = !busy)
+        CarbonTextInput(site, { site = it }, "Site address", enabled = !busy)
+        CarbonDropdown(
+            label = "Project type",
+            options = types.map { CarbonDropdownOption(it, it) },
+            selectedId = type,
+            onSelected = { type = it },
+            enabled = !busy,
+        )
     }
 }
 
@@ -531,41 +924,14 @@ private fun PracticeFloatingSearchBar(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { focus.requestFocus() }
-    Surface(
+    CarbonSearch(
+        value = query,
+        onValueChange = onQueryChange,
         modifier = modifier,
-        shape = RectangleShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLowest,
-        shadowElevation = 6.dp,
-        tonalElevation = 2.dp,
-    ) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                CarbonIcons.Search,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(start = 12.dp),
-            )
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f).focusRequester(focus),
-                placeholder = { Text(stringResource(R.string.practice_search_hint)) },
-                singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                    focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.outlineVariant,
-                ),
-            )
-            IconButton(onClick = onClose) {
-                Icon(CarbonIcons.Close, contentDescription = stringResource(R.string.close_search))
-            }
-        }
-    }
+        placeholder = stringResource(R.string.practice_search_hint),
+        onClose = onClose,
+        requestFocus = true,
+    )
 }
 
 @Composable
@@ -573,12 +939,11 @@ private fun PracticeSearchResults(
     viewModel: PortfolioViewModel,
     onOpenProject: (Long) -> Unit,
     onOpenRecord: (Long, WorkspacePage, Long) -> Unit,
-    onOpenPracticeInvoices: () -> Unit,
 ) {
     val hits by viewModel.practiceSearchHits.collectAsStateWithLifecycle()
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 16.dp).padding(bottom = 88.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        Modifier.fillMaxSize().padding(horizontal = CarbonSpacing.screen).padding(bottom = 88.dp),
+        verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight),
     ) {
         if (hits.projects.isNotEmpty()) {
             item { Text("Projects", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
@@ -615,37 +980,13 @@ private fun PracticeSearchResults(
         if (hits.invoices.isNotEmpty()) {
             item { Text("Invoices", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 8.dp)) }
             items(hits.invoices, key = { "inv-${it.id}" }) { invoice ->
-                FeatureRow(invoice.number, invoice.title, CarbonIcons.ReceiptLong, onOpenPracticeInvoices)
+                FeatureRow(invoice.number, invoice.title, CarbonIcons.ReceiptLong) {
+                    onOpenRecord(invoice.projectId, WorkspacePage.INVOICE, invoice.id)
+                }
             }
         }
         if (hits.projects.isEmpty() && hits.tasks.isEmpty() && hits.reviews.isEmpty() && hits.issues.isEmpty() && hits.invoices.isEmpty()) {
             item { Text("No matches.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 16.dp)) }
-        }
-    }
-}
-
-@Composable
-private fun ProjectPickSheet(
-    projects: List<ProjectEntity>,
-    title: String,
-    onDismiss: () -> Unit,
-    onPick: (Long) -> Unit,
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
-            if (projects.isEmpty()) {
-                Text(stringResource(R.string.no_projects), color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else {
-                LazyColumn(Modifier.height(360.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(projects, key = { it.id }) { project ->
-                        FeatureRow(project.name, project.client, CarbonIcons.Apartment) { onPick(project.id) }
-                    }
-                }
-            }
         }
     }
 }

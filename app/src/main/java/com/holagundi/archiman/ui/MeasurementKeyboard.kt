@@ -30,7 +30,7 @@ fun MeasurementKeyboard(field: String, numeric: Boolean, enabled: Boolean, onIns
                 else -> listOf("qwertyuiop".map(Char::toString), "asdfghjkl".map(Char::toString), "zxcvbnm".map(Char::toString), listOf("Shift", "123", "Space", "Backspace"))
             }
             rows.forEach { keys ->
-                Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     keys.forEach { key ->
                         val label = if (key.length == 1 && upper && !numeric && !symbols) key.uppercase() else key
                         Button(

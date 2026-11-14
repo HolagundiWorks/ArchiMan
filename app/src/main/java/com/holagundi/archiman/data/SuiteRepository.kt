@@ -48,6 +48,7 @@ import com.holagundi.archiman.domain.MeasurementDraft
 import com.holagundi.archiman.domain.ProjectPath
 import com.holagundi.archiman.domain.RecordResult
 import com.holagundi.archiman.domain.SiteIssueWorkflow
+import com.holagundi.archiman.domain.WorkPriority
 import com.holagundi.archiman.domain.StandardStages
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,6 +69,8 @@ class SuiteRepository @Inject constructor(
     fun observeUsers() = practiceDao.observeUsers()
     fun observeDashboardMetrics() = suiteDao.observeDashboardMetrics()
     fun observeDashboardTasks(limit: Int = 4) = suiteDao.observeDashboardTasks(limit)
+    fun observePracticeBoardTasks() = suiteDao.observePracticeBoardTasks()
+    fun observePracticeBoardIssues() = suiteDao.observePracticeBoardIssues()
     fun observeDashboardReviews(limit: Int = 3) = suiteDao.observeDashboardReviews(limit)
     fun observeDashboardIssues(limit: Int = 3) = suiteDao.observeDashboardIssues(limit)
     fun observePracticeFeeSummary() = suiteDao.observePracticeFeeTotals().map { FeeDashboardSummary.fromTotals(it) }
@@ -209,18 +212,41 @@ class SuiteRepository @Inject constructor(
         require(current.first=="OPEN" && current.second==projectId) { "This stage was already billed or belongs to another project." }
         require(InvoiceBalance.money(amount).signum()>0) { "Enter a positive stage fee." }
         val now = System.currentTimeMillis()
+        val money = InvoiceBalance.money(amount).toPlainString()
         suiteDao.insertInvoice(
             InvoiceEntity(
                 projectId = projectId,
                 stageId = stage.id,
-                number = "INV-${java.util.UUID.randomUUID()}",
+                number = nextInvoiceNumber(),
                 title = stage.title,
                 amount = amount,
                 status = "DRAFT",
                 createdAt = now,
+                taxJson = org.json.JSONObject()
+                    .put("mode", "NONE")
+                    .put("base", money)
+                    .put("cgst", "0.00")
+                    .put("sgst", "0.00")
+                    .put("igst", "0.00")
+                    .put("total", money)
+                    .toString(),
             ),
         )
         suiteDao.setStageStatus(stage.id, "BILLED")
+    }
+
+    /**
+     * Next readable serial for the current year, e.g. INV-2026-02. GST invoice numbers must be
+     * consecutive and at most 16 characters, so a random UUID is not a usable invoice number.
+     */
+    suspend fun nextInvoiceNumber(): String {
+        val prefix = "INV-${java.time.Year.now().value}-"
+        val last = database.openHelper.readableDatabase.query("SELECT number FROM invoices WHERE number LIKE ?", arrayOf("$prefix%")).use { cursor ->
+            var highest = 0
+            while (cursor.moveToNext()) cursor.getString(0).removePrefix(prefix).toIntOrNull()?.let { if (it > highest) highest = it }
+            highest
+        }
+        return prefix + (last + 1).toString().padStart(2, '0')
     }
 
     suspend fun issueInvoice(id: Long) = database.withTransaction {
@@ -582,11 +608,18 @@ class SuiteRepository @Inject constructor(
         )
     }
 
-    suspend fun addTask(projectId: Long, title: String) {
+    suspend fun addTask(projectId: Long, title: String, priority: String = WorkPriority.NORMAL) {
         require(title.isNotBlank()) { "Enter a title." }
         val now = System.currentTimeMillis()
         suiteDao.insertTask(
-            ProjectTaskEntity(projectId = projectId, title = title.trim(), description = "", status = "TO_DO", createdAt = now),
+            ProjectTaskEntity(
+                projectId = projectId,
+                title = title.trim(),
+                description = "",
+                status = "TO_DO",
+                priority = WorkPriority.normalize(priority),
+                createdAt = now,
+            ),
         )
     }
 
@@ -630,15 +663,24 @@ class SuiteRepository @Inject constructor(
     suspend fun addFeeInvoice(projectId: Long, title: String, amount: Double) {
         require(title.isNotBlank()) { "Enter a title." }
         val now = System.currentTimeMillis()
+        val money = InvoiceBalance.money(amount).toPlainString()
         suiteDao.insertInvoice(
             InvoiceEntity(
                 projectId = projectId,
                 stageId = null,
-                number = "INV-${java.util.UUID.randomUUID()}",
+                number = nextInvoiceNumber(),
                 title = title.trim(),
                 amount = amount,
                 status = "DRAFT",
                 createdAt = now,
+                taxJson = org.json.JSONObject()
+                    .put("mode", "NONE")
+                    .put("base", money)
+                    .put("cgst", "0.00")
+                    .put("sgst", "0.00")
+                    .put("igst", "0.00")
+                    .put("total", money)
+                    .toString(),
             ),
         )
     }

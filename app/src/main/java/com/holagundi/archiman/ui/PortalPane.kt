@@ -32,17 +32,19 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
+import com.holagundi.archiman.ui.theme.CarbonSpacing
 
 @Composable
 fun PortalPane(viewModel: PortalViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
-        if (granted) viewModel.start()
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        // Foreground portal still starts if the user denies shade notifications.
+        viewModel.start()
     }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(CarbonSpacing.screenPadding),
+        verticalArrangement = CarbonSpacing.stackArrangement,
     ) {
         Text(stringResource(R.string.portal_heading), style = MaterialTheme.typography.titleLarge, modifier = Modifier.semantics { heading() })
         Text(stringResource(R.string.portal_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -67,6 +69,12 @@ fun PortalPane(viewModel: PortalViewModel = hiltViewModel()) {
             ) { Text(stringResource(R.string.portal_stop)) }
         } else {
             Text(state.detail ?: stringResource(R.string.portal_off), color = if (state.detail == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
+            if (
+                Build.VERSION.SDK_INT >= 33 &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            ) {
+                Text(stringResource(R.string.portal_notification_denied), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
             Button(
                 onClick = {
                     val needsNotice = Build.VERSION.SDK_INT >= 33 &&

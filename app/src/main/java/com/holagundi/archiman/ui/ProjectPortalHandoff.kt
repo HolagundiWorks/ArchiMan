@@ -40,7 +40,7 @@ fun ProjectPortalLink(projectId: Long, section: String, label: String, portal: P
 @Composable
 fun RunningBillsPane(suite: SuiteProjectViewModel, onReview: () -> Unit, onSetup: () -> Unit) {
     val rows by suite.approvedMeasurements.collectAsStateWithLifecycle()
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack)) {
         Text("Contractor running bills", style = MaterialTheme.typography.headlineSmall)
         CarbonInlineNotification("Excluding taxes", "Contractor bills use approved quantities and each entry's negotiated revision/rate snapshot. GST and TDS for your professional fees are managed separately.", CarbonNoticeKind.INFO)
         Text("${rows.size} approved measurement entries", style = MaterialTheme.typography.titleMedium)
@@ -65,7 +65,7 @@ fun ProjectSetupPane(workspace: ProjectWorkspaceViewModel, suite: SuiteProjectVi
     val floors by workspace.floors.collectAsStateWithLifecycle()
     val schedules by workspace.schedules.collectAsStateWithLifecycle()
     val active = schedules.firstOrNull { it.status == "ACTIVE" }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack)) {
         Text("Measurement and billing setup", style = MaterialTheme.typography.headlineSmall)
         listOf(
             "Client and site details" to (project?.client?.isNotBlank() == true && project?.siteLocation?.isNotBlank() == true),

@@ -29,6 +29,13 @@ needed = {
     "add": "add",
     "close": "close",
     "architecture": "ruler",
+    "search": "search",
+    "menu": "menu",
+    "asleep": "asleep",
+    "awake": "awake",
+    "sideOpen": "side-panel--open",
+    "sideClose": "side-panel--close",
+    "chevron": "chevron--down",
 }
 
 entries = []

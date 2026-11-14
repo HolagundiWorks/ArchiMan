@@ -5,7 +5,6 @@ import com.holagundi.archiman.ui.theme.CarbonButton as Button
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,8 +28,11 @@ import com.holagundi.archiman.R
 import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.SiteIssueWorkflow
 import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.ChoiceChip
-import com.holagundi.archiman.ui.theme.GlassSurface
+import com.holagundi.archiman.ui.theme.CarbonContentSwitcher
+import com.holagundi.archiman.ui.theme.CarbonDropdown
+import com.holagundi.archiman.ui.theme.CarbonDropdownOption
+import com.holagundi.archiman.ui.theme.CarbonTag
+import com.holagundi.archiman.ui.theme.CarbonTile
 import com.holagundi.archiman.ui.theme.ScreenTitle
 
 private enum class DrawingPanel { REGISTER, REVISIONS, TRANSMITTALS }
@@ -58,7 +60,7 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         item { ScreenTitle(stringResource(R.string.drawings_heading)) }
@@ -66,28 +68,31 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
             Text(stringResource(R.string.drawings_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ChoiceChip(stringResource(R.string.drawings_register), panel == DrawingPanel.REGISTER) { panel = DrawingPanel.REGISTER }
-                ChoiceChip(stringResource(R.string.drawings_revisions), panel == DrawingPanel.REVISIONS) { panel = DrawingPanel.REVISIONS }
-                ChoiceChip(stringResource(R.string.drawings_transmittals), panel == DrawingPanel.TRANSMITTALS) { panel = DrawingPanel.TRANSMITTALS }
-            }
+            val panels = DrawingPanel.entries
+            CarbonContentSwitcher(
+                options = listOf(
+                    stringResource(R.string.drawings_register),
+                    stringResource(R.string.drawings_revisions),
+                    stringResource(R.string.drawings_transmittals),
+                ),
+                selectedIndex = panels.indexOf(panel).coerceAtLeast(0),
+                onSelected = { panel = panels[it] },
+            )
         }
 
         when (panel) {
             DrawingPanel.REGISTER -> {
                 items(drawings, key = { "d-${it.id}" }) { drawing ->
-                    GlassSurface(Modifier.fillMaxWidth()) {
-                        Column {
-                            Text(drawing.drawingNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                            Text(drawing.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                            Text("${drawing.discipline} · ${drawing.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("Package: ${drawing.packageTag.ifBlank { "—" }}")
-                            RecordActions(RecordKind.DRAWING, drawing.id, drawing.drawingNumber)
-                        }
+                    CarbonTile(Modifier.fillMaxWidth()) {
+                        Text(drawing.drawingNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                        Text(drawing.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                        Text("${drawing.discipline} · ${drawing.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Package: ${drawing.packageTag.ifBlank { "—" }}")
+                        RecordActions(RecordKind.DRAWING, drawing.id, drawing.drawingNumber)
                     }
                 }
                 item {
-                    GlassSurface(Modifier.fillMaxWidth()) {
+                    CarbonTile(Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             ArchiField(number, { number = it }, stringResource(R.string.drawing_number))
                             ArchiField(title, { title = it }, stringResource(R.string.drawing_title))
@@ -106,40 +111,45 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
             DrawingPanel.REVISIONS -> {
                 items(revisions, key = { "r-${it.id}" }) { revision ->
                     val drawing = drawings.firstOrNull { it.id == revision.drawingId }
-                    GlassSurface(Modifier.fillMaxWidth()) {
-                        Column {
-                            Text("${drawing?.drawingNumber ?: "Drawing"} · ${revision.revisionCode}", style = MaterialTheme.typography.titleMedium)
-                            Text(revision.revisionNotes, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            RecordActions(RecordKind.REVISION, revision.id, revision.revisionCode)
-                            Text(
-                                buildString {
-                                    append(revision.issueStatus)
-                                    if (revision.isAsBuilt) append(" · As-built")
-                                    append(" · ${SiteIssueWorkflow.severityLabel(revision.severity)}")
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                            )
-                        }
+                    CarbonTile(Modifier.fillMaxWidth()) {
+                        Text("${drawing?.drawingNumber ?: "Drawing"} · ${revision.revisionCode}", style = MaterialTheme.typography.titleMedium)
+                        Text(revision.revisionNotes, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        RecordActions(RecordKind.REVISION, revision.id, revision.revisionCode)
+                        Text(
+                            buildString {
+                                append(revision.issueStatus)
+                                if (revision.isAsBuilt) append(" · As-built")
+                                append(" · ${SiteIssueWorkflow.severityLabel(revision.severity)}")
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                     }
                 }
                 item {
-                    GlassSurface(Modifier.fillMaxWidth()) {
+                    CarbonTile(Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Drawing", style = MaterialTheme.typography.labelLarge)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                drawings.forEach { drawing ->
-                                    ChoiceChip(drawing.drawingNumber, drawingId == drawing.id) { drawingId = drawing.id }
-                                }
-                            }
+                            CarbonDropdown(
+                                label = "Drawing",
+                                options = drawings.map { CarbonDropdownOption(it.id.toString(), it.drawingNumber) },
+                                selectedId = if (drawingId > 0L) drawingId.toString() else null,
+                                onSelected = { drawingId = it.toLongOrNull() ?: -1L },
+                            )
                             ArchiField(revisionCode, { revisionCode = it }, stringResource(R.string.revision_code))
                             ArchiField(notes, { notes = it }, stringResource(R.string.revision_notes), singleLine = false)
                             ArchiField(fileNote, { fileNote = it }, stringResource(R.string.snag_evidence))
-                            ChoiceChip(stringResource(R.string.revision_as_built), asBuilt) { asBuilt = !asBuilt }
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                SiteIssueWorkflow.severities.forEach { option ->
-                                    ChoiceChip(SiteIssueWorkflow.severityLabel(option), severity == option) { severity = option }
-                                }
-                            }
+                            CarbonTag(
+                                label = stringResource(R.string.revision_as_built),
+                                selected = asBuilt,
+                                onClick = { asBuilt = !asBuilt },
+                            )
+                            CarbonDropdown(
+                                label = stringResource(R.string.snag_severity),
+                                options = SiteIssueWorkflow.severities.map {
+                                    CarbonDropdownOption(it, SiteIssueWorkflow.severityLabel(it))
+                                },
+                                selectedId = severity,
+                                onSelected = { severity = it },
+                            )
                             Button(
                                 onClick = {
                                     if (drawingId > 0L) {
@@ -155,17 +165,15 @@ fun DrawingsPane(suite: SuiteProjectViewModel) {
             }
             DrawingPanel.TRANSMITTALS -> {
                 items(transmittals, key = { "t-${it.id}" }) { item ->
-                    GlassSurface(Modifier.fillMaxWidth()) {
-                        Column {
-                            Text(item.transmittalNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
-                            Text(item.subject, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                            Text("${item.purpose} · ${item.recipients}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            RecordActions(RecordKind.TRANSMITTAL, item.id, item.transmittalNumber)
-                        }
+                    CarbonTile(Modifier.fillMaxWidth()) {
+                        Text(item.transmittalNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
+                        Text(item.subject, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                        Text("${item.purpose} · ${item.recipients}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        RecordActions(RecordKind.TRANSMITTAL, item.id, item.transmittalNumber)
                     }
                 }
                 item {
-                    GlassSurface(Modifier.fillMaxWidth()) {
+                    CarbonTile(Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             ArchiField(subject, { subject = it }, stringResource(R.string.transmittal_subject))
                             ArchiField(recipients, { recipients = it }, stringResource(R.string.transmittal_recipients))

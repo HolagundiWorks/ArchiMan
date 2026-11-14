@@ -24,15 +24,46 @@ class FinanceRepository @Inject constructor(private val db: ArchiManDatabase, pr
         dao.saveFinance(FinanceRecordEntity("settings", "SETTINGS", JSONObject().put("mode", mode).put("rate", rate).put("state", state).put("gstin", gstin).toString()))
     }
     suspend fun createInvoice(projectId: Long, title: String, base: String, place: String, sac: String, clientGstin: String) = db.withTransaction {
+        require(projectId > 0L) { "Choose a project." }
         require(title.isNotBlank()) { "Enter an invoice title." }
-        val config = settings(); val mode = GstMode.valueOf(config.getString("mode"))
+        val config = settings()
+        val mode = GstMode.valueOf(config.optString("mode", "NONE").ifBlank { "NONE" })
         if (mode != GstMode.NONE) require(sac.matches(Regex("[0-9]{6}"))) { "Enter the six-digit SAC for this service." }
         if (clientGstin.isNotBlank()) require(clientGstin.matches(Regex("[0-9]{2}[A-Z0-9]{13}"))) { "Invalid client GSTIN format." }
-        val tax = FinanceMath.tax(base, mode, config.getString("rate"), config.getString("state"), place)
+        val tax = FinanceMath.tax(
+            base,
+            mode,
+            config.optString("rate", "18").ifBlank { "18" },
+            config.optString("state"),
+            place,
+        )
         require(tax.total.signum() > 0) { "Invoice amount must be positive." }
-        config.put("base", tax.base.toPlainString()).put("cgst", tax.cgst.toPlainString()).put("sgst", tax.sgst.toPlainString()).put("igst", tax.igst.toPlainString()).put("total", tax.total.toPlainString()).put("place", place).put("sac", sac).put("clientGstin", clientGstin)
+        val snapshot = JSONObject()
+            .put("mode", mode.name)
+            .put("rate", config.optString("rate", "18"))
+            .put("state", config.optString("state"))
+            .put("gstin", config.optString("gstin"))
+            .put("base", tax.base.toPlainString())
+            .put("cgst", tax.cgst.toPlainString())
+            .put("sgst", tax.sgst.toPlainString())
+            .put("igst", tax.igst.toPlainString())
+            .put("total", tax.total.toPlainString())
+            .put("place", place)
+            .put("sac", sac)
+            .put("clientGstin", clientGstin)
         val now = System.currentTimeMillis()
-        dao.insertInvoice(InvoiceEntity(projectId = projectId, stageId = null, number = "INV-${java.util.UUID.randomUUID()}", title = title.trim(), amount = tax.total.toDouble(), status = "DRAFT", createdAt = now, taxJson = config.toString()))
+        dao.insertInvoice(
+            InvoiceEntity(
+                projectId = projectId,
+                stageId = null,
+                number = suite.nextInvoiceNumber(),
+                title = title.trim(),
+                amount = tax.total.toDouble(),
+                status = "DRAFT",
+                createdAt = now,
+                taxJson = snapshot.toString(),
+            ),
+        )
     }
     suspend fun import(rows:List<BankRow>,account:String):Int = db.withTransaction {
         require(account.isNotBlank() && account.length<=120) { "Enter an account alias up to 120 characters." }

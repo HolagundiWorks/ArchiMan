@@ -2,8 +2,26 @@ package com.holagundi.archiman.data.local
 
 data class DashboardMetrics(val openTasks: Int, val pendingReviews: Int, val openIssues: Int)
 data class DashboardTask(val id: Long, val projectId: Long, val title: String, val projectName: String, val dueDate: Long?)
+data class PracticeBoardTask(
+    val id: Long,
+    val projectId: Long,
+    val title: String,
+    val status: String,
+    val priority: String,
+    val projectName: String,
+    val dueDate: Long?,
+)
 data class DashboardReview(val id: Long, val projectId: Long, val sheetCode: String, val projectName: String, val status: String)
 data class DashboardIssue(val id: Long, val projectId: Long, val title: String, val projectName: String, val severity: String)
+data class PracticeBoardIssue(
+    val id: Long,
+    val projectId: Long,
+    val title: String,
+    val status: String,
+    val severity: String,
+    val referenceNumber: String,
+    val projectName: String,
+)
 /** SQL aggregate for fee tiles — avoids loading full invoice/receipt tables on dashboards. */
 data class FeeDashboardTotals(
     val outstanding: Double,

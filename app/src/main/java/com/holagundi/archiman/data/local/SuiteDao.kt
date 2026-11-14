@@ -101,6 +101,12 @@ interface SuiteDao {
         ORDER BY t.dueDate IS NULL, t.dueDate, t.createdAt DESC LIMIT :limit""")
     fun observeDashboardTasks(limit: Int = 4): Flow<List<DashboardTask>>
 
+    @Query("""SELECT t.id, t.projectId, t.title, t.status, t.priority, p.name AS projectName, t.dueDate FROM project_tasks t
+        JOIN projects p ON p.id = t.projectId WHERE p.status != 'ARCHIVED'
+        ORDER BY CASE t.priority WHEN 'CRITICAL' THEN 0 WHEN 'ATTENTION' THEN 1 ELSE 2 END,
+            t.dueDate IS NULL, t.dueDate, t.createdAt DESC""")
+    fun observePracticeBoardTasks(): Flow<List<PracticeBoardTask>>
+
     @Query("""SELECT s.id, s.projectId, s.sheetCode, p.name AS projectName, s.status FROM measurement_sheets s
         JOIN projects p ON p.id = s.projectId WHERE p.status != 'ARCHIVED' AND s.archivedAt IS NULL AND s.status IN ('SUBMITTED', 'CHECKED')
         ORDER BY s.updatedAt LIMIT :limit""")
@@ -110,6 +116,12 @@ interface SuiteDao {
         JOIN projects p ON p.id = i.projectId WHERE p.status != 'ARCHIVED' AND i.status != 'CLOSED'
         ORDER BY CASE i.severity WHEN 'CRITICAL' THEN 0 WHEN 'ATTENTION' THEN 1 ELSE 2 END, i.updatedAt DESC LIMIT :limit""")
     fun observeDashboardIssues(limit: Int = 3): Flow<List<DashboardIssue>>
+
+    @Query("""SELECT i.id, i.projectId, i.title, i.status, i.severity, i.referenceNumber, p.name AS projectName
+        FROM site_issues i JOIN projects p ON p.id = i.projectId WHERE p.status != 'ARCHIVED'
+        ORDER BY CASE i.status WHEN 'OPEN' THEN 0 WHEN 'IN_PROGRESS' THEN 1 WHEN 'READY_FOR_VERIFICATION' THEN 2 ELSE 3 END,
+            CASE i.severity WHEN 'CRITICAL' THEN 0 WHEN 'ATTENTION' THEN 1 ELSE 2 END, i.updatedAt DESC""")
+    fun observePracticeBoardIssues(): Flow<List<PracticeBoardIssue>>
     @Query("SELECT * FROM project_settings WHERE projectId = :projectId")
     fun observeSettings(projectId: Long): Flow<ProjectSettingsEntity?>
 

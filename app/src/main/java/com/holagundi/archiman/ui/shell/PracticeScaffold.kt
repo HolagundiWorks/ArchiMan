@@ -10,16 +10,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import com.holagundi.archiman.ui.theme.CarbonBreadcrumb
+import com.holagundi.archiman.ui.theme.CarbonBreadcrumbs
 import com.holagundi.archiman.ui.theme.CarbonNavigationBar
 import com.holagundi.archiman.ui.theme.CarbonNavigationRail
 import com.holagundi.archiman.ui.theme.CarbonNavigationItem
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
@@ -40,6 +39,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.holagundi.archiman.R
+import com.holagundi.archiman.ui.theme.CarbonOverflowAction
+import com.holagundi.archiman.ui.theme.CarbonOverflowMenu
+import com.holagundi.archiman.ui.theme.CarbonSpacing
 
 data class PracticeFabAction(
     val label: String,
@@ -52,13 +54,13 @@ fun PracticeScaffold(
     destination: PracticeDestination,
     onDestinationChange: (PracticeDestination) -> Unit,
     modifier: Modifier = Modifier,
+    breadcrumbs: List<CarbonBreadcrumb> = emptyList(),
     onSearch: (() -> Unit)? = null,
     searchOpen: Boolean = false,
     createActions: List<PracticeFabAction> = emptyList(),
     onSignOut: (() -> Unit)? = null,
     content: @Composable (androidx.compose.foundation.layout.PaddingValues) -> Unit,
 ) {
-    var accountMenu by remember { mutableStateOf(false) }
     var createOpen by remember { mutableStateOf(false) }
     BoxWithConstraints(modifier.fillMaxSize()) {
         val wide = maxWidth >= 600.dp
@@ -81,31 +83,33 @@ fun PracticeScaffold(
                 topBar = {
                     TopAppBar(
                         title = {
-                            Text(
-                                text = stringResource(destination.labelRes),
-                                style = MaterialTheme.typography.titleLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.semantics { heading() },
-                            )
+                            if (breadcrumbs.isNotEmpty()) {
+                                CarbonBreadcrumbs(
+                                    breadcrumbs,
+                                    modifier = Modifier.semantics { heading() },
+                                )
+                            } else {
+                                Text(
+                                    text = stringResource(destination.labelRes),
+                                    style = MaterialTheme.typography.titleLarge,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.semantics { heading() },
+                                )
+                            }
                         },
                         actions = {
                             if (onSignOut != null) {
-                                Box {
-                                    IconButton(onClick = { accountMenu = true }) {
-                                        Icon(CarbonIcons.MoreVert, "Account menu")
-                                    }
-                                    DropdownMenu(expanded = accountMenu, onDismissRequest = { accountMenu = false }) {
-                                        DropdownMenuItem(
-                                            text = { Text(stringResource(R.string.sign_out)) },
-                                            leadingIcon = { Icon(CarbonIcons.Logout, null) },
-                                            onClick = {
-                                                accountMenu = false
-                                                onSignOut()
-                                            },
-                                        )
-                                    }
-                                }
+                                CarbonOverflowMenu(
+                                    contentDescription = "Account menu",
+                                    actions = listOf(
+                                        CarbonOverflowAction(
+                                            label = stringResource(R.string.sign_out),
+                                            icon = CarbonIcons.Logout,
+                                            onClick = onSignOut,
+                                        ),
+                                    ),
+                                )
                             }
                         },
                     )
@@ -132,9 +136,21 @@ fun PracticeScaffold(
                                 createActions.asReversed().forEach { action ->
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(CarbonSpacing.stack),
                                     ) {
-                                        Text(action.label, style = MaterialTheme.typography.labelLarge)
+                                        // A solid chip keeps the label readable over the page content behind the menu.
+                                        androidx.compose.material3.Surface(
+                                            color = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                            contentColor = MaterialTheme.colorScheme.onSurface,
+                                            shape = RectangleShape,
+                                            shadowElevation = 6.dp,
+                                        ) {
+                                            Text(
+                                                action.label,
+                                                Modifier.padding(horizontal = CarbonSpacing.card, vertical = CarbonSpacing.stackTight),
+                                                style = MaterialTheme.typography.labelLarge,
+                                            )
+                                        }
                                         SmallFloatingActionButton(
                                             onClick = {
                                                 createOpen = false
@@ -147,7 +163,7 @@ fun PracticeScaffold(
                                             Icon(action.icon, action.label)
                                         }
                                     }
-                                    Spacer(Modifier.height(12.dp))
+                                    Spacer(Modifier.height(CarbonSpacing.stack))
                                 }
                             }
                             if (onSearch != null && !searchOpen) {
@@ -162,16 +178,26 @@ fun PracticeScaffold(
                                 ) {
                                     Icon(CarbonIcons.Search, stringResource(R.string.practice_search))
                                 }
-                                Spacer(Modifier.height(12.dp))
+                                Spacer(Modifier.height(CarbonSpacing.stack))
                             }
                             if (createActions.isNotEmpty()) {
                                 FloatingActionButton(
-                                    onClick = { createOpen = !createOpen },
+                                    onClick = {
+                                        if (createActions.size == 1) {
+                                            createActions.first().onClick()
+                                        } else {
+                                            createOpen = !createOpen
+                                        }
+                                    },
                                     shape = RectangleShape,
                                 ) {
                                     Icon(
                                         if (createOpen) CarbonIcons.Close else CarbonIcons.Add,
-                                        if (createOpen) stringResource(R.string.close_create_menu) else stringResource(R.string.create),
+                                        if (createOpen) {
+                                            stringResource(R.string.close_create_menu)
+                                        } else {
+                                            stringResource(R.string.create)
+                                        },
                                     )
                                 }
                             }

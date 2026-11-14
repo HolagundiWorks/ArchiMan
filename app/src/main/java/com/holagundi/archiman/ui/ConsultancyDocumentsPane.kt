@@ -32,7 +32,9 @@ import com.holagundi.archiman.data.*
 import com.holagundi.archiman.domain.*
 import com.holagundi.archiman.ui.theme.ArchiCard
 import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.ChoiceChip
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonDropdown
+import com.holagundi.archiman.ui.theme.CarbonDropdownOption
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -114,7 +116,7 @@ fun ConsultancyDocumentsPane(agreement: Boolean, contractors: List<com.holagundi
         val json = ConsultancyCodec.encode(input); initialJson = json; editorJson = json; persistEditor()
     }
     fun closeEditor() { if (!busy) { if (editorJson != initialJson) discard = true else editorJson = null } }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(vertical = 8.dp)) {
+    LazyColumn(verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack), contentPadding = PaddingValues(vertical = 8.dp)) {
         item {
             Text(draft.status, style = MaterialTheme.typography.bodySmall)
             draft.recovered?.let { recovery -> TextButton(enabled = !busy && editorJson == null, onClick = {
@@ -161,10 +163,22 @@ fun ConsultancyDocumentsPane(agreement: Boolean, contractors: List<com.holagundi
             if (id == null || expected != null) viewModel.save(agreement, input, expected) { saved -> draft.clear(); editorJson = null; selectedId = saved }
         })
     }
-    if (discard) AlertDialog(onDismissRequest = { discard = false }, title = { Text("Discard unsaved changes?") },
-        text = { Text("The saved document will remain unchanged.") },
-        confirmButton = { TextButton(onClick = { draft.clear(); discard = false; editorJson = null }) { Text("Discard") } },
-        dismissButton = { Column { TextButton(onClick = { discard = false }) { Text("Keep editing") }; TextButton(enabled = draft.status == "Local draft saved on this device", onClick = { discard = false; editorJson = null }) { Text("Keep local draft and close") } } })
+    if (discard) {
+        CarbonModal(
+            title = "Discard unsaved changes?",
+            description = "The saved document will remain unchanged.",
+            onDismiss = { discard = false },
+            primaryLabel = "Discard",
+            onPrimary = { draft.clear(); discard = false; editorJson = null },
+            danger = true,
+            secondaryLabel = "Keep editing",
+        ) {
+            TextButton(
+                enabled = draft.status == "Local draft saved on this device",
+                onClick = { discard = false; editorJson = null },
+            ) { Text("Keep local draft and close") }
+        }
+    }
     if (selected != null && editorJson == null) {
         ConsultancyDocumentView(selected, busy, notice, onClose = { selectedId = null },
             onEdit = { selected.input?.let { edit(selected, it) } },
@@ -173,13 +187,35 @@ fun ConsultancyDocumentsPane(agreement: Boolean, contractors: List<com.holagundi
             onCopy = { asAgreement -> viewModel.copy(selected, asAgreement) { selectedId = null } },
             onDelete = { deleteConfirmation = true })
     }
-    if (issueConfirmation && selected != null) AlertDialog(onDismissRequest = { if (!busy) issueConfirmation = false }, title = { Text("Issue for client acceptance?") },
-        text = { Column { Text("Issued text is locked. This does not record a signature or client acceptance."); Row { Checkbox(reviewed, { reviewed = it }); Text("I reviewed the parties, assigned scope, fee basis, exclusions, terms and cumulative payment schedule.") }; notice?.let { Text(it, color = MaterialTheme.colorScheme.error) } } },
-        confirmButton = { TextButton(enabled = reviewed && !busy, onClick = { issuingSnapshot?.let { snapshot -> viewModel.issue(snapshot, reviewed) { issueConfirmation = false } } }) { Text("Issue") } },
-        dismissButton = { TextButton(enabled = !busy, onClick = { issueConfirmation = false }) { Text("Cancel") } })
-    if (deleteConfirmation && selected != null) AlertDialog(onDismissRequest = { if (!busy) deleteConfirmation = false }, title = { Text("Delete draft?") }, text = { Text(selected.title) },
-        confirmButton = { TextButton(enabled = !busy, onClick = { viewModel.delete(selected) { deleteConfirmation = false; selectedId = null } }) { Text("Delete draft") } },
-        dismissButton = { TextButton(enabled = !busy, onClick = { deleteConfirmation = false }) { Text("Cancel") } })
+    if (issueConfirmation && selected != null) {
+        CarbonModal(
+            title = "Issue for client acceptance?",
+            description = "Issued text is locked. This does not record a signature or client acceptance.",
+            onDismiss = { if (!busy) issueConfirmation = false },
+            primaryLabel = "Issue",
+            onPrimary = { issuingSnapshot?.let { snapshot -> viewModel.issue(snapshot, reviewed) { issueConfirmation = false } } },
+            primaryEnabled = reviewed && !busy,
+            primaryBusy = busy,
+        ) {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Checkbox(reviewed, { reviewed = it })
+                Text("I reviewed the parties, assigned scope, fee basis, exclusions, terms and cumulative payment schedule.")
+            }
+            notice?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        }
+    }
+    if (deleteConfirmation && selected != null) {
+        CarbonModal(
+            title = "Delete draft?",
+            description = selected.title,
+            onDismiss = { if (!busy) deleteConfirmation = false },
+            primaryLabel = "Delete draft",
+            onPrimary = { viewModel.delete(selected) { deleteConfirmation = false; selectedId = null } },
+            primaryEnabled = !busy,
+            primaryBusy = busy,
+            danger = true,
+        )
+    }
 }
 
 @Composable
@@ -196,16 +232,36 @@ private fun ConsultancyEditor(input: ConsultancyInput, agreement: Boolean, busy:
             Button(enabled = !busy && total != null, onClick = onSave, modifier = Modifier.weight(1f)) { Text(if (busy) "Saving…" else "Save draft") }
         }
     }) { padding ->
-        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            item { Text("Service template", style = MaterialTheme.typography.titleMedium); FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) { ConsultancyService.entries.forEach { option -> ChoiceChip(option.label, input.service == option) { if (input.service != option) replacing = option } } } }
+        LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = com.holagundi.archiman.ui.theme.CarbonSpacing.screenPadding, verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack)) {
+            item {
+                Text("Service template", style = MaterialTheme.typography.titleMedium)
+                CarbonDropdown(
+                    label = "Service template",
+                    options = ConsultancyService.entries.map { CarbonDropdownOption(it.name, it.label) },
+                    selectedId = input.service.name,
+                    onSelected = { id ->
+                        val option = ConsultancyService.entries.first { it.name == id }
+                        if (input.service != option) replacing = option
+                    },
+                )
+            }
             item { ArchiField(input.title, { onChange(input.copy(title = it)) }, "Document title", Modifier.fillMaxWidth()) }
             item { ArchiField(input.parties, { onChange(input.copy(parties = it)) }, "Parties, project and date", Modifier.fillMaxWidth(), singleLine = false) }
-            item { Text("Fee basis — enter the agreed fee, not an automatic tariff", style = MaterialTheme.typography.titleMedium); ConsultancyFeeBasis.entries.forEach { basis -> ChoiceChip(basis.label, input.feeBasis == basis) {
-                if (input.feeBasis != basis) {
-                    if (input.rate.isNotBlank() || input.quantity.isNotBlank()) replacingBasis = basis
-                    else onChange(input.copy(feeBasis = basis, rate = "", quantity = "", areaDefinition = ""))
-                }
-            } } }
+            item {
+                Text("Fee basis — enter the agreed fee, not an automatic tariff", style = MaterialTheme.typography.titleMedium)
+                CarbonDropdown(
+                    label = "Fee basis",
+                    options = ConsultancyFeeBasis.entries.map { CarbonDropdownOption(it.name, it.label) },
+                    selectedId = input.feeBasis.name,
+                    onSelected = { id ->
+                        val basis = ConsultancyFeeBasis.entries.first { it.name == id }
+                        if (input.feeBasis != basis) {
+                            if (input.rate.isNotBlank() || input.quantity.isNotBlank()) replacingBasis = basis
+                            else onChange(input.copy(feeBasis = basis, rate = "", quantity = "", areaDefinition = ""))
+                        }
+                    },
+                )
+            }
             item { ArchiField(input.rate, { onChange(input.copy(rate = it)) }, when (input.feeBasis) { ConsultancyFeeBasis.LUMP_SUM -> "Lump-sum fee (INR)"; ConsultancyFeeBasis.PER_SQ_FT -> "Rate (INR per sq ft)"; else -> "Fee rate (%)" }, Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)) }
             if (input.feeBasis != ConsultancyFeeBasis.LUMP_SUM) item { ArchiField(input.quantity, { onChange(input.copy(quantity = it)) }, if (input.feeBasis == ConsultancyFeeBasis.PER_SQ_FT) "Chargeable area (sq ft)" else "Assigned works cost (INR)", Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)) }
             if (input.feeBasis == ConsultancyFeeBasis.PER_SQ_FT) item { ArchiField(input.areaDefinition, { onChange(input.copy(areaDefinition = it)) }, "Area definition and measurement rules", Modifier.fillMaxWidth(), singleLine = false) }
@@ -243,20 +299,45 @@ private fun ConsultancyEditor(input: ConsultancyInput, agreement: Boolean, busy:
             item { Text(ConsultancyTemplates.REVIEW_NOTE, style = MaterialTheme.typography.bodySmall); notice?.let { Text(it, color = MaterialTheme.colorScheme.error) } }
         }
     }
-    replacing?.let { service -> AlertDialog(onDismissRequest = { replacing = null }, title = { Text("Apply ${service.label} template?") },
-        text = { Text("This replaces the scope, exclusions, terms and schedule. Party details and fee inputs are retained. Miscellaneous work starts with blank terms.") },
-        confirmButton = { TextButton(onClick = {
-            val template = ConsultancyTemplates.create(service, input.parties)
-            onChange(template.copy(title = "${service.label} ${if (agreement) "agreement" else "fee proposal"}", feeBasis = input.feeBasis, rate = input.rate, quantity = input.quantity, areaDefinition = input.areaDefinition, proposalReference = input.proposalReference, gstMode = input.gstMode, gstRate = input.gstRate, gstin = input.gstin, supplierState = input.supplierState, placeState = input.placeState))
-            replacing = null
-        }) { Text("Apply template") } }, dismissButton = { TextButton(onClick = { replacing = null }) { Text("Cancel") } }) }
-    replacingBasis?.let { basis -> AlertDialog(onDismissRequest = { replacingBasis = null }, title = { Text("Change fee basis?") },
-        text = { Text("The rate, quantity and area definition will be cleared so values from one fee basis are not reused with different units.") },
-        confirmButton = { TextButton(onClick = { onChange(input.copy(feeBasis = basis, rate = "", quantity = "", areaDefinition = "")); replacingBasis = null }) { Text("Change basis") } },
-        dismissButton = { TextButton(onClick = { replacingBasis = null }) { Text("Cancel") } }) }
+    replacing?.let { service ->
+        CarbonModal(
+            title = "Apply ${service.label} template?",
+            description = "This replaces the scope, exclusions, terms and schedule. Party details and fee inputs are retained. Miscellaneous work starts with blank terms.",
+            onDismiss = { replacing = null },
+            primaryLabel = "Apply template",
+            onPrimary = {
+                val template = ConsultancyTemplates.create(service, input.parties)
+                onChange(
+                    template.copy(
+                        title = "${service.label} ${if (agreement) "agreement" else "fee proposal"}",
+                        feeBasis = input.feeBasis,
+                        rate = input.rate,
+                        quantity = input.quantity,
+                        areaDefinition = input.areaDefinition,
+                        proposalReference = input.proposalReference,
+                        gstMode = input.gstMode,
+                        gstRate = input.gstRate,
+                        gstin = input.gstin,
+                        supplierState = input.supplierState,
+                        placeState = input.placeState,
+                    ),
+                )
+                replacing = null
+            },
+        )
+    }
+    replacingBasis?.let { basis ->
+        CarbonModal(
+            title = "Change fee basis?",
+            description = "The rate, quantity and area definition will be cleared so values from one fee basis are not reused with different units.",
+            onDismiss = { replacingBasis = null },
+            primaryLabel = "Change basis",
+            onPrimary = { onChange(input.copy(feeBasis = basis, rate = "", quantity = "", areaDefinition = "")); replacingBasis = null },
+        )
+    }
     if (preview) {
         val text = runCatching { ConsultancyTemplates.render(input, agreement) }.getOrElse { "Complete the fee and payment schedule to preview: ${it.message}" }
-        FullDocumentDialog("Draft preview", { preview = false }) { padding -> LazyColumn(Modifier.padding(padding), contentPadding = PaddingValues(20.dp)) { item { SelectionContainer { Text(text) } } } }
+        FullDocumentDialog("Draft preview", { preview = false }) { padding -> LazyColumn(Modifier.padding(padding), contentPadding = com.holagundi.archiman.ui.theme.CarbonSpacing.screenPadding) { item { SelectionContainer { Text(text) } } } }
     }
 }
 
@@ -279,7 +360,7 @@ private fun ConsultancyDocumentView(record: ConsultancyRecord, busy: Boolean, no
             OutlinedButton(enabled = !busy, onClick = onEdit, modifier = Modifier.weight(1f)) { Text("Edit draft") }
             Button(enabled = !busy, onClick = onIssue, modifier = Modifier.weight(1f)) { Text("Review and issue") }
         }
-    }) { padding -> LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    }) { padding -> LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = com.holagundi.archiman.ui.theme.CarbonSpacing.screenPadding, verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack)) {
         item { Text(record.status, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary) }
         notice?.let { item { Text(it) } }
         item { SelectionContainer { Text(record.documentText.ifBlank { "Legacy record\n${record.title}\nAmount: ${record.amount}\nNo structured terms were stored with this record. Create a new proposal or agreement for the full template workflow." }) } }

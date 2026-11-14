@@ -110,7 +110,12 @@ object ArchiManMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_measurement_sheets_projectId_status` ON `measurement_sheets` (`projectId`, `status`)")
         }
     }
-    val ALL: Array<Migration> = arrayOf(MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32)
+    val MIGRATION_32_33 = object : Migration(32, 33) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `project_tasks` ADD COLUMN `priority` TEXT NOT NULL DEFAULT 'NORMAL'")
+        }
+    }
+    val ALL: Array<Migration> = arrayOf(MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33)
 
     private val statements = listOf(
         "CREATE TABLE IF NOT EXISTS `project_settings` (`projectId` INTEGER NOT NULL, `persona` TEXT NOT NULL, `consultancyType` TEXT NOT NULL, PRIMARY KEY(`projectId`), FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",

@@ -24,6 +24,7 @@ data class ProjectTaskEntity(
     val description: String,
     val dueDate: Long? = null,
     val status: String,
+    val priority: String = "NORMAL",
     val createdAt: Long,
 )
 

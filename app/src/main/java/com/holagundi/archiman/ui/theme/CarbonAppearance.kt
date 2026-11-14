@@ -35,19 +35,24 @@ val carbonSupport: CarbonSupportColors
 @Composable fun AppearanceCard() {
     val mode = rememberAppearanceMode()
     val preferences = LocalContext.current.getSharedPreferences("appearance",0)
-    ArchiCard(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp),verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Appearance",style = MaterialTheme.typography.titleMedium)
-            Text("IBM Carbon · Blue highlights",color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AppearanceMode.entries.forEach { option -> ChoiceChip(option.name.lowercase().replaceFirstChar { it.uppercase() },mode == option) { preferences.edit().putString("theme",option.name).apply() } }
-            }
-            Text("Light: Gray 10 · Dark: Gray 100",style = MaterialTheme.typography.bodySmall,color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Success",color = carbonSupport.success,style = MaterialTheme.typography.labelMedium)
-                Text("Warning",color = carbonSupport.warning,style = MaterialTheme.typography.labelMedium)
-                Text("Error",color = MaterialTheme.colorScheme.error,style = MaterialTheme.typography.labelMedium)
-                Text("Info",color = carbonSupport.info,style = MaterialTheme.typography.labelMedium)
+    val options = AppearanceMode.entries.map { it.name.lowercase().replaceFirstChar { c -> c.uppercase() } }
+    CarbonTile(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight)) {
+            Text("Appearance", style = MaterialTheme.typography.titleMedium)
+            Text("IBM Carbon · Blue highlights", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            CarbonContentSwitcher(
+                options = options,
+                selectedIndex = AppearanceMode.entries.indexOf(mode).coerceAtLeast(0),
+                onSelected = { index ->
+                    preferences.edit().putString("theme", AppearanceMode.entries[index].name).apply()
+                },
+            )
+            Text("Light: Gray 10 · Dark: Gray 100", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(horizontalArrangement = Arrangement.spacedBy(CarbonSpacing.stack)) {
+                Text("Success", color = carbonSupport.success, style = MaterialTheme.typography.labelMedium)
+                Text("Warning", color = carbonSupport.warning, style = MaterialTheme.typography.labelMedium)
+                Text("Error", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelMedium)
+                Text("Info", color = carbonSupport.info, style = MaterialTheme.typography.labelMedium)
             }
         }
     }

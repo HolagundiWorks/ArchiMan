@@ -24,7 +24,7 @@ object ConsultancyPdf {
         var y = 0f
         fun finishPage() {
             page?.let {
-                it.canvas.drawText("ArchiMan · Page $pageNumber", 40f, 815f, footer)
+                it.canvas.drawText("MynaHub Mobile · Page $pageNumber", 40f, 815f, footer)
                 document.finishPage(it)
             }
             page = null

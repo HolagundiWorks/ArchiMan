@@ -7,20 +7,16 @@ import android.content.ClipDescription
 import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.border
 import androidx.compose.foundation.draganddrop.dragAndDropSource
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -31,6 +27,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,10 +48,22 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.ui.theme.ArchiCard
 import com.holagundi.archiman.ui.theme.ArchiField
+import com.holagundi.archiman.ui.theme.CarbonDropdown
+import com.holagundi.archiman.ui.theme.CarbonDropdownOption
+import com.holagundi.archiman.ui.theme.CarbonDropdownSize
 import com.holagundi.archiman.ui.theme.CarbonIcons
-import com.holagundi.archiman.ui.theme.GlassSurface
+import com.holagundi.archiman.ui.theme.CarbonSpacing
+import com.holagundi.archiman.ui.theme.CarbonTab
+import com.holagundi.archiman.ui.theme.CarbonTabStyle
+import com.holagundi.archiman.ui.theme.CarbonTabs
+import com.holagundi.archiman.ui.theme.CarbonTag
+import com.holagundi.archiman.ui.theme.CarbonTextInput
+import com.holagundi.archiman.ui.theme.CarbonTile
+import com.holagundi.archiman.ui.theme.CarbonTileSize
 import com.holagundi.archiman.ui.theme.ScreenTitle
+import com.holagundi.archiman.ui.theme.priorityAlertTone
 import com.holagundi.archiman.domain.InvoiceBalance
+import com.holagundi.archiman.domain.WorkPriority
 import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.data.local.entity.InvoiceEntity
 import com.holagundi.archiman.data.local.entity.ReceiptEntity
@@ -109,12 +118,10 @@ fun LettersPane(projectId: Long?, suite: SuiteProjectViewModel) {
     ) {
         item { ScreenTitle("Letters") }
         item {
-            GlassSurface(Modifier.fillMaxWidth()) {
-                Column {
-                    Text(company?.practiceName ?: "Practice letterhead", style = MaterialTheme.typography.titleMedium)
-                    Text(company?.let { "${it.address}, ${it.city} ${it.pinCode}" } ?: "", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                    Text(company?.let { "CoA ${it.coaRegistrationNumber}" } ?: "", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
-                }
+            CarbonTile(Modifier.fillMaxWidth()) {
+                Text(company?.practiceName ?: "Practice letterhead", style = MaterialTheme.typography.titleMedium)
+                Text(company?.let { "${it.address}, ${it.city} ${it.pinCode}" } ?: "", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                Text(company?.let { "CoA ${it.coaRegistrationNumber}" } ?: "", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
             }
         }
         items(visibleLetters, key = { it.id }) { letter ->
@@ -173,12 +180,33 @@ fun BriefPane(suite: SuiteProjectViewModel) {
 fun KanbanPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
     val tasks by suite.tasks.collectAsStateWithLifecycle()
     var title by rememberSaveable { mutableStateOf("") }
+    var priority by rememberSaveable { mutableStateOf(WorkPriority.NORMAL) }
     var focused by rememberSaveable(focusId) { mutableStateOf(focusId) }
-    val columns = listOf("TO_DO" to "To do", "DOING" to "Doing", "DONE" to "Done")
-    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val columns = listOf("TO_DO" to "To do", "DOING" to "Doing", "DONE" to "Complete")
+    var selectedTab by rememberSaveable { mutableStateOf(0) }
+    val counts = columns.map { (status, _) ->
+        tasks.count {
+            (focused == 0L || it.id == focused) && (it.status == status || (status == "TO_DO" && it.status == "OPEN"))
+        }
+    }
+    LaunchedEffect(focused, tasks) {
+        if (focused > 0L) {
+            val task = tasks.firstOrNull { it.id == focused } ?: return@LaunchedEffect
+            val status = if (task.status == "OPEN") "TO_DO" else task.status
+            val index = columns.indexOfFirst { it.first == status }
+            if (index >= 0) selectedTab = index
+        }
+    }
+    val selectedStatus = columns[selectedTab.coerceIn(0, columns.lastIndex)].first
+    val selectedLabel = columns[selectedTab.coerceIn(0, columns.lastIndex)].second
+    val columnTasks = tasks.filter {
+        (focused == 0L || it.id == focused) &&
+            (it.status == selectedStatus || (selectedStatus == "TO_DO" && it.status == "OPEN"))
+    }
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight)) {
         ScreenTitle("Tasks")
         Text(
-            "Drag a task into another column to move it.",
+            "Use tabs to switch columns, or move a task with the arrows.",
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodySmall,
         )
@@ -186,37 +214,49 @@ fun KanbanPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
             Text("Showing the task opened from your dashboard.")
             TextButton(onClick = { focused = 0L }) { Text("Show all project tasks") }
         }
-        ArchiField(title, { title = it }, "Task")
+        CarbonTextInput(title, { title = it }, "Task")
+        CarbonDropdown(
+            label = "Priority",
+            options = WorkPriority.all.map { CarbonDropdownOption(it, WorkPriority.label(it)) },
+            selectedId = priority,
+            onSelected = { priority = it },
+            size = CarbonDropdownSize.Medium,
+        )
         TextButton(onClick = {
             val submitted = listOf(title)
-            suite.addTask(title).onSuccess { if (listOf(title) == submitted) title = "" }
-        }) { Text("Add to To do") }
-        Row(
-            Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            columns.forEach { (status, label) ->
-                val columnTasks = tasks.filter {
-                    (focused == 0L || it.id == focused) && (it.status == status || (status == "TO_DO" && it.status == "OPEN"))
+            suite.addTask(title, priority).onSuccess {
+                if (listOf(title) == submitted) {
+                    title = ""
+                    priority = WorkPriority.NORMAL
                 }
-                KanbanColumn(
-                    status = status,
-                    label = label,
-                    tasks = columnTasks,
-                    onDropTask = { taskId -> suite.moveTask(taskId, status) },
-                    onMove = { taskId, next -> suite.moveTask(taskId, next) },
-                    modifier = Modifier.width(280.dp).fillMaxHeight(),
-                )
+                selectedTab = 0
             }
-        }
+        }) { Text("Add to To do") }
+        CarbonTabs(
+            tabs = columns.mapIndexed { index, (_, label) ->
+                CarbonTab(label, counts.getOrElse(index) { 0 }, "${counts.getOrElse(index) { 0 }} tasks")
+            },
+            selectedIndex = selectedTab,
+            onSelected = { selectedTab = it },
+            style = CarbonTabStyle.Contained,
+        )
+        KanbanTabPanel(
+            status = selectedStatus,
+            label = selectedLabel,
+            tasks = columnTasks,
+            onDropTask = { taskId -> suite.moveTask(taskId, selectedStatus) },
+            onMove = { taskId, next ->
+                suite.moveTask(taskId, next)
+                val index = columns.indexOfFirst { it.first == next }
+                if (index >= 0) selectedTab = index
+            },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        )
     }
 }
 
 @Composable
-private fun KanbanColumn(
+private fun KanbanTabPanel(
     status: String,
     label: String,
     tasks: List<ProjectTaskEntity>,
@@ -250,11 +290,6 @@ private fun KanbanColumn(
     }
     Surface(
         modifier = modifier
-            .border(
-                width = if (hovering) 2.dp else 1.dp,
-                color = if (hovering) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                shape = RectangleShape,
-            )
             .dragAndDropTarget(
                 shouldStartDragAndDrop = { event ->
                     event.mimeTypes().contains(ClipDescription.MIMETYPE_TEXT_PLAIN)
@@ -264,39 +299,40 @@ private fun KanbanColumn(
         color = if (hovering) {
             MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
         } else {
-            MaterialTheme.colorScheme.surfaceContainerLow
+            MaterialTheme.colorScheme.surface
         },
         shape = RectangleShape,
     ) {
-        Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(label, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-            Text(
-                "${tasks.size}",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.labelMedium,
-            )
-            LazyColumn(
-                Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                if (tasks.isEmpty()) {
-                    item {
-                        Text(
-                            "Drop tasks here",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
-                }
-                items(tasks, key = { it.id }) { task ->
-                    TaskTile(
-                        task = task,
-                        column = status,
-                        onMove = { onMove(task.id, it) },
+        LazyColumn(
+            Modifier
+                .fillMaxSize()
+                .padding(top = CarbonSpacing.stack),
+            verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight),
+            contentPadding = PaddingValues(bottom = CarbonSpacing.scrollBottom),
+        ) {
+            item {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
+            if (tasks.isEmpty()) {
+                item {
+                    Text(
+                        "No tasks in $label. Drop a task here or add one above.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
                     )
                 }
+            }
+            items(tasks, key = { it.id }) { task ->
+                TaskTile(
+                    task = task,
+                    column = status,
+                    onMove = { onMove(task.id, it) },
+                )
             }
         }
     }
@@ -329,7 +365,8 @@ private fun TaskTile(
         "DOING" -> "Move to Doing"
         else -> null
     }
-    ArchiCard(
+    val alert = priorityAlertTone(task.priority)
+    CarbonTile(
         Modifier
             .fillMaxWidth()
             .dragAndDropSource {
@@ -337,6 +374,9 @@ private fun TaskTile(
                     ClipData.newPlainText(TASK_DRAG_LABEL, task.id.toString()),
                 )
             },
+        contentPadding = false,
+        alert = alert,
+        size = CarbonTileSize.MEDIUM,
     ) {
         Row(
             Modifier
@@ -351,13 +391,18 @@ private fun TaskTile(
                 modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                task.title,
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 10.dp),
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Column(
+                Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    task.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                CarbonTag(WorkPriority.label(task.priority), alert = alert)
+            }
             if (backStatus != null && backLabel != null) {
                 IconButton(onClick = { onMove(backStatus) }) {
                     Icon(CarbonIcons.ArrowBack, backLabel, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -385,16 +430,26 @@ fun ProposalPane(suite: SuiteProjectViewModel) {
 }
 
 @Composable
-fun FeeInvoicePane(suite: SuiteProjectViewModel) {
+fun FeeInvoicePane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
     val invoices by suite.invoices.collectAsStateWithLifecycle()
     val receipts by suite.receipts.collectAsStateWithLifecycle()
+    var focused by rememberSaveable(focusId) { mutableStateOf(focusId) }
+    val visible = remember(invoices, focused) {
+        if (focused > 0L) invoices.filter { it.id == focused }.ifEmpty { invoices } else invoices
+    }
     LazyColumn(
         Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         item { ScreenTitle("Client invoice") }
-        items(invoices, key = { it.id }) { invoice ->
+        if (focused > 0L && invoices.any { it.id == focused }) {
+            item {
+                Text("Showing the invoice opened from search or the practice list.")
+                TextButton(onClick = { focused = 0L }) { Text("Show all project invoices") }
+            }
+        }
+        items(visible, key = { it.id }) { invoice ->
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("${invoice.number} · ${invoice.title} · ${invoice.status} · ${invoice.amount}")
                 InvoiceTaxSummary(invoice.taxJson)
@@ -426,8 +481,10 @@ private fun InvoicePayment(invoice: InvoiceEntity, receipts: List<ReceiptEntity>
     var note by rememberSaveable(invoice.id) { mutableStateOf("") }
     val parsed = payment.ifBlank { "0" }.toDoubleOrNull()
     val withheld = tds.ifBlank { "0" }.toDoubleOrNull()
-    val valid = parsed != null && withheld != null && parsed >= 0 && withheld >= 0 && (withheld == 0.0 || tdsRef.isNotBlank()) && runCatching {
-        InvoiceBalance.afterPayment(invoice.amount, receipts.filter { it.invoiceId == invoice.id }.map { it.amount + it.tdsAmount }, parsed + withheld!!)
+    val cash = parsed ?: -1.0
+    val tdsValue = withheld ?: -1.0
+    val valid = parsed != null && withheld != null && cash >= 0 && tdsValue >= 0 && (tdsValue == 0.0 || tdsRef.isNotBlank()) && runCatching {
+        InvoiceBalance.afterPayment(invoice.amount, receipts.filter { it.invoiceId == invoice.id }.map { it.amount + it.tdsAmount }, cash + tdsValue)
     }.isSuccess
     Text("Outstanding: ${remaining.toPlainString()}")
     ArchiField(payment, { payment = it }, "Cash received (INR)", keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
@@ -438,7 +495,16 @@ private fun InvoicePayment(invoice: InvoiceEntity, receipts: List<ReceiptEntity>
         Text("Enter a positive amount within the outstanding balance.", color = MaterialTheme.colorScheme.error)
     }
     TextButton(enabled = valid, onClick = {
+        val cashAmount = parsed ?: return@TextButton
+        val tdsAmount = withheld ?: return@TextButton
         val submitted = listOf(payment, tds, tdsRef, note)
-        suite.pay(invoice, parsed!!, note, withheld!!, tdsRef).onSuccess { if (listOf(payment, tds, tdsRef, note) == submitted) { payment = ""; tds = ""; tdsRef = ""; note = "" } }
+        suite.pay(invoice, cashAmount, note, tdsAmount, tdsRef).onSuccess {
+            if (listOf(payment, tds, tdsRef, note) == submitted) {
+                payment = ""
+                tds = ""
+                tdsRef = ""
+                note = ""
+            }
+        }
     }) { Text("Record payment for ${invoice.number}") }
 }

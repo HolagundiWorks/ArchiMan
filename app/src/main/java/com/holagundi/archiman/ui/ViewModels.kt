@@ -53,6 +53,8 @@ class PortfolioViewModel @Inject constructor(
     val dashboardTasks = inboxTasks.map { it.take(4) }.stateIn(viewModelScope, subscribed, emptyList())
     val dashboardReviews = inboxReviews.map { it.take(3) }.stateIn(viewModelScope, subscribed, emptyList())
     val dashboardIssues = inboxIssues.map { it.take(3) }.stateIn(viewModelScope, subscribed, emptyList())
+    val boardTasks = suiteRepository.observePracticeBoardTasks().stateIn(viewModelScope, subscribed, emptyList())
+    val boardIssues = suiteRepository.observePracticeBoardIssues().stateIn(viewModelScope, subscribed, emptyList())
     val company = practiceRepository.observeCompany().stateIn(viewModelScope, subscribed, null)
     val projects = projectRepository.observeProjects().stateIn(viewModelScope, subscribed, emptyList())
     /** Collected only from the Clients practice pane. */
@@ -149,6 +151,22 @@ class PortfolioViewModel @Inject constructor(
     fun addEnquiry(client: String, source: String, notes: String) = operations.run("addEnquiry", "Enquiry saved for $client.") { suiteRepository.addEnquiry(client, source, notes) }
     fun addLetter(subject: String, body: String) = operations.run("addLetter", "Letter $subject saved.") { suiteRepository.addLetter(null, subject, body) }
     fun addRate(name: String, unit: String, rate: Double) = operations.run("addRate", "Rate saved for $name.") { suiteRepository.addRate(name, unit, rate) }
+    fun addBoardTask(projectId: Long, title: String, priority: String) = operations.run("addTask", "Task added to To do.") {
+        suiteRepository.addTask(projectId, title, priority)
+    }
+    fun moveBoardTask(id: Long, status: String) = operations.run("moveTask", "Task status updated.") {
+        suiteRepository.moveTask(id, status)
+    }
+    fun addBoardIssue(projectId: Long, title: String, description: String, severity: String) = operations.run("addIssue", "Site issue opened.") {
+        suiteRepository.addIssue(
+            projectId = projectId,
+            type = "SNAG",
+            title = title,
+            location = "",
+            description = description,
+            severity = severity,
+        )
+    }
 
 }
 
@@ -186,12 +204,12 @@ class ProjectWorkspaceViewModel @Inject constructor(
 
     fun addFloor(name: String) {
         if (name.isBlank()) return
-        viewModelScope.launch { projectRepository.addFloor(projectId, name) }
+        viewModelScope.launch(quietFailures) { projectRepository.addFloor(projectId, name) }
     }
 
     fun addRoom(floorId: Long, name: String) {
         if (name.isBlank()) return
-        viewModelScope.launch { projectRepository.addRoom(projectId, floorId, name) }
+        viewModelScope.launch(quietFailures) { projectRepository.addRoom(projectId, floorId, name) }
     }
 }
 
@@ -302,8 +320,13 @@ class MeasurementBookViewModel @Inject constructor(
 
     fun export(projectId: Long, sheetId: Long, onReady: (fileName: String, csv: String) -> Unit) {
         viewModelScope.launch {
-            val sheet = measurementRepository.export(projectId, sheetId) ?: return@launch
-            onReady("MBook_${sheet.sheetCode}.csv", MeasurementSheetCsv.render(sheet))
+            try {
+                val sheet = measurementRepository.export(projectId, sheetId) ?: return@launch
+                onReady("MBook_${sheet.sheetCode}.csv", MeasurementSheetCsv.render(sheet))
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled
+            } catch (failure: Exception) {
+                operations.report(failure.message ?: "Could not export this sheet.", com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR)
+            }
         }
     }
 
@@ -361,9 +384,14 @@ class SuiteProjectViewModel @Inject constructor(
     val pending = operations.pending
     private val _notice = MutableStateFlow<String?>(null)
     val notice = _notice.asStateFlow()
+    /** A failed write must surface as a notice, never as an uncaught exception that kills the app. */
+    private val reportFailures = kotlinx.coroutines.CoroutineExceptionHandler { _, failure ->
+        android.util.Log.e("ArchiMan", "Project operation failed", failure)
+        operations.report(failure.message ?: "Could not save. Please retry.", com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR)
+    }
 
     init {
-        viewModelScope.launch { suiteRepository.ensureSettings(projectId) }
+        viewModelScope.launch(quietFailures) { suiteRepository.ensureSettings(projectId) }
     }
 
     fun nextStep(): String = suiteRepository.nextStep(stages.value, invoices.value, receipts.value)
@@ -414,7 +442,7 @@ class SuiteProjectViewModel @Inject constructor(
         verificationNote: String = "",
         afterEvidenceUri: String = "",
     ) {
-        viewModelScope.launch {
+        viewModelScope.launch(reportFailures) {
             val error = withContext(Dispatchers.IO) {
                 suiteRepository.transitionIssue(
                     issueId,
@@ -445,7 +473,7 @@ class SuiteProjectViewModel @Inject constructor(
     }
 
     fun transitionCoordination(itemId: Long, toStatus: String, note: String = "") {
-        viewModelScope.launch {
+        viewModelScope.launch(reportFailures) {
             val error = withContext(Dispatchers.IO) {
                 suiteRepository.transitionCoordination(itemId, toStatus, note)
             }
@@ -471,7 +499,8 @@ class SuiteProjectViewModel @Inject constructor(
     fun advanceActivity(id: Long, progress: Int) = launch("advanceActivity", "Advance activity completed.") { suiteRepository.advanceActivity(id, progress) }
     fun addLetter(subject: String, body: String) = launch("addLetter", "Project letter saved.") { suiteRepository.addLetter(projectId, subject, body) }
     fun addProposal(title: String, amount: Double) = launch("addProposal", "Add proposal completed.") { suiteRepository.addProposal(projectId, title, amount) }
-    fun addTask(title: String) = launch("addTask", "Task added to To do.") { suiteRepository.addTask(projectId, title) }
+    fun addTask(title: String, priority: String = com.holagundi.archiman.domain.WorkPriority.NORMAL) =
+        launch("addTask", "Task added to To do.") { suiteRepository.addTask(projectId, title, priority) }
     fun moveTask(id: Long, status: String) = launch("moveTask", "Task status updated.") { suiteRepository.moveTask(id, status) }
     fun saveBrief(objectives: String, requirements: String, constraints: String) = launch("saveBrief", "Project brief saved.") { suiteRepository.saveBrief(projectId, objectives, requirements, constraints) }
     fun addFeeInvoice(title: String, amount: Double) = launch("addFeeInvoice", "Add fee invoice completed.") { suiteRepository.addFeeInvoice(projectId, title, amount) }
@@ -489,19 +518,19 @@ class SuiteProjectViewModel @Inject constructor(
     ) = launch("addOrder", "Add order completed.") { suiteRepository.addOrder(projectId, title, supplier, itemName, specification, quantity, unit) }
 
     fun addRcc(projectCode: String, element: String, mark: String, nos: Double, length: Double, breadth: Double, height: Double) {
-        viewModelScope.launch {
+        viewModelScope.launch(reportFailures) {
             _notice.value = suiteRepository.addRcc(projectId, projectCode, element, mark, nos, length, breadth, height)
         }
     }
 
     fun addCivil(projectCode: String, trade: String, nos: Double, length: Double, breadth: Double, height: Double) {
-        viewModelScope.launch {
+        viewModelScope.launch(reportFailures) {
             _notice.value = suiteRepository.addCivil(projectId, projectCode, trade, nos, length, breadth, height)
         }
     }
 
     fun applyLink(projectCode: String, ruleId: Long) {
-        viewModelScope.launch {
+        viewModelScope.launch(reportFailures) {
             _notice.value = suiteRepository.applyLink(projectId, projectCode, ruleId)
         }
     }
@@ -511,4 +540,9 @@ class SuiteProjectViewModel @Inject constructor(
     }
 
     private fun launch(key: String, success: String, block: suspend () -> Unit): SaveAction = operations.run(key, success, block)
+}
+
+/** Background housekeeping that has no notice surface: log the failure instead of crashing the app. */
+private val quietFailures = kotlinx.coroutines.CoroutineExceptionHandler { _, failure ->
+    android.util.Log.e("ArchiMan", "Background operation failed", failure)
 }

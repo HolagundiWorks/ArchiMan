@@ -4,7 +4,6 @@ import com.holagundi.archiman.ui.theme.CarbonButton as Button
 import com.holagundi.archiman.ui.theme.CarbonOutlinedButton as OutlinedButton
 import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
 
-import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -12,12 +11,10 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +25,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -39,16 +35,17 @@ import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.data.local.entity.SiteIssueEntity
 import com.holagundi.archiman.domain.SiteIssueWorkflow
 import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.ChoiceChip
-import com.holagundi.archiman.ui.theme.GlassSurface
+import com.holagundi.archiman.ui.theme.CarbonDropdown
+import com.holagundi.archiman.ui.theme.CarbonDropdownOption
+import com.holagundi.archiman.ui.theme.CarbonTag
+import com.holagundi.archiman.ui.theme.CarbonTile
 import com.holagundi.archiman.ui.theme.ScreenTitle
-import com.holagundi.archiman.ui.theme.announce
-
+import com.holagundi.archiman.ui.theme.priorityAlertTone
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
     val issues by suite.issues.collectAsStateWithLifecycle()
-    val notice by suite.notice.collectAsStateWithLifecycle()
+    val operationNotice by suite.operationNotice.collectAsStateWithLifecycle()
     var selectedId by rememberSaveable(focusId) { mutableStateOf(if (focusId > 0) focusId else -1L) }
     var type by rememberSaveable { mutableStateOf("SNAG") }
     var title by rememberSaveable { mutableStateOf("") }
@@ -63,9 +60,13 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
 
     val selected = issues.firstOrNull { it.id == selectedId }
 
-    LaunchedEffect(notice, selectedId) {
-        val message = notice ?: return@LaunchedEffect
-        if (selectedId > 0L && message.startsWith("Site issue moved to")) {
+    LaunchedEffect(operationNotice) {
+        val notice = operationNotice ?: return@LaunchedEffect
+        if (
+            selectedId > 0L &&
+            notice.kind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.SUCCESS &&
+            notice.message.startsWith("Site issue moved to")
+        ) {
             verificationNote = ""
             afterEvidence = ""
             selectedId = -1L
@@ -74,7 +75,7 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
 
     LazyColumn(
         Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         item { ScreenTitle(stringResource(R.string.snags_heading)) }
@@ -85,13 +86,6 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        if (notice != null) {
-            item {
-                Text(notice ?: "", color = MaterialTheme.colorScheme.error, modifier = Modifier.announce())
-                TextButton(onClick = suite::clearNotice) { Text("Dismiss") }
-            }
-        }
-
         if (issues.isEmpty()) {
             item {
                 Text(
@@ -103,7 +97,8 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
 
         items(issues, key = { it.id }) { issue ->
             val open = selectedId == issue.id
-            GlassSurface(Modifier.fillMaxWidth()) {
+            val alert = priorityAlertTone(issue.severity)
+            CarbonTile(Modifier.fillMaxWidth(), alert = alert) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     RecordActions(RecordKind.SNAG, issue.id, issue.title)
                     TextButton(onClick = { selectedId = if (open) -1L else issue.id }) {
@@ -120,7 +115,7 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
                             )
                         }
                     }
-                    SeverityRow(issue.severity)
+                    CarbonTag(SiteIssueWorkflow.severityLabel(issue.severity), alert = alert)
                     Text(
                         "${issue.type} · ${SiteIssueWorkflow.statusLabel(issue.status)}",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -149,26 +144,27 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
         }
 
         item {
-            GlassSurface(Modifier.fillMaxWidth()) {
+            CarbonTile(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         stringResource(R.string.snag_new),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.semantics { heading() },
                     )
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("SNAG", "NCR", "SAFETY").forEach { option ->
-                            ChoiceChip(option, type == option) { type = option }
-                        }
-                    }
-                    Text(stringResource(R.string.snag_severity), style = MaterialTheme.typography.labelLarge)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        SiteIssueWorkflow.severities.forEach { option ->
-                            ChoiceChip(SiteIssueWorkflow.severityLabel(option), severity == option) {
-                                severity = option
-                            }
-                        }
-                    }
+                    CarbonDropdown(
+                        label = "Type",
+                        options = listOf("SNAG", "NCR", "SAFETY").map { CarbonDropdownOption(it, it) },
+                        selectedId = type,
+                        onSelected = { type = it },
+                    )
+                    CarbonDropdown(
+                        label = stringResource(R.string.snag_severity),
+                        options = SiteIssueWorkflow.severities.map {
+                            CarbonDropdownOption(it, SiteIssueWorkflow.severityLabel(it))
+                        },
+                        selectedId = severity,
+                        onSelected = { severity = it },
+                    )
                     ArchiField(title, { title = it }, stringResource(R.string.snag_title))
                     ArchiField(location, { location = it }, stringResource(R.string.snag_location))
                     ArchiField(
@@ -207,34 +203,6 @@ fun SiteIssuesPane(suite: SuiteProjectViewModel, focusId: Long = 0L) {
             }
         }
     }
-}
-
-@Composable
-private fun SeverityRow(severity: String) {
-    val normalized = SiteIssueWorkflow.normalizeSeverity(severity)
-    val icon = severityIcon(normalized)
-    val color = when (normalized) {
-        SiteIssueWorkflow.SEVERITY_CRITICAL -> MaterialTheme.colorScheme.error
-        SiteIssueWorkflow.SEVERITY_ATTENTION -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
-        Text(
-            SiteIssueWorkflow.severityLabel(normalized),
-            color = color,
-            style = MaterialTheme.typography.labelLarge,
-        )
-    }
-}
-
-private fun severityIcon(severity: String): ImageVector = when (severity) {
-    SiteIssueWorkflow.SEVERITY_CRITICAL -> CarbonIcons.PriorityHigh
-    SiteIssueWorkflow.SEVERITY_ATTENTION -> CarbonIcons.ErrorOutline
-    else -> CarbonIcons.Info
 }
 
 @OptIn(ExperimentalLayoutApi::class)

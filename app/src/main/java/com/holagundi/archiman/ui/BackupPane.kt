@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,10 +22,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonTextInput
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -88,6 +87,7 @@ class BackupViewModel @Inject constructor(
     }
 
     fun dismiss() { if (!_busy.value) _prepared.value = null }
+    fun dismissNotice() { _notice.value = null; _failed.value = false }
     fun consumeRestored() { _restored.value = false }
 
     fun restore() {
@@ -146,7 +146,7 @@ fun BackupPane(onRestored: () -> Unit, viewModel: BackupViewModel = hiltViewMode
             onRestored()
         }
     }
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(com.holagundi.archiman.ui.theme.CarbonSpacing.screenPadding), verticalArrangement = com.holagundi.archiman.ui.theme.CarbonSpacing.stackArrangement) {
         Text(stringResource(R.string.backup_title), style = MaterialTheme.typography.titleLarge)
         Text(stringResource(R.string.backup_description))
         Text(stringResource(R.string.backup_privacy), color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -160,44 +160,78 @@ fun BackupPane(onRestored: () -> Unit, viewModel: BackupViewModel = hiltViewMode
             Text(stringResource(R.string.backup_recovery))
         }
         if (busy) Text(stringResource(R.string.backup_working))
-        notice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification(if(failed) "Backup needs attention" else "Backup updated",it,if(failed) com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR else com.holagundi.archiman.ui.theme.CarbonNoticeKind.SUCCESS) }
+        notice?.let {
+            com.holagundi.archiman.ui.theme.CarbonInlineNotification(
+                title = if (failed) "Backup needs attention" else "Backup updated",
+                body = it,
+                kind = if (failed) com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR else com.holagundi.archiman.ui.theme.CarbonNoticeKind.SUCCESS,
+                onDismiss = viewModel::dismissNotice,
+            )
+        }
         ProtectedFilesPane()
     }
     action?.let { current ->
         val restoring = current == "restore"
-        AlertDialog(onDismissRequest = { action = null; password = ""; confirmation = ""; source = null },
-            title = { Text(if (restoring) "Open backup" else "Protect backup") },
-            text = { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(if (restoring) "Enter its password. Leave blank only for an older unencrypted backup." else "Choose a unique password of at least 12 characters. Store it separately; a forgotten password cannot be recovered.")
-                OutlinedTextField(password, { if (it.length <= 256) password = it }, label = { Text("Password") }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), singleLine = true)
-                if (!restoring) OutlinedTextField(confirmation, { if (it.length <= 256) confirmation = it }, label = { Text("Confirm password") }, visualTransformation = PasswordVisualTransformation(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false), singleLine = true)
-            } },
-            confirmButton = { TextButton(enabled = restoring || (password.length >= 12 && password == confirmation), onClick = {
+        CarbonModal(
+            title = if (restoring) "Open backup" else "Protect backup",
+            description = if (restoring) {
+                "Enter its password. Leave blank only for an older unencrypted backup."
+            } else {
+                "Choose a unique password of at least 12 characters. Store it separately; a forgotten password cannot be recovered."
+            },
+            onDismiss = { action = null; password = ""; confirmation = ""; source = null },
+            primaryLabel = "Continue",
+            onPrimary = {
                 action = null
                 when (current) {
                     "restore" -> { source?.let { viewModel.prepare(it, password) }; source = null; password = ""; confirmation = "" }
                     "recovery" -> recovery.launch("ArchiMan-recovery.archimanbackup")
                     else -> export.launch("ArchiMan-${System.currentTimeMillis()}.archimanbackup")
                 }
-            }) { Text("Continue") } },
-            dismissButton = { TextButton(onClick = { action = null; password = ""; confirmation = ""; source = null }) { Text("Cancel") } })
+            },
+            primaryEnabled = restoring || (password.length >= 12 && password == confirmation),
+            secondaryLabel = stringResource(R.string.cancel),
+        ) {
+            CarbonTextInput(
+                password,
+                { if (it.length <= 256) password = it },
+                "Password",
+                password = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
+            )
+            if (!restoring) {
+                CarbonTextInput(
+                    confirmation,
+                    { if (it.length <= 256) confirmation = it },
+                    "Confirm password",
+                    password = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
+                )
+            }
+        }
     }
     prepared?.preview?.let { preview ->
-        AlertDialog(
-            onDismissRequest = viewModel::dismiss,
-            title = { Text(stringResource(R.string.backup_preview)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(preview.practice)
-                    preview.upgradedFrom?.let { Text("This schema-$it backup will be upgraded while restoring.") }
-                    Text(DateFormat.getDateTimeInstance().format(Date(preview.createdAt)))
-                    Text(stringResource(R.string.backup_counts, preview.projects, preview.records, preview.attachments))
-                    if (preview.missingAttachments > 0) Text(pluralStringResource(R.plurals.backup_missing, preview.missingAttachments, preview.missingAttachments), color = MaterialTheme.colorScheme.error)
-                    Text(stringResource(R.string.backup_replace_warning))
-                }
-            },
-            confirmButton = { TextButton(enabled = !busy, onClick = viewModel::restore) { Text(stringResource(R.string.backup_replace)) } },
-            dismissButton = { TextButton(enabled = !busy, onClick = viewModel::dismiss) { Text(stringResource(R.string.cancel)) } },
-        )
+        CarbonModal(
+            title = stringResource(R.string.backup_preview),
+            onDismiss = viewModel::dismiss,
+            primaryLabel = stringResource(R.string.backup_replace),
+            onPrimary = viewModel::restore,
+            primaryEnabled = !busy,
+            primaryBusy = busy,
+            danger = true,
+            secondaryLabel = stringResource(R.string.cancel),
+        ) {
+            Text(preview.practice)
+            preview.upgradedFrom?.let { Text("This schema-$it backup will be upgraded while restoring.") }
+            Text(DateFormat.getDateTimeInstance().format(Date(preview.createdAt)))
+            Text(stringResource(R.string.backup_counts, preview.projects, preview.records, preview.attachments))
+            if (preview.missingAttachments > 0) {
+                Text(
+                    pluralStringResource(R.plurals.backup_missing, preview.missingAttachments, preview.missingAttachments),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+            Text(stringResource(R.string.backup_replace_warning))
+        }
     }
 }

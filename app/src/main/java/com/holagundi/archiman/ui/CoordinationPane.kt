@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -31,16 +32,17 @@ import com.holagundi.archiman.R
 import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.CoordinationWorkflow
 import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.ChoiceChip
-import com.holagundi.archiman.ui.theme.GlassSurface
+import com.holagundi.archiman.ui.theme.CarbonDropdown
+import com.holagundi.archiman.ui.theme.CarbonDropdownOption
+import com.holagundi.archiman.ui.theme.CarbonNoticeKind
+import com.holagundi.archiman.ui.theme.CarbonTile
 import com.holagundi.archiman.ui.theme.ScreenTitle
-import com.holagundi.archiman.ui.theme.announce
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CoordinationPane(suite: SuiteProjectViewModel) {
     val items by suite.coordination.collectAsStateWithLifecycle()
-    val notice by suite.notice.collectAsStateWithLifecycle()
+    val operationNotice by suite.operationNotice.collectAsStateWithLifecycle()
     var selectedId by rememberSaveable { mutableStateOf(-1L) }
     var type by rememberSaveable { mutableStateOf(CoordinationWorkflow.RFI) }
     var subject by rememberSaveable { mutableStateOf("") }
@@ -51,20 +53,26 @@ fun CoordinationPane(suite: SuiteProjectViewModel) {
     var assignedTo by rememberSaveable { mutableStateOf("") }
     var note by rememberSaveable { mutableStateOf("") }
 
+    LaunchedEffect(operationNotice) {
+        val notice = operationNotice ?: return@LaunchedEffect
+        if (
+            selectedId > 0L &&
+            notice.kind == CarbonNoticeKind.SUCCESS &&
+            notice.message == "Coordination status updated."
+        ) {
+            note = ""
+            selectedId = -1L
+        }
+    }
+
     LazyColumn(
         Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         item { ScreenTitle(stringResource(R.string.coordination_heading)) }
         item {
             Text(stringResource(R.string.coordination_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (notice != null) {
-            item {
-                Text(notice ?: "", color = MaterialTheme.colorScheme.primary, modifier = Modifier.announce())
-                TextButton(onClick = suite::clearNotice) { Text("Dismiss") }
-            }
         }
         if (items.isEmpty()) {
             item {
@@ -73,8 +81,8 @@ fun CoordinationPane(suite: SuiteProjectViewModel) {
         }
         items(items, key = { it.id }) { item ->
             val open = selectedId == item.id
-            GlassSurface(Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            CarbonTile(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick = { selectedId = if (open) -1L else item.id }) {
                         Column(Modifier.fillMaxWidth()) {
                             Text(item.referenceNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
@@ -102,14 +110,19 @@ fun CoordinationPane(suite: SuiteProjectViewModel) {
             }
         }
         item {
-            GlassSurface(Modifier.fillMaxWidth()) {
+            CarbonTile(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(stringResource(R.string.coordination_new), style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(CoordinationWorkflow.RFI, CoordinationWorkflow.SUBMITTAL, CoordinationWorkflow.SITE_INSTRUCTION).forEach { option ->
-                            ChoiceChip(option, type == option) { type = option }
-                        }
-                    }
+                    CarbonDropdown(
+                        label = "Type",
+                        options = listOf(
+                            CoordinationWorkflow.RFI,
+                            CoordinationWorkflow.SUBMITTAL,
+                            CoordinationWorkflow.SITE_INSTRUCTION,
+                        ).map { CarbonDropdownOption(it, it) },
+                        selectedId = type,
+                        onSelected = { type = it },
+                    )
                     ArchiField(subject, { subject = it }, stringResource(R.string.coordination_subject))
                     ArchiField(question, { question = it }, stringResource(R.string.coordination_question), singleLine = false)
                     ArchiField(discipline, { discipline = it }, stringResource(R.string.coordination_discipline))

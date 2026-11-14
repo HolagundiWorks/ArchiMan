@@ -52,7 +52,7 @@ fun CarbonDistributionTile(
     val track = MaterialTheme.colorScheme.surfaceContainerHigh
     val noData = data.isEmpty() || data.all { it.value.signum() == 0 }
     ArchiCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(Modifier.padding(CarbonSpacing.card), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.section)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     title,
@@ -105,7 +105,7 @@ fun CarbonDistributionTile(
                         if (index > 0) {
                             Box(
                                 Modifier
-                                    .padding(horizontal = 6.dp)
+                                    .padding(horizontal = 8.dp)
                                     .width(1.dp)
                                     .fillMaxHeight()
                                     .background(MaterialTheme.colorScheme.outlineVariant),
@@ -140,7 +140,7 @@ fun CarbonDistributionTile(
                 data.forEachIndexed { index, row ->
                     Column(
                         Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Row(
                             Modifier.fillMaxWidth(),
@@ -178,7 +178,7 @@ fun CarbonDistributionTile(
 fun CarbonFeeTile(summary: FeeDashboardSummary?, onOpen: (() -> Unit)? = null) {
     if (summary == null) {
         ArchiCard(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.padding(CarbonSpacing.card), verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stack)) {
                 Text("Fees overview", style = MaterialTheme.typography.titleMedium)
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 Text("Loading fee balances…", style = MaterialTheme.typography.bodySmall)

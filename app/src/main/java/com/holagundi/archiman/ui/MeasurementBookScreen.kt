@@ -44,7 +44,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.data.local.entity.MeasurementEntity
@@ -53,8 +52,9 @@ import com.holagundi.archiman.domain.MeasurementSheetWorkflow
 import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.SheetStatus
 import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.ChoiceChip
-import com.holagundi.archiman.ui.theme.GlassSurface
+import com.holagundi.archiman.ui.theme.CarbonContentSwitcher
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonTextInput
 import com.holagundi.archiman.ui.theme.ScreenTitle
 import com.holagundi.archiman.ui.theme.announce
 import java.util.Locale
@@ -92,7 +92,7 @@ fun MeasurementBookScreen(
     val pageSheets = visible.drop(currentPage*25).take(25)
     LazyColumn(
         Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack),
         contentPadding = PaddingValues(bottom = 24.dp),
     ) {
         item { ScreenTitle("Measurement Book") }
@@ -103,17 +103,27 @@ fun MeasurementBookScreen(
         item { TextButton(onClick = onRecord) { Text("Record measurement", color = MaterialTheme.colorScheme.primary) } }
         item { ArchiField(query, { query = it }, "Search sheets", Modifier.fillMaxWidth()) }
         item {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                (listOf("ALL") + SheetStatus.ALL).forEach { status ->
+            val statusFilters = listOf("ALL") + SheetStatus.ALL
+            val filterIndex = statusFilters.indexOf(filter).coerceAtLeast(0)
+            CarbonContentSwitcher(
+                options = statusFilters.map { status ->
                     val count = if (status == "ALL") sheets.size else sheets.count { it.status == status }
-                    ChoiceChip("${sheetStatusLabel(status)} $count", filter == status) { filter = status }
-                }
-            }
+                    "${sheetStatusLabel(status)} $count"
+                },
+                selectedIndex = filterIndex,
+                onSelected = { filter = statusFilters[it] },
+            )
         }
         if (notice != null) {
             item {
-                notice?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Measurement review", it.message, it.kind) }
-                TextButton(onClick = book::clearNotice) { Text("Dismiss notice") }
+                notice?.let {
+                    com.holagundi.archiman.ui.theme.CarbonInlineNotification(
+                        title = "Measurement review",
+                        body = it.message,
+                        kind = it.kind,
+                        onDismiss = book::clearNotice,
+                    )
+                }
             }
         }
         if (visible.size>25) item {
@@ -315,20 +325,23 @@ fun MeasurementBookScreen(
         }
     }
     if (returnId != null) {
-        Dialog(onDismissRequest = { returnId = null }) {
-            GlassSurface {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Return sheet", style = MaterialTheme.typography.titleMedium)
-                    ArchiField(comment, { comment = it }, "Comment", singleLine = false)
-                    TextButton(onClick = {
-                        val id = returnId ?: return@TextButton
-                        if (comment.isBlank()) return@TextButton
-                        book.transition(id, SheetStatus.RETURNED, comment)
-                        comment = ""
-                        returnId = null
-                    }) { Text("Return ${sheets.firstOrNull { it.id == returnId }?.sheetCode ?: "sheet"}") }
+        val sheetCode = sheets.firstOrNull { it.id == returnId }?.sheetCode ?: "sheet"
+        CarbonModal(
+            title = "Return sheet",
+            description = sheetCode,
+            onDismiss = { returnId = null },
+            primaryLabel = "Return $sheetCode",
+            onPrimary = {
+                val id = returnId
+                if (id != null && comment.isNotBlank()) {
+                    book.transition(id, SheetStatus.RETURNED, comment)
+                    comment = ""
+                    returnId = null
                 }
-            }
+            },
+            primaryEnabled = comment.isNotBlank(),
+        ) {
+            CarbonTextInput(comment, { comment = it }, "Comment", singleLine = false)
         }
     }
 }

@@ -4,9 +4,12 @@ package com.holagundi.archiman.ui.shell
 
 import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.compose.foundation.layout.*
+import com.holagundi.archiman.ui.theme.CarbonBreadcrumb
+import com.holagundi.archiman.ui.theme.CarbonBreadcrumbs
 import com.holagundi.archiman.ui.theme.CarbonNavigationBar
 import com.holagundi.archiman.ui.theme.CarbonNavigationRail
 import com.holagundi.archiman.ui.theme.CarbonNavigationItem
+import com.holagundi.archiman.ui.theme.CarbonSpacing
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,14 +27,15 @@ fun ProjectScaffold(
     onGroupChange: (ProjectGroup) -> Unit,
     onBack: () -> Unit,
     actions: @Composable () -> Unit,
+    breadcrumbs: List<CarbonBreadcrumb> = emptyList(),
     content: @Composable (PaddingValues) -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth >= 600.dp
         Row(Modifier.fillMaxSize()) {
-            if(wide) CarbonNavigationRail {
+            if (wide) CarbonNavigationRail {
                 ProjectGroup.entries.forEach { item ->
-                    CarbonNavigationItem(stringResource(item.labelRes),item.icon,group==item,{onGroupChange(item)},rail=true)
+                    CarbonNavigationItem(stringResource(item.labelRes), item.icon, group == item, { onGroupChange(item) }, rail = true)
                 }
             }
             Scaffold(
@@ -40,26 +44,50 @@ fun ProjectScaffold(
                     TopAppBar(
                         navigationIcon = {
                             IconButton(onClick = onBack) {
-                                Icon(CarbonIcons.ArrowBack, stringResource(
-                                    if (page == WorkspacePage.OVERVIEW) R.string.back_to_practice else R.string.back_to_section))
+                                Icon(
+                                    CarbonIcons.ArrowBack,
+                                    stringResource(
+                                        if (page == WorkspacePage.OVERVIEW) R.string.back_to_practice else R.string.back_to_section,
+                                    ),
+                                )
                             }
                         },
                         title = {
-                            Column {
-                                Text(projectName.ifBlank { stringResource(R.string.opening_project) },
-                                    style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Text(listOf(projectCode, stringResource(page?.labelRes ?: group.labelRes)).filter { it.isNotBlank() }.joinToString(" · "),
-                                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Column(verticalArrangement = Arrangement.spacedBy(CarbonSpacing.hairline)) {
+                                if (breadcrumbs.isNotEmpty()) {
+                                    CarbonBreadcrumbs(breadcrumbs)
+                                } else {
+                                    Text(
+                                        projectName.ifBlank { stringResource(R.string.opening_project) },
+                                        style = MaterialTheme.typography.titleMedium,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                    Text(
+                                        listOf(projectCode, stringResource(page?.labelRes ?: group.labelRes))
+                                            .filter { it.isNotBlank() }
+                                            .joinToString(" · "),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
                             }
                         },
                         actions = { actions() },
                     )
                 },
                 bottomBar = {
-                    if(!wide) CarbonNavigationBar {
+                    if (!wide) CarbonNavigationBar {
                         ProjectGroup.entries.forEach { item ->
-                            CarbonNavigationItem(stringResource(item.labelRes),item.icon,group==item,{onGroupChange(item)},Modifier.weight(1f))
+                            CarbonNavigationItem(
+                                stringResource(item.labelRes),
+                                item.icon,
+                                group == item,
+                                { onGroupChange(item) },
+                                Modifier.weight(1f),
+                            )
                         }
                     }
                 },

@@ -11,6 +11,7 @@ import android.os.IBinder
 import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
+import com.holagundi.archiman.MainActivity
 import com.holagundi.archiman.R
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -31,7 +32,7 @@ class PortalService : Service() {
         ServiceCompat.startForeground(
             this,
             NOTIFICATION_ID,
-            notification(),
+            notification(null),
             if (android.os.Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC else 0,
         )
         portal.onStopped = {
@@ -45,6 +46,8 @@ class PortalService : Service() {
             if (!portal.isRunning()) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
+            } else {
+                publish(portal.state.value.address)
             }
             return START_NOT_STICKY
         }
@@ -54,6 +57,10 @@ class PortalService : Service() {
                 Handler(Looper.getMainLooper()).post {
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
+                }
+            } else {
+                Handler(Looper.getMainLooper()).post {
+                    publish(portal.state.value.address)
                 }
             }
         }, "archiman-portal-start").apply {
@@ -69,24 +76,47 @@ class PortalService : Service() {
         super.onDestroy()
     }
 
-    private fun notification(): android.app.Notification {
+    private fun publish(url: String?) {
+        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification(url))
+    }
+
+    private fun notification(url: String?): android.app.Notification {
         val manager = getSystemService(NotificationManager::class.java)
         if (manager.getNotificationChannel(CHANNEL) == null) {
             manager.createNotificationChannel(
-                NotificationChannel(CHANNEL, getString(R.string.portal_channel), NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL, getString(R.string.portal_channel), NotificationManager.IMPORTANCE_LOW).apply {
+                    description = getString(R.string.portal_notification)
+                    setShowBadge(false)
+                },
             )
         }
+        val openApp = PendingIntent.getActivity(
+            this,
+            1,
+            Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
         val stop = PendingIntent.getService(
             this,
             0,
             Intent(this, PortalService::class.java).setAction(STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
+        val body = if (url.isNullOrBlank()) {
+            getString(R.string.portal_notification)
+        } else {
+            getString(R.string.portal_notification_url, url)
+        }
         return NotificationCompat.Builder(this, CHANNEL)
-            .setSmallIcon(android.R.drawable.stat_notify_sync)
+            .setSmallIcon(android.R.drawable.ic_menu_share)
             .setContentTitle(getString(R.string.portal_on))
-            .setContentText(getString(R.string.portal_notification))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setContentIntent(openApp)
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
             .addAction(0, getString(R.string.portal_stop), stop)
             .build()
     }

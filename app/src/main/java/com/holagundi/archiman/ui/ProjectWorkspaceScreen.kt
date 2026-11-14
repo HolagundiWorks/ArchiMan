@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.R
@@ -42,8 +41,11 @@ import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.ui.shell.ProjectScaffold
 import com.holagundi.archiman.ui.shell.WorkspacePage
 import com.holagundi.archiman.ui.shell.ProjectGroup
-import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.GlassSurface
+import com.holagundi.archiman.ui.theme.CarbonBreadcrumb
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonSpacing
+import com.holagundi.archiman.ui.theme.CarbonTextInput
+import com.holagundi.archiman.ui.theme.CarbonTile
 import com.holagundi.archiman.ui.theme.announce
 
 @Composable
@@ -98,6 +100,36 @@ fun ProjectWorkspaceScreen(
         return
     }
 
+    val projectCrumbs = buildList {
+        add(CarbonBreadcrumb(stringResource(R.string.nav_projects), onBack))
+        val code = current?.projectCode.orEmpty().ifBlank { current?.name.orEmpty().ifBlank { stringResource(R.string.opening_project) } }
+        add(
+            CarbonBreadcrumb(code) {
+                group = ProjectGroup.OVERVIEW
+                page = WorkspacePage.OVERVIEW
+            },
+        )
+        if (page == null) {
+            add(CarbonBreadcrumb(stringResource(group.labelRes)))
+        } else {
+            if (page!!.group != ProjectGroup.OVERVIEW) {
+                add(
+                    CarbonBreadcrumb(stringResource(page!!.group.labelRes)) {
+                        selectPage(null)
+                    },
+                )
+            }
+            page!!.parent?.let { parent ->
+                add(
+                    CarbonBreadcrumb(stringResource(parent.labelRes)) {
+                        selectPage(parent)
+                    },
+                )
+            }
+            add(CarbonBreadcrumb(stringResource(page!!.labelRes)))
+        }
+    }
+
     ProjectScaffold(
         projectCode = current?.projectCode.orEmpty(),
         projectName = current?.name.orEmpty(),
@@ -116,24 +148,33 @@ fun ProjectWorkspaceScreen(
         },
         onBack = ::back,
         actions = { if (current != null) RecordActions(RecordKind.PROJECT, current.id, current.name) },
+        breadcrumbs = projectCrumbs,
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = CarbonSpacing.screen, vertical = CarbonSpacing.stackTight),
         ) {
             val selected = page
             pageState.SaveableStateProvider(selected?.name ?: "hub-${group.name}") {
             Column(Modifier.fillMaxSize()) {
                 if (pending.isNotEmpty()) Text("Saving… Your entries will clear only after saving.", modifier = Modifier.announce())
                 operationNotice?.let {
-                    com.holagundi.archiman.ui.theme.CarbonInlineNotification(if (it.kind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR) "Could not save" else "Saved", it.message, it.kind)
-                    TextButton(onClick = suite.operations::dismiss) { Text("Dismiss update") }
+                    com.holagundi.archiman.ui.theme.CarbonInlineNotification(
+                        title = if (it.kind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR) "Could not save" else "Saved",
+                        body = it.message,
+                        kind = it.kind,
+                        onDismiss = suite.operations::dismiss,
+                    )
                 }
                 if (notice != null) {
-                    com.holagundi.archiman.ui.theme.CarbonInlineNotification("Project update", notice ?: "", com.holagundi.archiman.ui.theme.CarbonNoticeKind.INFO)
-                    TextButton(onClick = suite::clearNotice) { Text("Dismiss notice") }
+                    com.holagundi.archiman.ui.theme.CarbonInlineNotification(
+                        title = "Project update",
+                        body = notice ?: "",
+                        kind = com.holagundi.archiman.ui.theme.CarbonNoticeKind.INFO,
+                        onDismiss = suite::clearNotice,
+                    )
                 }
                 when (selected) {
                     null -> ProjectSectionHub(group, onOpen = ::selectPage)
@@ -163,7 +204,7 @@ fun ProjectWorkspaceScreen(
                     WorkspacePage.SETUP -> ProjectSetupPane(viewModel, suite, { selectPage(WorkspacePage.MEASURE) }, { selectPage(WorkspacePage.BOOK) }, { selectPage(WorkspacePage.BILL) })
                     WorkspacePage.MEASURE -> Unit // Capture uses the dedicated viewport above.
                     WorkspacePage.BOOK -> MeasurementBookScreen(onRecord = { selectPage(WorkspacePage.MEASURE) }, focusId = if (startPage == WorkspacePage.BOOK) focusId else 0L)
-                    WorkspacePage.INVOICE -> FeeInvoicePane(suite)
+                    WorkspacePage.INVOICE -> FeeInvoicePane(suite, if (startPage == WorkspacePage.INVOICE) focusId else 0L)
                     WorkspacePage.BILL -> RunningBillsPane(suite, { selectPage(WorkspacePage.BOOK) }, { selectPage(WorkspacePage.SETUP) })
                 }
             }
@@ -219,11 +260,11 @@ private fun OverviewPane(
     var showFloor by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack),
     ) {
         item {
-            GlassSurface(Modifier.fillMaxWidth()) {
+            CarbonTile(Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(project.client, style = MaterialTheme.typography.titleMedium)
                     Text(project.siteLocation, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -238,8 +279,8 @@ private fun OverviewPane(
             }
         }
         items(floors, key = { it.id }) { floor ->
-            GlassSurface(Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            CarbonTile(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(floor.name, style = MaterialTheme.typography.titleSmall, fontFamily = FontFamily.Monospace)
                     RecordActions(RecordKind.LEVEL, floor.id, floor.name)
                     rooms.filter { it.floorId == floor.id }.forEach { room ->
@@ -252,37 +293,37 @@ private fun OverviewPane(
         }
     }
     if (showFloor) {
-        Dialog(onDismissRequest = { showFloor = false }) {
-            GlassSurface(Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("New level", style = MaterialTheme.typography.titleMedium)
-                    ArchiField(floorName, { floorName = it }, "Level name")
-                    TextButton(onClick = {
-                        if (floorName.isNotBlank()) {
-                            viewModel.addFloor(floorName.trim())
-                            floorName = ""
-                            showFloor = false
-                        }
-                    }) { Text("Save level") }
+        CarbonModal(
+            title = "New level",
+            onDismiss = { showFloor = false },
+            primaryLabel = "Save level",
+            onPrimary = {
+                if (floorName.isNotBlank()) {
+                    viewModel.addFloor(floorName.trim())
+                    floorName = ""
+                    showFloor = false
                 }
-            }
+            },
+            primaryEnabled = floorName.isNotBlank(),
+        ) {
+            CarbonTextInput(floorName, { floorName = it }, "Level name")
         }
     }
     if (roomFloorId >= 0L) {
-        Dialog(onDismissRequest = { roomFloorId = -1L }) {
-            GlassSurface(Modifier.fillMaxWidth()) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("New room", style = MaterialTheme.typography.titleMedium)
-                    ArchiField(roomName, { roomName = it }, "Room name")
-                    TextButton(onClick = {
-                        if (roomName.isNotBlank()) {
-                            viewModel.addRoom(roomFloorId, roomName.trim())
-                            roomFloorId = -1L
-                            roomName = ""
-                        }
-                    }) { Text("Save room") }
+        CarbonModal(
+            title = "New room",
+            onDismiss = { roomFloorId = -1L },
+            primaryLabel = "Save room",
+            onPrimary = {
+                if (roomName.isNotBlank()) {
+                    viewModel.addRoom(roomFloorId, roomName.trim())
+                    roomFloorId = -1L
+                    roomName = ""
                 }
-            }
+            },
+            primaryEnabled = roomName.isNotBlank(),
+        ) {
+            CarbonTextInput(roomName, { roomName = it }, "Room name")
         }
     }
 }

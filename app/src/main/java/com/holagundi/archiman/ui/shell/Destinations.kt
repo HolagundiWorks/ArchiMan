@@ -12,6 +12,8 @@ enum class PracticeDestination(
 ) {
     HOME(R.string.nav_home, CarbonIcons.Home, CarbonIcons.Home),
     PROJECTS(R.string.nav_projects, CarbonIcons.Apartment, CarbonIcons.Apartment),
+    TASKS(R.string.nav_tasks, CarbonIcons.ViewKanban, CarbonIcons.ViewKanban),
+    ISSUES(R.string.nav_issues, CarbonIcons.ReportProblem, CarbonIcons.ReportProblem),
     PRACTICE(R.string.nav_practice, CarbonIcons.Business, CarbonIcons.Business),
 }
 

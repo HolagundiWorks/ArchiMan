@@ -19,10 +19,27 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
     private fun select(name: String, label: String, options: List<Pair<String,String>>, selected: String = "") = "<label>${e(label)}<select name='$name'>" + options.joinToString("") { (value,text) -> "<option value='${e(value)}' ${if(value==selected) "selected" else ""}>${e(text)}</option>" } + "</select></label>"
     private fun form(action: String, csrf: String, content: String, button: String) = "<form method='post' action='/workspace'><input type='hidden' name='csrf' value='${e(csrf)}'><input type='hidden' name='action' value='$action'><input type='hidden' name='requestId' value='${java.util.UUID.randomUUID()}'>$content<button>$button</button></form>"
     private suspend fun style() = db.suiteDao().finance("letterhead")?.let { JSONObject(it.json) } ?: JSONObject().put("accent", "#0F62FE").put("layout", "LOGO_LEFT")
-    private fun table(headers: List<String>, rows: List<List<String>>) = "<div class='tablewrap'><table><thead><tr>${headers.joinToString("") { "<th>${e(it)}</th>" }}</tr></thead><tbody>${rows.joinToString("") { row -> "<tr>${row.joinToString("") { "<td>${e(it)}</td>" }}</tr>" }}</tbody></table></div>"
+    private fun table(headers: List<String>, rows: List<List<String>>) =
+        PortalKpis.dataTable("", headers, rows.map { row -> row.map { e(it) } }, "No rows yet.")
     private fun hidden(name: String, value: String) = "<input type='hidden' name='${e(name)}' value='${e(value)}'>"
     suspend fun page(csrf: String, section: String, id: Long?, notice: String = "", query: Map<String,String> = emptyMap(), noticeKind: String = "success"): String {
-        val content = when(section) { "", "dashboard" -> PortalDashboard(db).page(); "company" -> company(csrf); "items" -> items(csrf,id); "measure" -> measurement(csrf,id,query["contractor"]?.toLongOrNull()); "documents" -> documents(); "schedule" -> PortalProjectSchedules(db).page(requireNotNull(id),csrf,query["contractor"]?.toLongOrNull()); "contacts" -> PortalProjectSchedules(db).contacts(csrf,query["type"] ?: "client",id,query["project"]?.toLongOrNull()); "bills" -> PortalContractorBills(db).page(requireNotNull(id),csrf); "estimate" -> PortalEstimates(db).page(requireNotNull(id),csrf); else -> "<h1>Practice workspace</h1><p>Manage your letterhead, item formulas, measurement imports and document downloads.</p>" }
+        // Project-scoped pages get a plain message instead of an internal "null" error when the project is missing.
+        if (section in listOf("measure", "schedule", "estimate", "bills") && (id == null || db.projectDao().getProject(id) == null)) {
+            error("That project is not on this phone. Open it from Projects.")
+        }
+        val content = when(section) {
+            "", "dashboard" -> PortalDashboard(db).page()
+            "company" -> company(csrf)
+            "items" -> items(csrf,id)
+            "measure" -> measurement(csrf,id,query["contractor"]?.toLongOrNull())
+            "documents" -> documents()
+            "tasks" -> PortalKanban(db).page(csrf, id)
+            "schedule" -> PortalProjectSchedules(db).page(requireNotNull(id),csrf,query["contractor"]?.toLongOrNull())
+            "contacts" -> PortalProjectSchedules(db).contacts(csrf,query["type"] ?: "client",id,query["project"]?.toLongOrNull())
+            "bills" -> PortalContractorBills(db).page(requireNotNull(id),csrf)
+            "estimate" -> PortalEstimates(db).page(requireNotNull(id),csrf)
+            else -> "<h1>Practice workspace</h1><p>Manage your letterhead, item formulas, measurement imports and document downloads.</p>"
+        }
         val projectNav = if (id != null && section in listOf("schedule", "measure", "estimate", "bills")) {
             val project = requireNotNull(db.projectDao().getProject(id))
             val revision = com.holagundi.archiman.data.ProjectScheduleRepository(db).active(id)
@@ -40,35 +57,129 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
     }
     private suspend fun company(csrf: String): String {
         val c = requireNotNull(db.practiceDao().company()); val s=style()
-        val fields = linkedMapOf("practiceName" to c.practiceName,"legalName" to c.legalName,"companyType" to c.companyType,"address" to c.address,"city" to c.city,"state" to c.state,"country" to c.country,"pinCode" to c.pinCode,"phone" to c.phone,"email" to c.email,"website" to c.website,"pan" to c.pan,"gstin" to c.gstin,"coaRegistrationNumber" to c.coaRegistrationNumber,"principalName" to c.principalName,"principalQualification" to c.principalQualification,"practiceRegistrationDetails" to c.practiceRegistrationDetails)
-        val editor = fields.entries.joinToString("") { field(it.key,it.key.replace(Regex("([A-Z])")," $1"),it.value) }
+        fun label(key: String) = key.replace(Regex("([A-Z])"), " $1").replaceFirstChar(Char::uppercase)
+        val identity = listOf("practiceName" to c.practiceName, "legalName" to c.legalName, "companyType" to c.companyType)
+            .joinToString("") { field(it.first, label(it.first), it.second) }
+        val address = listOf("address" to c.address, "city" to c.city, "state" to c.state, "country" to c.country, "pinCode" to c.pinCode)
+            .joinToString("") { field(it.first, label(it.first), it.second) }
+        val contact = listOf("phone" to c.phone, "email" to c.email, "website" to c.website)
+            .joinToString("") { field(it.first, label(it.first), it.second) }
+        val registration = listOf("pan" to c.pan, "gstin" to c.gstin, "coaRegistrationNumber" to c.coaRegistrationNumber, "principalName" to c.principalName, "principalQualification" to c.principalQualification)
+            .joinToString("") { field(it.first, label(it.first), it.second) } + field("practiceRegistrationDetails", label("practiceRegistrationDetails"), c.practiceRegistrationDetails)
         val logo = s.optString("logo")
-        val design = select("layout","Letterhead layout",listOf("LOGO_LEFT" to "Logo on left", "LOGO_RIGHT" to "Logo on right"),s.optString("layout")) + field("accent","Accent colour",s.optString("accent","#0F62FE"),"color") + field("header","Tagline / additional header",s.optString("header")) + area("footer","Footer (bank/payment or registration details)",s.optString("footer")) + "<label>Company logo (PNG/JPEG, maximum 512 KB)<input type='file' id='logo-file' accept='image/png,image/jpeg'></label>" + hidden("logo",logo) + "<label><input type='checkbox' name='removeLogo' value='yes'> Remove saved logo</label>"
-        return "<h1>Company & letterhead designer</h1><p>Company identity prints on portal PDFs and document exports. Tax registration mode and rate are managed under Taxes & banking on the phone; GSTIN changes are synchronized.</p>" + form("company",csrf,"<div class='grid'>$editor</div><h2>Letterhead design</h2>$design","Save company & design") + "<h2>Saved design preview</h2><article class='paper' style='--accent:${e(s.optString("accent","#0F62FE"))}'>${if(logo.isNotBlank()) "<img class='logo' style='float:${if(s.optString("layout")=="LOGO_RIGHT") "right" else "left"};margin:0 18px 12px 0' src='${e(logo)}' alt='Company logo'>" else ""}<h2>${e(c.legalName.ifBlank { c.practiceName })}</h2>${DocumentExports.identity(c).drop(1).joinToString("") { "<p>${e(it)}</p>" }}<hr><p>${e(s.optString("header"))}</p><h3>Document title</h3><p>Document content will appear here.</p><footer>${e(s.optString("footer"))}</footer></article><a href='/workspace/export?kind=letterhead&format=pdf'>Download letterhead PDF preview</a>"
+        val design = select("layout","Letterhead layout",listOf("LOGO_LEFT" to "Logo on left", "LOGO_RIGHT" to "Logo on right"),s.optString("layout")) + field("accent","Accent colour",s.optString("accent","#0F62FE"),"color") + field("header","Tagline / additional header",s.optString("header")) + area("footer","Footer (bank/payment or registration details)",s.optString("footer")) + "<div class='cds--form-item portal-form-span-2'><label class='cds--label'>Company logo (PNG/JPEG, maximum 512 KB)</label><input class='portal-file' type='file' id='logo-file' accept='image/png,image/jpeg'></div>" + hidden("logo",logo) + "<div class='cds--form-item portal-form-span-2'><label><input type='checkbox' name='removeLogo' value='yes'> Remove saved logo</label></div>"
+        val sections = CarbonPortal.formSection("Practice identity", identity, "Shown on letterhead and portal exports.") +
+            CarbonPortal.formSection("Address", address) +
+            CarbonPortal.formSection("Contact", contact) +
+            CarbonPortal.formSection("Registration", registration, "Tax registration mode remains on the phone.") +
+            CarbonPortal.formSection("Letterhead design", design)
+        return CarbonPortal.masthead("Company & letterhead", "Company identity prints on portal PDFs and document exports.", "enterprise") +
+            form("company", csrf, sections, "Save company & design") +
+            "<h2 class='portal-section-title'>${CarbonPortalIcons.svg("document")}<span>Saved design preview</span></h2><article class='paper cds--tile portal-panel' style='--accent:${e(s.optString("accent","#0F62FE"))}'>${if(logo.isNotBlank()) "<img class='logo' style='float:${if(s.optString("layout")=="LOGO_RIGHT") "right" else "left"};margin:0 18px 12px 0;max-width:160px' src='${e(logo)}' alt='Company logo'>" else ""}<h2>${e(c.legalName.ifBlank { c.practiceName })}</h2>${DocumentExports.identity(c).drop(1).joinToString("") { "<p>${e(it)}</p>" }}<hr><p>${e(s.optString("header"))}</p><h3>Document title</h3><p>Document content will appear here.</p><footer>${e(s.optString("footer"))}</footer></article><p><a class='cds--btn cds--btn--tertiary' href='/workspace/export?kind=letterhead&format=pdf'>${CarbonPortalIcons.svg("download")}<span>Download letterhead PDF preview</span></a></p>"
     }
     private suspend fun items(csrf: String, id: Long?): String {
         val rows=db.catalogDao().observeActiveItems().first(); val current=rows.firstOrNull { it.id==id }
-        val content=hidden("id",current?.id?.toString().orEmpty()) + field("code","Item code",current?.itemCode.orEmpty()) + field("name","Item name",current?.name.orEmpty()) + field("trade","Trade / category",current?.workType.orEmpty()) + select("formula","Formula",WorkItemLibrary.formulas.map { it.key to "${it.key}: ${it.value}" },current?.calculationType ?: CalculationTypes.VOLUME) + select("unit","Default unit",listOf("m³","ft³","m²","ft²","m","ft","Nos").map { it to it },current?.unit ?: "m³") + area("specification","Full description / specification / measurement rules",current?.specification.orEmpty()) + field("sourceName","Source edition / correction slip",current?.sourceName.orEmpty()) + field("sourceItemCode","Source item number",current?.sourceItemCode.orEmpty())
-        return "<h1>General catalogue — estimation items</h1><p>Choose a dimensionally compatible unit and formula. Saved entries and issued sheets retain their snapshots. Nos is a multiplier; use deductions for wall openings. These are editable geometric templates, not a certified schedule of rates.</p>" + form("item",csrf,content,if(current==null) "Create item" else "Save item") + form("seed",csrf,"<p>Add concrete, masonry, plaster, flooring, waterproofing, length and count templates. Existing names are skipped.</p>","Add standard templates") + form("seedCpwd",csrf,"<p>CPWD DSR 2023 starter references with adapted short descriptions; verify full specifications and correction slips. Published DSR rates are not imported as tax-exclusive contract rates.</p><a href='https://cpwd.gov.in/WriteReadData/Publication/DSR_Vol_1_Civil.pdf'>Official volume I</a> | <a href='https://cpwd.gov.in/WriteReadData/Publication/DSR_Vol_2_Civil.pdf'>Volume II</a>","Add CPWD-referenced starters") + form("previewCatalogue",csrf,"<p>Import your full catalogue descriptions as CSV: Code,Name,Description,Unit,Formula,Edition,SourceItemCode,Trade. Up to 2,000 rows; existing codes skipped. Rates are entered separately in estimates and contractor schedules.</p><input type='file' id='csv-file' accept='.csv,.tsv'>"+area("csv","Catalogue CSV"),"Preview general catalogue") + rows.joinToString("") { "<article><strong>${e(it.itemCode)} | ${e(it.name)}</strong><p>${e(it.unit)} | ${e(WorkItemLibrary.formulas[it.calculationType])}</p><a href='/workspace?section=items&id=${it.id}'>Edit</a>" + form("archiveItem",csrf,hidden("id",it.id.toString()),"Archive item") + "</article>" }
+        val trades = rows.map { it.workType.ifBlank { "Uncategorised" } }.distinct().size
+        val predefined = rows.count { it.isPredefined }
+        val custom = rows.size - predefined
+        val identity = hidden("id",current?.id?.toString().orEmpty()) + field("code","Item code",current?.itemCode.orEmpty()) + field("name","Item name",current?.name.orEmpty()) + field("trade","Trade / category",current?.workType.orEmpty())
+        val measure = select("formula","Formula",WorkItemLibrary.formulas.map { it.key to "${it.key}: ${it.value}" },current?.calculationType ?: CalculationTypes.VOLUME) + select("unit","Default unit",listOf("m³","ft³","m²","ft²","m","ft","Nos").map { it to it },current?.unit ?: "m³") + area("specification","Full description / specification / measurement rules",current?.specification.orEmpty())
+        val source = field("sourceName","Source edition / correction slip",current?.sourceName.orEmpty()) + field("sourceItemCode","Source item number",current?.sourceItemCode.orEmpty())
+        val content = CarbonPortal.formSection("Item identity", identity) + CarbonPortal.formSection("Measurement rules", measure, "Nos is a multiplier; use deductions for wall openings.") + CarbonPortal.formSection("Source reference", source)
+        val catalogueRows = rows.map { item ->
+            listOf(
+                e(item.itemCode),
+                """<a href="/workspace?section=items&id=${item.id}">${e(item.name)}</a>""",
+                e(item.workType.ifBlank { "—" }),
+                e(item.unit),
+                e(WorkItemLibrary.formulas[item.calculationType] ?: item.calculationType),
+                if (item.isPredefined) "Template" else "Custom",
+                form("archiveItem",csrf,hidden("id",item.id.toString()),"Archive"),
+            )
+        }
+        return CarbonPortal.masthead("Item library", "Editable geometric templates for estimation. Saved entries keep their snapshots.", "ruler") +
+            PortalKpis.strip(listOf(
+                PortalKpis.Kpi("Active items", rows.size.toString(), "folder"),
+                PortalKpis.Kpi("Trades / categories", trades.toString(), "construction"),
+                PortalKpis.Kpi("Starter templates", predefined.toString(), "document"),
+                PortalKpis.Kpi("Custom items", custom.toString(), "ruler"),
+            )) +
+            form("item",csrf,content,if(current==null) "Create item" else "Save item") +
+            "<section class='portal-form-section'><legend class='portal-form-legend'>Starter templates</legend><p class='portal-form-hint'>Optional libraries. Existing names are skipped.</p>" +
+            form("seed",csrf,"<p class='portal-form-hint'>Concrete, masonry, plaster, flooring, waterproofing, length and count templates.</p>","Add standard templates") +
+            form("seedCpwd",csrf,"<p class='portal-form-hint'>CPWD DSR 2023 starter references. Verify specifications and correction slips.</p><p><a href='https://cpwd.gov.in/WriteReadData/Publication/DSR_Vol_1_Civil.pdf'>Official volume I</a> · <a href='https://cpwd.gov.in/WriteReadData/Publication/DSR_Vol_2_Civil.pdf'>Volume II</a></p>","Add CPWD-referenced starters") +
+            "</section><section class='portal-form-section'><legend class='portal-form-legend'>Import catalogue</legend>" +
+            form("previewCatalogue",csrf,"<p class='portal-form-hint'>CSV columns: Code,Name,Description,Unit,Formula,Edition,SourceItemCode,Trade. Up to 2,000 rows.</p><div class='cds--form-item'><input class='portal-file' type='file' id='csv-file' accept='.csv,.tsv'></div>"+area("csv","Catalogue CSV"),"Preview general catalogue") +
+            "</section>" +
+            PortalKpis.dataTable("Catalogue", listOf("Code", "Name", "Trade", "Unit", "Formula", "Type", "Actions"), catalogueRows, "No catalogue items yet.")
     }
     private suspend fun measurement(csrf: String, id: Long?, selectedContractorForPage: Long? = null): String {
         val project=requireNotNull(id?.let { db.projectDao().getProject(it) }) { "Choose a project from Projects." }
-        val floors=db.projectDao().observeFloors(project.id).first(); val contractors=db.catalogDao().observeContractors(project.id).first(); val items=db.catalogDao().observeActiveItems().first()
+        val floors=db.projectDao().observeFloors(project.id).first(); val contractors=db.catalogDao().observeContractors(project.id).first()
         val active=com.holagundi.archiman.data.ProjectScheduleRepository(db).active(project.id)
         val selectedContractor = selectedContractorForPage ?: contractors.firstOrNull()?.id
         val assigned=active?.lines.orEmpty().filter { it.contractorId==selectedContractor }
-        val chooser="<form method='get' action='/workspace'>${hidden("section","measure")}${hidden("id",project.id.toString())}${select("contractor","Select contractor before choosing an assigned item",contractors.map { it.id.toString() to it.name },selectedContractor?.toString().orEmpty())}<button>Show contractor items</button></form>"
+        val sheets=db.measurementDao().observeSheets(project.id).first().filter { it.archivedAt == null }
+        val contractorSheets = sheets.filter { it.contractorId == selectedContractor }
+        val recordedKeys = contractorSheets.map { it.boqLineKey }.filter { it.isNotBlank() }.toSet()
+        val recordedAssigned = assigned.count { it.key in recordedKeys }
+        val yetToRecord = (assigned.size - recordedAssigned).coerceAtLeast(0)
+        val draftSheets = contractorSheets.count { it.status.equals("DRAFT", true) || it.status.equals("RETURNED", true) }
+        val reviewSheets = contractorSheets.count { it.status.equals("SUBMITTED", true) || it.status.equals("CHECKED", true) }
+        val approvedSheets = contractorSheets.count { it.status.equals("APPROVED", true) }
+        val measurementCount = sql.query("SELECT COUNT(*) FROM measurements WHERE projectId = ?", arrayOf(project.id)).use {
+            it.moveToFirst(); it.getInt(0)
+        }
+        val chooser="<section class='portal-form-section'><form method='get' action='/workspace'>${hidden("section","measure")}${hidden("id",project.id.toString())}<p class='portal-form-legend'>Contractor context</p><div class='portal-form-grid'>${select("contractor","Contractor",contractors.map { it.id.toString() to it.name },selectedContractor?.toString().orEmpty())}</div><button class='cds--btn cds--btn--tertiary'>Show contractor items</button></form></section>"
         val context=hidden("project",project.id.toString()) + select("floor","Floor",floors.map { it.id.toString() to it.name }) + hidden("contractor",selectedContractor?.toString().orEmpty())
         val systems=MeasurementUnitSystem.entries.map { it.name to it.name.lowercase().replaceFirstChar(Char::uppercase) }
-        val entry=context + hidden("revision",active?.label.orEmpty()) + select("system","Input dimension unit system (converted to assigned rate unit)",systems) + "<label>Item<select name='item' id='work-item'>" + assigned.joinToString("") { "<option value='${e(it.key)}' data-formula='${e(it.formula)}' data-unit='${e(it.unit)}' data-rate='${e(it.rate)}'>${e(it.code)} | ${e(it.description)} | ${e(it.rate)} / ${e(it.unit)} | ${e(it.basis)}</option>" } + "</select></label>" + field("description","Description") + "<div class='dimensions'>" + listOf("nos","length","breadth","height").joinToString("") { field(it,it,if(it=="nos") "1" else "","number") } + "</div>" + field("deduction","Wall opening deduction (square input units)","0","number") + "<output id='quantity' aria-live='polite'>Enter dimensions for a live quantity.</output>" + field("location","Location") + field("remarks","Remarks")
-        val imp=context + select("sourceSystem","CSV dimension units",systems) + "<p>Saved units follow the assigned contractor rate unit; dimensions are converted automatically.</p>" + "<p>Columns: ItemCode, Description, Nos, Length, Breadth, Height, Deduction, Location, Remarks (optional LineKey for multiple assignments of the same item). Decimal feet for imperial inputs; deduction is square feet/metres. One selected floor and contractor per import.</p><input type='file' id='csv-file' accept='.csv,.tsv,text/csv,text/tab-separated-values'>" + area("csv","CSV content")
-        return "<h1>${e(project.name)} / Record entry</h1><p>Active project revision: ${e(active?.label ?: "none")}. Only assigned contractor items are available. Quantities and bills exclude taxes.</p><p><a href='/workspace?section=schedule&id=${project.id}'>Manage project revision</a></p>$chooser" + form("measure",csrf,entry,"Save entry") + "<h2>Import measurements</h2>" + form("previewImport",csrf,imp,"Preview import (no records saved)") + "<h2>Downloads</h2>" + listOf("pdf","xlsx","csv").joinToString(" | ") { "<a href='/workspace/export?kind=measurements&project=${project.id}&format=$it'>Measurement $it</a>" } + "<p><a href='/workspace/export?kind=runningbill&project=${project.id}&format=xlsx'>Approved quantities for running-bill valuation (Excel)</a></p>"
+        val itemSelect = "<div class='cds--form-item portal-form-span-2'><label class='cds--label' for='work-item'>Assigned item</label><select class='cds--select-input' name='item' id='work-item'>" + assigned.joinToString("") { "<option value='${e(it.key)}' data-formula='${e(it.formula)}' data-unit='${e(it.unit)}' data-rate='${e(it.rate)}'>${e(it.code)} · ${e(it.description)} · ${e(it.rate)} / ${e(it.unit)}</option>" } + "</select></div>"
+        val entry = CarbonPortal.formSection("Placement", context + hidden("revision",active?.label.orEmpty()) + select("system","Dimension unit system",systems) + itemSelect + field("description","Description")) +
+            CarbonPortal.formSection("Dimensions", "<div class='dimensions portal-form-span-2'>" + listOf("nos","length","breadth","height").joinToString("") { field(it,it.replaceFirstChar(Char::uppercase),if(it=="nos") "1" else "","number") } + "</div>" + field("deduction","Opening deduction","0","number") + "<div class='cds--form-item portal-form-span-2'><output id='quantity' aria-live='polite'>Enter dimensions for a live quantity.</output></div>", "Converted to the assigned rate unit.") +
+            CarbonPortal.formSection("Notes", field("location","Location") + field("remarks","Remarks"))
+        val imp = CarbonPortal.formSection("Import file", context + select("sourceSystem","CSV dimension units",systems) + "<p class='portal-form-hint portal-form-span-2'>Columns: ItemCode, Description, Nos, Length, Breadth, Height, Deduction, Location, Remarks. One floor and contractor per import.</p><div class='cds--form-item portal-form-span-2'><input class='portal-file' type='file' id='csv-file' accept='.csv,.tsv,text/csv,text/tab-separated-values'></div>" + area("csv","CSV content"))
+        val assignedRows = assigned.map { line ->
+            val hasSheet = line.key in recordedKeys
+            listOf(
+                e(line.code),
+                e(line.description),
+                e(line.unit),
+                e(line.rate),
+                if (hasSheet) """<span class="status status-approved">Recorded</span>""" else """<span class="status">Yet to record</span>""",
+            )
+        }
+        val sheetRows = contractorSheets.take(100).map { sheet ->
+            listOf(
+                e(sheet.sheetCode),
+                e(sheet.itemNameSnapshot),
+                e(sheet.floorNameSnapshot),
+                """<span class="status">${e(sheet.status)}</span>""",
+                e(sheet.boqRevision.ifBlank { "—" }),
+            )
+        }
+        return CarbonPortal.masthead("${project.name} · Record entry", "Active revision: ${active?.label ?: "none"}. Quantities exclude taxes.", "notebook") +
+            PortalKpis.strip(listOf(
+                PortalKpis.Kpi("Assigned items", assigned.size.toString(), "task"),
+                PortalKpis.Kpi("Measurement recorded", recordedAssigned.toString(), "notebook"),
+                PortalKpis.Kpi("Yet to record", yetToRecord.toString(), "ruler"),
+                PortalKpis.Kpi("Draft / returned sheets", draftSheets.toString(), "document"),
+                PortalKpis.Kpi("Awaiting review", reviewSheets.toString(), "chart"),
+                PortalKpis.Kpi("Approved sheets", approvedSheets.toString(), "folder"),
+                PortalKpis.Kpi("Line entries", measurementCount.toString(), "construction"),
+            )) +
+            "<p><a href='/workspace?section=schedule&id=${project.id}'>Manage project revision</a></p>$chooser" +
+            PortalKpis.dataTable("Assigned items for selected contractor", listOf("Code", "Description", "Unit", "Rate", "Recording"), assignedRows, "No items assigned to this contractor in the active revision.") +
+            form("measure",csrf,entry,"Save entry") +
+            "<h2 class='portal-section-title'>${CarbonPortalIcons.svg("upload")}<span>Import measurements</span></h2>" + form("previewImport",csrf,imp,"Preview import (no records saved)") +
+            PortalKpis.dataTable("Measurement sheets", listOf("Sheet", "Item", "Floor", "Status", "Revision"), sheetRows, "No measurement sheets for this contractor yet.") +
+            "<h2 class='portal-section-title'>${CarbonPortalIcons.svg("download")}<span>Downloads</span></h2><div class='portal-stack'><div class='cds--tile portal-panel'>" + listOf("pdf","xlsx","csv").joinToString(" · ") { "<a href='/workspace/export?kind=measurements&project=${project.id}&format=$it'>Measurement $it</a>" } + "<p><a href='/workspace/export?kind=runningbill&project=${project.id}&format=xlsx'>Approved quantities for running-bill valuation (Excel)</a></p></div></div>"
     }
     private suspend fun documents(): String {
         val projects=db.projectDao().projects()
+        val projectNames=projects.associate { it.id to it.name }
         val tables=listOf("fee_proposals" to "proposal","work_contracts" to "agreement","invoices" to "invoice","letters" to "letter")
         return "<h1>Documents & exports</h1><p>PDF uses the saved company letterhead. Excel (.xlsx) and CSV contain the complete document text or tabular quantities. Draft/issued status is retained; downloads do not issue documents.</p>" + projects.joinToString("") { "<article><h2>${e(it.name)}</h2><a href='/workspace?section=measure&id=${it.id}'>Record / import measurements</a> | <a href='/workspace?section=schedule&id=${it.id}'>Project item revisions</a> | <a href='/workspace?section=estimate&id=${it.id}'>Estimate</a> | <a href='/workspace?section=bills&id=${it.id}'>Contractor running bills</a> | " + listOf("pdf","xlsx","csv").joinToString(" | ") { f -> "<a href='/workspace/export?kind=measurements&project=${it.id}&format=$f'>Measurements $f</a>" } + "</article>" } + tables.joinToString("") { (table,kind) ->
-            sql.query("SELECT * FROM `$table` ORDER BY id DESC LIMIT 500").use { cursor -> buildString { while(cursor.moveToNext()) { val id=cursor.getLong(cursor.getColumnIndexOrThrow("id")); val title=cursor.getString(cursor.getColumnIndexOrThrow(if(kind=="letter") "subject" else "title")); append("<article>${e(kind)}: ${e(title)} | " + listOf("pdf","xlsx","csv").joinToString(" | ") { "<a href='/workspace/export?kind=$kind&id=$id&format=$it'>${e(it)}</a>" } + "</article>") } } }
+            sql.query("SELECT * FROM `$table` ORDER BY id DESC LIMIT 500").use { cursor -> buildString { while(cursor.moveToNext()) { val id=cursor.getLong(cursor.getColumnIndexOrThrow("id")); val title=cursor.getString(cursor.getColumnIndexOrThrow(if(kind=="letter") "subject" else "title")); val number=cursor.getColumnIndex("number").let{ if(it<0) "" else cursor.getString(it) }; val status=cursor.getColumnIndex("status").let{ if(it<0) "" else cursor.getString(it) }; val pid=cursor.getColumnIndex("projectId").let{ if(it<0) -1L else cursor.getLong(it) }; val project=projectNames[pid].orEmpty(); val kindLabel=mapOf("proposal" to "Fee proposal","agreement" to "Agreement","invoice" to "Client invoice","letter" to "Letter")[kind].orEmpty(); append("<article><strong>${e(kindLabel)}</strong> ${e(number)} · ${e(title)}" + (if(project.isNotBlank()) " · ${e(project)}" else "") + (if(status.isNotBlank()) " · <span class='status'>${e(status)}</span>" else "") + " | " + listOf("pdf","xlsx","csv").joinToString(" | ") { "<a href='/workspace/export?kind=$kind&id=$id&format=$it'>${e(it)}</a>" } + "</article>") } } }
         }
     }
     suspend fun save(fields: Map<String,String>, csrf: String): String {
@@ -86,7 +197,13 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
     private suspend fun saveAction(fields: Map<String,String>, csrf: String): String {
         fun value(key: String)=fields[key].orEmpty().trim()
         if (value("action").startsWith("schedule")) return shell(PortalProjectSchedules(db).action(fields,csrf), "schedule", csrf)
-        if (value("action")=="contact") return shell(PortalProjectSchedules(db).saveContact(fields,csrf), "clients", csrf)
+        if (value("action")=="contact") {
+            val html = PortalProjectSchedules(db).saveContact(fields, csrf)
+            return shell(html, if (value("type") == "contractor") "contractors" else "clients", csrf)
+        }
+        if (value("action") == "taskAdd" || value("action") == "taskMove") {
+            return shell(PortalKanban(db).save(fields), "tasks", csrf)
+        }
         if (value("action").startsWith("bill")) return shell(PortalContractorBills(db).save(fields,csrf), "bills", csrf)
         if (value("action").startsWith("estimate")) return shell(PortalEstimates(db).save(fields,csrf), "estimate", csrf)
         return when(value("action")) {
@@ -207,7 +324,7 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
         val identity=DocumentExports.identity(c).map { listOf(it) }; rows=identity+listOf(emptyList())+rows
         return when(format) { "pdf" -> Download(DocumentExports.pdf(c,style(),title,text),"application/pdf","archiman-$kind.pdf"); "xlsx" -> Download(DocumentExports.xlsx(rows),"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","archiman-$kind.xlsx"); "csv" -> Download(DocumentExports.csv(rows),"text/csv; charset=utf-8","archiman-$kind.csv"); else -> error("Choose PDF, XLSX or CSV.") }
     }
-    fun shell(body: String, current: String = "dashboard", csrf: String? = null) = CarbonPortal.page(
+    suspend fun shell(body: String, current: String = "dashboard", csrf: String? = null) = CarbonPortal.page(
         title = "Workspace",
         body = body,
         audience = CarbonPortal.Audience.ADMIN,
@@ -215,5 +332,6 @@ class PortalWorkspace(private val db: ArchiManDatabase) {
         crumb = "Workspace",
         workspace = true,
         csrf = csrf,
+        brand = PortalBrand.load(db),
     )
 }

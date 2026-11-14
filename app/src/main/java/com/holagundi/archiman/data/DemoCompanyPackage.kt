@@ -16,7 +16,7 @@ data class DemoCompanyPackage(
     val source: JSONObject,
 ) {
     fun requireOpenable() {
-        require(source.optString("format") == FORMAT) { "This file is not an ArchiMan company package." }
+        require(source.optString("format") == FORMAT) { "This file is not a MynaHub company package." }
         require(schemaVersion in 28..SchemaContract.VERSION) {
             "Demo file is schema $schemaVersion. This app opens schema ${SchemaContract.VERSION}."
         }

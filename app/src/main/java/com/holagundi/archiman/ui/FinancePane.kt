@@ -10,8 +10,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,6 +25,9 @@ import com.holagundi.archiman.data.FinanceRepository
 import com.holagundi.archiman.domain.*
 import com.holagundi.archiman.ui.theme.ArchiField
 import com.holagundi.archiman.ui.theme.ArchiCard
+import com.holagundi.archiman.ui.theme.CarbonContentSwitcher
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonTextInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -46,6 +47,7 @@ class FinanceViewModel @Inject constructor(val repo: FinanceRepository, @Applica
     var busy by mutableStateOf(false); private set
     var preview by mutableStateOf<List<BankRow>>(emptyList()); private set
     private var previewAccount = ""
+    fun dismissNotice() { notice = "" }
     fun action(success: String = "Changes saved.", block: suspend () -> Unit) {
         if (busy) return
         busy = true; notice = ""; noticeKind = com.holagundi.archiman.ui.theme.CarbonNoticeKind.INFO
@@ -77,10 +79,11 @@ fun FinancePane(vm: FinanceViewModel = hiltViewModel()) {
     val rows by vm.records.collectAsStateWithLifecycle(); val invoices by vm.invoices.collectAsStateWithLifecycle()
     val receipts by vm.receipts.collectAsStateWithLifecycle()
     val config = rows.firstOrNull { it.key == "settings" }?.json.orEmpty()
-    var mode by rememberSaveable(config) { mutableStateOf(if (config.isBlank()) "NONE" else JSONObject(config).getString("mode")) }
-    var rate by rememberSaveable(config) { mutableStateOf(if (config.isBlank()) "18" else JSONObject(config).getString("rate")) }
-    var state by rememberSaveable(config) { mutableStateOf(if (config.isBlank()) "" else JSONObject(config).getString("state")) }
-    var gstin by rememberSaveable(config) { mutableStateOf(if (config.isBlank()) "" else JSONObject(config).getString("gstin")) }
+    val settingsJson = remember(config) { runCatching { if (config.isBlank()) null else JSONObject(config) }.getOrNull() }
+    var mode by rememberSaveable(config) { mutableStateOf(settingsJson?.optString("mode").orEmpty().ifBlank { "NONE" }) }
+    var rate by rememberSaveable(config) { mutableStateOf(settingsJson?.optString("rate").orEmpty().ifBlank { "18" }) }
+    var state by rememberSaveable(config) { mutableStateOf(settingsJson?.optString("state").orEmpty()) }
+    var gstin by rememberSaveable(config) { mutableStateOf(settingsJson?.optString("gstin").orEmpty()) }
     var account by rememberSaveable { mutableStateOf("") }; var monthFirst by rememberSaveable { mutableStateOf(false) }
     var selected by rememberSaveable { mutableStateOf<String?>(null) }; var invoiceId by rememberSaveable { mutableStateOf<Long?>(null) }
     var tds by rememberSaveable { mutableStateOf("") }; var reference by rememberSaveable { mutableStateOf("") }
@@ -89,11 +92,24 @@ fun FinancePane(vm: FinanceViewModel = hiltViewModel()) {
     val invoiceNumbers=remember(invoices) { invoices.associate { it.id to it.number } }
     val reversed=remember(receipts) { receipts.mapNotNull { Regex("^REVERSAL:([0-9]+):").find(it.note)?.groupValues?.get(1)?.toLongOrNull() }.toSet() }
     val credits=remember(receipts,reversed) { receipts.filter { it.tdsAmount>0 && it.id !in reversed } }
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
-        item { Column(verticalArrangement=Arrangement.spacedBy(10.dp)) {
+    LazyColumn(Modifier.fillMaxSize().padding(com.holagundi.archiman.ui.theme.CarbonSpacing.screenPadding), verticalArrangement=com.holagundi.archiman.ui.theme.CarbonSpacing.stackArrangement) {
+        item { Column(verticalArrangement=com.holagundi.archiman.ui.theme.CarbonSpacing.stackArrangement) {
         Text("Taxes & banking", style = MaterialTheme.typography.headlineSmall)
         Text("GST registration", style = MaterialTheme.typography.titleMedium)
-        GstMode.entries.forEach { option -> Row { RadioButton(mode == option.name, { mode = option.name }); Text(when(option) { GstMode.NONE -> "No GST registration"; GstMode.COMPOSITION -> "Composition GST"; GstMode.REGULAR -> "Regular GST" }, Modifier.padding(top = 12.dp)) } }
+        val gstModes = GstMode.entries
+        val gstLabels = gstModes.map { option ->
+            when (option) {
+                GstMode.NONE -> "No GST registration"
+                GstMode.COMPOSITION -> "Composition GST"
+                GstMode.REGULAR -> "Regular GST"
+            }
+        }
+        val gstSelectedIndex = gstModes.indexOfFirst { it.name == mode }.coerceAtLeast(0)
+        CarbonContentSwitcher(
+            options = gstLabels,
+            selectedIndex = gstSelectedIndex,
+            onSelected = { mode = gstModes[it].name },
+        )
         if (mode != "NONE") { ArchiField(gstin, { gstin = it.uppercase() }, "Supplier GSTIN"); ArchiField(state, { state = it }, "Supplier state code (two digits)") }
         if (mode == "REGULAR") ArchiField(rate, { rate = it }, "Default GST rate % (confirm for your supply)")
         if (mode == "COMPOSITION") Text("Bill of supply: GST is not collected from the client. Your composition levy is a separate business tax obligation. Select only if enrolled and eligible.")
@@ -130,7 +146,7 @@ fun FinancePane(vm: FinanceViewModel = hiltViewModel()) {
         items(banks,key={it.first.key}) { display ->
             val bank=display.first; val json = display.second; val status = json.getString("status")
             ArchiCard {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("${json.getString("date")} | ${json.getString("amount")} | $status")
                     Text("${json.getString("account")} | ${json.getString("description")} | ${json.getString("reference")}")
                     if (status == "UNMATCHED" && json.getString("amount").toBigDecimal().signum() > 0) TextButton(onClick = { selected = bank.key; invoiceId = null; tds = ""; reference = "" }) { Text("Match to invoice") }
@@ -140,59 +156,153 @@ fun FinancePane(vm: FinanceViewModel = hiltViewModel()) {
         }
     }
     selected?.let { key ->
-        AlertDialog(onDismissRequest = { selected = null }, title = { Text("Review receipt and TDS") }, text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Choose an issued invoice. Bank credit is the cash receipt. Add only the actual TDS withheld by the client; it remains unverified until checked against tax records.")
-                invoices.filter { it.status == "ISSUED" }.forEach { invoice -> TextButton(onClick = { invoiceId = invoice.id }) { Text("${if(invoiceId == invoice.id) "Selected: " else ""}${invoice.number} | ${invoice.title} | total ${invoice.amount}") } }
+        CarbonModal(
+            title = "Review receipt and TDS",
+            description = "Choose an issued invoice. Bank credit is the cash receipt. Add only the actual TDS withheld by the client; it remains unverified until checked against tax records.",
+            onDismiss = { selected = null },
+            primaryLabel = "Post reviewed receipt",
+            onPrimary = {
+                invoiceId?.let { id ->
+                    vm.action { vm.repo.match(key, id, tds, reference); withContext(Dispatchers.Main) { selected = null } }
+                }
+            },
+            primaryEnabled = invoiceId != null && !vm.busy,
+            primaryBusy = vm.busy,
+        ) {
+            // CarbonModal already scrolls its body; a second verticalScroll here crashes on open.
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                invoices.filter { it.status == "ISSUED" }.forEach { invoice ->
+                    TextButton(onClick = { invoiceId = invoice.id }) {
+                        Text("${if (invoiceId == invoice.id) "Selected: " else ""}${invoice.number} | ${invoice.title} | total ${invoice.amount}")
+                    }
+                }
                 if (invoices.none { it.status == "ISSUED" }) Text("No issued invoices available.")
-                invoiceId?.let { id -> invoices.firstOrNull { it.id == id }?.let { invoice ->
-                    val remaining = InvoiceBalance.outstanding(invoice.amount, receipts.filter { it.invoiceId == id }.map { it.amount + it.tdsAmount })
-                    val cash = rows.firstOrNull { it.key == key }?.let { JSONObject(it.json).getString("amount").toBigDecimal() } ?: java.math.BigDecimal.ZERO
-                    Text("Outstanding $remaining | bank cash $cash")
-                    runCatching { FinanceMath.decimal(tds.ifBlank { "0" }) }.getOrNull()?.let { Text("Balance after cash + TDS: ${remaining - cash - it}") }
-                } }
-                ArchiField(tds, { tds = it }, "Actual TDS amount (optional)")
-                ArchiField(reference, { reference = it }, "TDS deduction advice / reference")
+                invoiceId?.let { id ->
+                    invoices.firstOrNull { it.id == id }?.let { invoice ->
+                        val remaining = InvoiceBalance.outstanding(invoice.amount, receipts.filter { it.invoiceId == id }.map { it.amount + it.tdsAmount })
+                        val cash = rows.firstOrNull { it.key == key }?.let { JSONObject(it.json).getString("amount").toBigDecimal() } ?: java.math.BigDecimal.ZERO
+                        Text("Outstanding $remaining | bank cash $cash")
+                        runCatching { FinanceMath.decimal(tds.ifBlank { "0" }) }.getOrNull()?.let { Text("Balance after cash + TDS: ${remaining - cash - it}") }
+                    }
+                }
+                CarbonTextInput(tds, { tds = it }, "Actual TDS amount (optional)")
+                CarbonTextInput(reference, { reference = it }, "TDS deduction advice / reference")
                 FinanceNotice(vm)
             }
-        }, confirmButton = { TextButton(enabled = invoiceId != null && !vm.busy, onClick = { val id = invoiceId!!; vm.action { vm.repo.match(key, id, tds, reference); withContext(Dispatchers.Main) { selected = null } } }) { Text("Post reviewed receipt") } }, dismissButton = { TextButton(onClick = { selected = null }) { Text("Cancel") } })
+        }
     }
 }
 
 @Composable
 fun TaxInvoiceForm(projectId: Long, vm: FinanceViewModel = hiltViewModel()) {
-    var title by rememberSaveable { mutableStateOf("") }; var base by rememberSaveable { mutableStateOf("") }
-    var place by rememberSaveable { mutableStateOf("") }; var sac by rememberSaveable { mutableStateOf("") }; var gstin by rememberSaveable { mutableStateOf("") }
+    var title by rememberSaveable { mutableStateOf("") }
+    var base by rememberSaveable { mutableStateOf("") }
+    var place by rememberSaveable { mutableStateOf("") }
+    var sac by rememberSaveable { mutableStateOf("") }
+    var gstin by rememberSaveable { mutableStateOf("") }
     val records by vm.settings.collectAsStateWithLifecycle()
-    val config = records.firstOrNull { it.key == "settings" }?.let { JSONObject(it.json) }
-    val mode = config?.optString("mode") ?: "NONE"
+    val config = records.firstOrNull { it.key == "settings" }?.let { runCatching { JSONObject(it.json) }.getOrNull() }
+    val mode = config?.optString("mode").orEmpty().ifBlank { "NONE" }
     Text("New invoice | $mode", style = MaterialTheme.typography.titleMedium)
-    ArchiField(title, { title = it }, "Invoice for"); ArchiField(base, { base = it }, "Professional fee before GST")
-    if (mode != "NONE") { ArchiField(sac, { sac = it }, "Service SAC (six digits)"); ArchiField(gstin, { gstin = it.uppercase() }, "Client GSTIN (optional)") }
+    ArchiField(title, { title = it }, "Invoice for")
+    ArchiField(base, { base = it }, "Professional fee before GST")
+    if (mode != "NONE") {
+        ArchiField(sac, { sac = it }, "Service SAC (six digits)")
+        ArchiField(gstin, { gstin = it.uppercase() }, "Client GSTIN (optional)")
+    }
     if (mode == "REGULAR") {
         ArchiField(place, { place = it }, "Place-of-supply state code")
         Text("For property-related architectural services, confirm the property's location as the place of supply.")
     }
-    val tax = runCatching { FinanceMath.tax(base, GstMode.valueOf(mode), config?.optString("rate") ?: "18", config?.optString("state").orEmpty(), place) }.getOrNull()
+    val taxResult = runCatching {
+        FinanceMath.tax(
+            base,
+            GstMode.valueOf(mode),
+            config?.optString("rate").orEmpty().ifBlank { "18" },
+            config?.optString("state").orEmpty(),
+            place,
+        )
+    }
+    val tax = taxResult.getOrNull()
     tax?.let { Text("Fee ${it.base} | CGST ${it.cgst} | SGST ${it.sgst} | IGST ${it.igst} | Total ${it.total}") }
+    if (title.isNotBlank() && base.isNotBlank() && tax == null) {
+        Text(
+            taxResult.exceptionOrNull()?.message
+                ?: "Enter a valid fee and GST details to enable Save.",
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
     FinanceNotice(vm)
-    Button(enabled = !vm.busy && tax != null && title.isNotBlank(), onClick = { vm.action { vm.repo.createInvoice(projectId, title, base, place, sac, gstin) } }) { Text("Save invoice draft") }
+    Button(
+        enabled = !vm.busy && projectId > 0L && tax != null && title.isNotBlank(),
+        onClick = {
+            val submittedTitle = title
+            val submittedBase = base
+            val submittedPlace = place
+            val submittedSac = sac
+            val submittedGstin = gstin
+            vm.action("Invoice draft saved.") {
+                vm.repo.createInvoice(projectId, submittedTitle, submittedBase, submittedPlace, submittedSac, submittedGstin)
+                withContext(Dispatchers.Main) {
+                    title = ""
+                    base = ""
+                    place = ""
+                    sac = ""
+                    gstin = ""
+                }
+            }
+        },
+    ) { Text("Save invoice draft") }
 }
+
 @Composable
 fun InvoiceTaxSummary(json: String) {
     if (json.isBlank()) return
-    val value = JSONObject(json)
-    Text(when(value.getString("mode")) { "COMPOSITION" -> "Bill of supply: composition taxable person, not eligible to collect tax on supplies."; "REGULAR" -> "Tax invoice | Fee ${value.getString("base")} | CGST ${value.getString("cgst")} | SGST ${value.getString("sgst")} | IGST ${value.getString("igst")} | Total ${value.getString("total")} | SAC ${value.optString("sac")}"; else -> "No GST charged" })
+    val value = runCatching { JSONObject(json) }.getOrNull() ?: run {
+        Text("Tax snapshot unavailable. Recreate this draft if you need GST details.")
+        return
+    }
+    val mode = value.optString("mode").ifBlank { "NONE" }
+    Text(
+        when (mode) {
+            "COMPOSITION" -> "Bill of supply: composition taxable person, not eligible to collect tax on supplies."
+            "REGULAR" -> "Tax invoice | Fee ${value.optString("base")} | CGST ${value.optString("cgst")} | SGST ${value.optString("sgst")} | IGST ${value.optString("igst")} | Total ${value.optString("total")} | SAC ${value.optString("sac")}"
+            else -> "No GST charged"
+        },
+    )
 }
 @Composable
 fun VerifyTdsButton(receiptId: Long, vm: FinanceViewModel = hiltViewModel()) {
     var confirm by remember { mutableStateOf(false) }
     TextButton(onClick = { confirm = true }) { Text("Verify TDS credit") }
-    if (confirm) AlertDialog(onDismissRequest = { confirm = false }, title = { Text("Confirm TDS verification") }, text = { Text("Have you checked the deduction against the client's certificate and your tax credit records? This app does not verify tax records automatically.") }, confirmButton = { TextButton(onClick = { vm.action { vm.repo.verifyTds(receiptId) }; confirm = false }) { Text("Mark verified") } }, dismissButton = { TextButton(onClick = { confirm = false }) { Text("Cancel") } })
+    if (confirm) {
+        CarbonModal(
+            title = "Confirm TDS verification",
+            description = "Have you checked the deduction against the client's certificate and your tax credit records? This app does not verify tax records automatically.",
+            onDismiss = { confirm = false },
+            primaryLabel = "Mark verified",
+            onPrimary = { vm.action { vm.repo.verifyTds(receiptId) }; confirm = false },
+        )
+    }
 }
 
 @Composable
 private fun FinanceNotice(vm: FinanceViewModel) {
     if (vm.busy) Text("Working…", modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
-    if (vm.notice.isNotBlank()) com.holagundi.archiman.ui.theme.CarbonInlineNotification(if (vm.noticeKind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR) "Check your entries" else "Finance update", vm.notice, vm.noticeKind)
+    // Success banners clear themselves so they do not linger after the record changes again; errors stay until dismissed.
+    androidx.compose.runtime.LaunchedEffect(vm.notice, vm.noticeKind) {
+        if (vm.notice.isNotBlank() && vm.noticeKind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.SUCCESS) {
+            kotlinx.coroutines.delay(4000)
+            vm.dismissNotice()
+        }
+    }
+    if (vm.notice.isNotBlank()) {
+        com.holagundi.archiman.ui.theme.CarbonInlineNotification(
+            title = if (vm.noticeKind == com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR) "Check your entries" else "Finance update",
+            body = vm.notice,
+            kind = vm.noticeKind,
+            onDismiss = vm::dismissNotice,
+        )
+    }
 }
