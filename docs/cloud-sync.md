@@ -1,5 +1,7 @@
 # Cloud login and sync (MynaHub Mobile)
 
+> **Superseded in direction (2026-11-15):** the company-owned Myna API replaces the Neon Data API path described below. What the mobile app must change is in [platform-migration.md](platform-migration.md). This page describes what the code on this branch does today.
+
 Status: Stage 3 of the MynaHub plan, built on branch `mynahub-mobile-sync` (2026-11-15). The design is `docs/hub-sync-design.md` in the MynaHub repository; this page says only what the phone does.
 
 **What it does.** Practice > Cloud sync: sign in with a cloud account, join a company the account belongs to, then Sync now. Clients, projects and project tasks are pushed and pulled through Neon (Neon Auth for the sign-in, the Neon Data API with row level security for the data). The phone keeps working offline; nothing is sent until you press Sync now.
