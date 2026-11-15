@@ -167,6 +167,80 @@ class LedgerRepository @Inject constructor(private val db: ArchiManDatabase) {
         )
     }
 
+    /**
+     * Books a practice expense (MynaHub record_expense). A regular GST registration claims input credit;
+     * otherwise the GST is part of the cost. [paidVia] is "cash", "bank" or "payable" (booked to creditors).
+     */
+    suspend fun postExpense(date: String, description: String, expenseCode: String, amount: Long, gst: Long, tds: Long, paidVia: String): Long {
+        require(description.isNotBlank()) { "Describe the expense." }
+        require(amount > 0) { "Enter the amount." }
+        require(gst >= 0 && tds >= 0) { "Amounts cannot be negative." }
+        require(tds <= amount) { "TDS cannot be more than the amount." }
+        requireAccountType(expenseCode, "expense") { "Choose an expense account." }
+        val claim = gstMode() == "REGULAR"
+        val cost = if (claim) amount else amount + gst
+        val payee = payeeAccount(paidVia)
+        return post(
+            actorId = null,
+            date = date,
+            narration = "Expense: ${description.trim()}",
+            lines = listOf(
+                LedgerLine(accountId(expenseCode), cost, 0),
+                LedgerLine(accountId("1220"), if (claim) gst else 0, 0),
+                LedgerLine(accountId("2200"), 0, tds),
+                LedgerLine(payee, 0, amount + gst - tds),
+            ),
+            sourceType = "expense",
+            sourceId = null,
+        )
+    }
+
+    /**
+     * Books income (MynaHub record_income). GST output needs a regular registration; [interState] charges IGST,
+     * otherwise CGST and SGST split the amount. TDS deducted by the payer goes to TDS receivable.
+     */
+    suspend fun postIncome(date: String, description: String, incomeCode: String, amount: Long, gst: Long, interState: Boolean, tds: Long, receivedVia: String): Long {
+        require(description.isNotBlank()) { "Describe the income." }
+        require(amount > 0) { "Enter the amount." }
+        require(gst >= 0 && tds >= 0) { "Amounts cannot be negative." }
+        require(tds <= amount) { "TDS cannot be more than the amount." }
+        require(gst == 0L || gstMode() == "REGULAR") { "GST can only be charged with a regular GST registration. Remove the GST amount." }
+        requireAccountType(incomeCode, "income") { "Choose an income account." }
+        val cgst = if (gst == 0L || interState) 0L else gst / 2
+        val sgst = if (gst == 0L || interState) 0L else gst - gst / 2
+        val igst = if (interState) gst else 0L
+        return post(
+            actorId = null,
+            date = date,
+            narration = "Income: ${description.trim()}",
+            lines = listOf(
+                LedgerLine(payeeAccount(receivedVia), amount + gst - tds, 0),
+                LedgerLine(accountId("1210"), tds, 0),
+                LedgerLine(accountId(incomeCode), 0, amount),
+                LedgerLine(accountId("2100"), 0, cgst),
+                LedgerLine(accountId("2110"), 0, sgst),
+                LedgerLine(accountId("2120"), 0, igst),
+            ),
+            sourceType = "income",
+            sourceId = null,
+        )
+    }
+
+    private suspend fun gstMode(): String =
+        db.suiteDao().finance("settings")?.let { JSONObject(it.json).optString("mode", "NONE") } ?: "NONE"
+
+    private suspend fun payeeAccount(paidVia: String): Long = when (paidVia) {
+        "cash" -> accountId("1000")
+        "bank" -> accountId("1010")
+        "payable" -> accountId("2000")
+        else -> throw IllegalArgumentException("Choose how it was paid: cash, bank or payable.")
+    }
+
+    private suspend fun requireAccountType(code: String, type: String, message: () -> String) {
+        val account = dao.accounts().firstOrNull { it.code == code.trim() }
+        require(account != null && account.type == type) { message() }
+    }
+
     /** Cancels the journal posted for a business event, if there is one (for example a voided invoice). */
     suspend fun reverseBySource(sourceType: String, sourceId: Long, reason: String): Long? {
         val journal = dao.journalFor(sourceType, sourceId) ?: return null

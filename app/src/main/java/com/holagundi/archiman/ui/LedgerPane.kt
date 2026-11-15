@@ -80,6 +80,29 @@ class LedgerViewModel @Inject constructor(private val ledger: LedgerRepository) 
         ledger.post(null, date.trim(), narration, listOf(LedgerLine(debit.id, paise, 0), LedgerLine(credit.id, 0, paise)))
     }
 
+    fun recordExpense(date: String, description: String, accountCode: String, amount: String, gst: String, tds: String, paidVia: String) =
+        action("Expense recorded.") {
+            ledger.postExpense(
+                date.trim(), description, accountCode.trim(),
+                amountPaise(amount, "Amount"), amountPaise(gst, "GST", allowBlank = true), amountPaise(tds, "TDS", allowBlank = true),
+                paidVia.trim(),
+            )
+        }
+
+    fun recordIncome(date: String, description: String, accountCode: String, amount: String, gst: String, interState: Boolean, tds: String, receivedVia: String) =
+        action("Income recorded.") {
+            ledger.postIncome(
+                date.trim(), description, accountCode.trim(),
+                amountPaise(amount, "Amount"), amountPaise(gst, "GST", allowBlank = true), interState, amountPaise(tds, "TDS", allowBlank = true),
+                receivedVia.trim(),
+            )
+        }
+
+    private fun amountPaise(text: String, label: String, allowBlank: Boolean = false): Long {
+        if (allowBlank && text.isBlank()) return 0L
+        return requireNotNull(LedgerRules.parsePaise(text)) { "Enter $label in rupees, for example 1500.00." }
+    }
+
     fun reverse(journal: LedgerJournalEntity, reason: String) = action("Journal ${journal.number} reversed.") {
         ledger.reverse(null, journal.id, reason)
     }
@@ -117,6 +140,21 @@ fun LedgerPane(vm: LedgerViewModel = hiltViewModel()) {
     var creditCode by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var reason by remember { mutableStateOf("") }
+    var expDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var expDescription by remember { mutableStateOf("") }
+    var expAccount by remember { mutableStateOf("") }
+    var expAmount by remember { mutableStateOf("") }
+    var expGst by remember { mutableStateOf("") }
+    var expTds by remember { mutableStateOf("") }
+    var expPaidVia by remember { mutableStateOf("bank") }
+    var incDate by remember { mutableStateOf(LocalDate.now().toString()) }
+    var incDescription by remember { mutableStateOf("") }
+    var incAccount by remember { mutableStateOf("") }
+    var incAmount by remember { mutableStateOf("") }
+    var incGst by remember { mutableStateOf("") }
+    var incInterState by remember { mutableStateOf("no") }
+    var incTds by remember { mutableStateOf("") }
+    var incReceivedVia by remember { mutableStateOf("bank") }
     LazyColumn(
         Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -159,6 +197,37 @@ fun LedgerPane(vm: LedgerViewModel = hiltViewModel()) {
                 vm.post(date, narration, debitCode, creditCode, amount)
                 narration = ""; amount = ""
             }) { Text("Post journal") }
+        }
+        item {
+            Text("Record an expense", style = MaterialTheme.typography.titleMedium)
+            Text("Paid from cash or bank, or left payable. GST is claimed only under a regular GST registration.", style = MaterialTheme.typography.bodySmall)
+            ArchiField(expDate, { expDate = it }, "Date (YYYY-MM-DD)")
+            ArchiField(expDescription, { expDescription = it }, "Description")
+            ArchiField(expAccount, { expAccount = it }, "Expense account code (for example 5300)")
+            ArchiField(expAmount, { expAmount = it }, "Amount in rupees (before GST)")
+            ArchiField(expGst, { expGst = it }, "GST in rupees (optional)")
+            ArchiField(expTds, { expTds = it }, "TDS deducted by you (optional)")
+            ArchiField(expPaidVia, { expPaidVia = it }, "Paid via: cash, bank or payable")
+            Button(onClick = {
+                vm.recordExpense(expDate, expDescription, expAccount, expAmount, expGst, expTds, expPaidVia)
+                expDescription = ""; expAmount = ""; expGst = ""; expTds = ""
+            }) { Text("Record expense") }
+        }
+        item {
+            Text("Record income", style = MaterialTheme.typography.titleMedium)
+            Text("Fee, rent or interest. GST output needs a regular registration. Inter-state income is charged IGST.", style = MaterialTheme.typography.bodySmall)
+            ArchiField(incDate, { incDate = it }, "Date (YYYY-MM-DD)")
+            ArchiField(incDescription, { incDescription = it }, "Description or payer")
+            ArchiField(incAccount, { incAccount = it }, "Income account code (for example 4000, 4200 or 4900)")
+            ArchiField(incAmount, { incAmount = it }, "Amount in rupees (before GST)")
+            ArchiField(incGst, { incGst = it }, "GST in rupees (optional)")
+            ArchiField(incInterState, { incInterState = it }, "Inter-state (yes or no)")
+            ArchiField(incTds, { incTds = it }, "TDS deducted by the payer (optional)")
+            ArchiField(incReceivedVia, { incReceivedVia = it }, "Received via: cash or bank")
+            Button(onClick = {
+                vm.recordIncome(incDate, incDescription, incAccount, incAmount, incGst, incInterState.trim().equals("yes", true), incTds, incReceivedVia)
+                incDescription = ""; incAmount = ""; incGst = ""; incTds = ""
+            }) { Text("Record income") }
         }
         item { Text("Journals this financial year", style = MaterialTheme.typography.titleMedium) }
         items(vm.journals, key = { it.id }) { journal ->

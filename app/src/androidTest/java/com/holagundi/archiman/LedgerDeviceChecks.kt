@@ -103,10 +103,11 @@ object LedgerDeviceChecks {
                 rejectsSql { migrated.execSQL("DELETE FROM ledger_journals") }
                 migrated.close()
                 postings(context, results)
+                expensesAndIncome(context, results)
                 schema33Restore(isolated, results)
                 results.putString("migration", "passed: migration tables match entities; immutability triggers reject change and delete")
             }
-            results.putString("stream", "\nLedger checks PASSED\n" + listOf("chart", "post", "tds", "asOf", "rules", "once", "closed", "reverse", "migration", "issue", "receipt", "schema33").joinToString("\n") { results.getString(it).orEmpty() } + "\n")
+            results.putString("stream", "\nLedger checks PASSED\n" + listOf("chart", "post", "tds", "asOf", "rules", "once", "closed", "reverse", "migration", "issue", "receipt", "gstNone", "gstRegular", "rejections", "schema33").joinToString("\n") { results.getString(it).orEmpty() } + "\n")
             instrumentation.finish(Activity.RESULT_OK, results)
         } catch (error: Throwable) {
             results.putString("stream", "\nLedger checks FAILED: $error\n" + error.stackTrace.take(8).joinToString("\n") + "\n")
@@ -223,5 +224,46 @@ object LedgerDeviceChecks {
         check(row(paid, "1200").creditPaise == 1050_00L) { "receivable not cleared by cash plus TDS" }
         results.putString("receipt", "passed: a receipt with TDS books bank, TDS receivable and clears the receivable, trial balance equal")
         db.close()
+    }
+
+    /** Expenses and income follow MynaHub's GST and TDS rules; GST is claimed only under a regular registration. */
+    private suspend fun expensesAndIncome(context: android.content.Context, results: Bundle) {
+        val db = Room.inMemoryDatabaseBuilder(context, ArchiManDatabase::class.java).build()
+        DemoCompanyStore(context, db).openBuiltIn()
+        LedgerChart.ensure(db)
+        val ledger = LedgerRepository(db)
+        suspend fun scheme(mode: String) = db.suiteDao().saveFinance(
+            com.holagundi.archiman.data.local.entity.FinanceRecordEntity("settings", "SETTINGS",
+                org.json.JSONObject().put("mode", mode).put("rate", "18").put("state", "").put("gstin", "").toString()),
+        )
+        val date = "2026-11-10"
+        scheme("NONE")
+        rejects { ledger.postIncome(date, "GST without registration", "4000", 1000_00, 180_00, false, 0, "bank") }
+        ledger.postExpense(date, "Site travel", "5300", 1000_00, 180_00, 0, "bank")
+        val noRegistration = ledger.trialBalance("2026-12-31")
+        check(noRegistration.balanced) { "not balanced after unregistered expense" }
+        check(row(noRegistration, "5300").debitPaise == 1180_00L) { "GST not part of cost without registration" }
+        check(row(noRegistration, "1220").debitPaise == 0L) { "input credit claimed without registration" }
+        results.putString("gstNone", "passed: without GST registration the GST is part of the cost and no input credit is claimed")
+
+        scheme("REGULAR")
+        ledger.postExpense(date, "Printing", "5400", 500_00, 90_00, 0, "cash")
+        ledger.postIncome(date, "Consultancy", "4000", 1000_00, 180_00, false, 50_00, "bank")
+        ledger.postIncome(date, "Bank interest", "4200", 100_00, 18_00, true, 0, "bank")
+        val tb = ledger.trialBalance("2026-12-31")
+        check(tb.balanced) { "trial balance unequal after expenses and income" }
+        check(row(tb, "5400").debitPaise == 500_00L && row(tb, "1220").debitPaise == 90_00L) { "input credit not claimed under registration" }
+        check(row(tb, "1000").creditPaise == 590_00L) { "cash not credited for printing" }
+        check(row(tb, "1210").debitPaise == 50_00L) { "TDS deducted by client not booked" }
+        check(row(tb, "2100").creditPaise == 90_00L && row(tb, "2110").creditPaise == 90_00L) { "CGST and SGST not split" }
+        check(row(tb, "2120").creditPaise == 18_00L) { "IGST not booked for inter-state income" }
+        check(row(tb, "1010").debitPaise == 1248_00L && row(tb, "1010").creditPaise == 1180_00L) { "bank lines do not match the entries" }
+        results.putString("gstRegular", "passed: with a regular registration input credit is claimed, GST output split CGST/SGST or IGST, TDS booked, trial balance equal")
+
+        rejects { ledger.postExpense(date, "Wrong account", "4000", 10_00, 0, 0, "bank") }
+        rejects { ledger.postExpense(date, "TDS too high", "5300", 10_00, 0, 20_00, "bank") }
+        rejects { ledger.postExpense(date, "Unknown payment", "5300", 10_00, 0, 0, "barter") }
+        rejects { ledger.postIncome(date, "Wrong income account", "5300", 10_00, 0, false, 0, "bank") }
+        results.putString("rejections", "passed: wrong account type, TDS above amount and unknown payment method are rejected")
     }
 }
