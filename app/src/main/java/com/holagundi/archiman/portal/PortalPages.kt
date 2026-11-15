@@ -9,7 +9,13 @@ import com.holagundi.archiman.data.local.entity.ProjectEntity
 import com.holagundi.archiman.data.local.entity.SiteIssueEntity
 
 object PortalPages {
-    fun login(practiceName: String, users: List<LocalUserEntity>, csrf: String, error: String?): String {
+    fun login(
+        practiceName: String,
+        users: List<LocalUserEntity>,
+        csrf: String,
+        error: String?,
+        brand: PortalBrand = PortalBrand(practiceName = practiceName),
+    ): String {
         val admin = users.firstOrNull { it.isActive && it.role == "Admin" }
         val notice = error?.let { """<p class="notice" role="alert">${PortalHttp.escape(it)}</p>""" }.orEmpty()
         val title: String
@@ -24,18 +30,24 @@ object PortalPages {
             action = "Open practice transfer"
             icon = "backup"
         } else {
-            title = practiceName.ifBlank { "ArchiMan" }
+            title = brand.displayName.ifBlank { practiceName.ifBlank { "MynaHub" } }
             lead = "Enter the access code shown on the phone. The practice stays on the phone; this computer only connects while the portal is on."
             hiddenUser = """<input type="hidden" name="user" value="${admin.id}">"""
             action = "Open portal"
             icon = "wifi"
         }
+        val mark = if (brand.hasLogo) {
+            """<img class="portal-sign-in-logo" src="${PortalHttp.escape(brand.logoDataUrl)}" alt="${PortalHttp.escape(title)}">"""
+        } else {
+            """<div class="portal-sign-in-brand">${CarbonPortalIcons.svg(icon, "portal-sign-in-glyph")}</div>"""
+        }
         return CarbonPortal.page(
             title = "Sign in",
             audience = CarbonPortal.Audience.SIGNED_OUT,
+            brand = brand,
             body = """
                 <section class="cds--tile portal-sign-in">
-                  <div class="portal-sign-in-brand">${CarbonPortalIcons.svg(icon, "portal-sign-in-glyph")}</div>
+                  $mark
                   <p class="portal-kicker">ArchiMan Wi‑Fi portal</p>
                   <h1>${PortalHttp.escape(title)}</h1>
                   <p class="portal-lead">$lead</p>
@@ -51,33 +63,44 @@ object PortalPages {
         )
     }
 
-    fun transfer(practice: String, csrf: String, error: String?, role: String = "Admin") =
+    fun transfer(practice: String, csrf: String, error: String?, role: String = "Admin", brand: PortalBrand = PortalBrand(practiceName = practice)) =
         CarbonPortal.page(
             title = "Practice transfer",
             audience = if (role == PortalTransfer.ROLE) CarbonPortal.Audience.TRANSFER else CarbonPortal.Audience.ADMIN,
             current = "transfer",
             crumb = "Practice transfer",
             csrf = csrf,
+            brand = brand,
             body = PortalTransfer.page(practice, csrf, error),
         )
 
-    fun home(company: CompanyProfileEntity?, projects: List<ProjectEntity>, role: String, csrf: String): String {
-        val tiles = if (projects.isEmpty()) {
-            """<p class="portal-lead">No projects yet.</p>"""
-        } else {
-            projects.joinToString("") { project ->
-                """
-                <a class="cds--tile cds--tile--clickable portal-tile" href="/project?id=${project.id}">
-                  <span class="portal-tile-icon">${CarbonPortalIcons.svg("building", "portal-tile-glyph")}</span>
-                  <span class="portal-tile-copy">
-                    <h2>${PortalHttp.escape(project.name)}</h2>
-                    <p class="portal-tile-meta">${PortalHttp.escape(project.projectCode)} · ${PortalHttp.escape(project.client)}</p>
-                    <span class="${statusClass(project.status)}">${PortalHttp.escape(project.status)}</span>
-                  </span>
-                  ${CarbonPortalIcons.svg("arrow", "portal-tile-arrow")}
-                </a>
-                """.trimIndent()
-            }.let { """<div class="portal-tiles">$it</div>""" }
+    fun home(
+        company: CompanyProfileEntity?,
+        projects: List<ProjectEntity>,
+        role: String,
+        csrf: String,
+        brand: PortalBrand = PortalBrand.from(company),
+    ): String {
+        fun label(status: String) = when (status.uppercase()) {
+            "ACTIVE" -> "Active"
+            "ON_HOLD" -> "On hold"
+            "COMPLETED" -> "Completed"
+            "ARCHIVED" -> "Archived"
+            else -> status.replaceFirstChar(Char::uppercase)
+        }
+        val active = projects.count { it.status.equals("ACTIVE", true) }
+        val onHold = projects.count { it.status.equals("ON_HOLD", true) }
+        val completed = projects.count { it.status.equals("COMPLETED", true) }
+        val archived = projects.count { it.status.equals("ARCHIVED", true) }
+        val rows = projects.map { project ->
+            listOf(
+                """<a href="/project?id=${project.id}">${PortalHttp.escape(project.name)}</a>""",
+                PortalHttp.escape(project.projectCode),
+                PortalHttp.escape(project.client),
+                """<span class="${statusClass(project.status)}">${PortalHttp.escape(label(project.status))}</span>""",
+                """<a href="/workspace?section=measure&id=${project.id}">Measurement book</a>""",
+                """<a href="/workspace?section=schedule&id=${project.id}">Assigned works</a>""",
+            )
         }
         return CarbonPortal.page(
             title = "Projects",
@@ -85,14 +108,21 @@ object PortalPages {
             current = "projects",
             crumb = "Projects",
             csrf = csrf,
+            brand = brand,
             body = """
-                ${CarbonPortal.masthead(company?.practiceName ?: "Practice", "$role · Your practice stays on the phone.", "building")}
-                <div class="portal-tiles">
-                  ${CarbonPortal.tile("/workspace?section=dashboard", "Overview", "Projects, fees and work that needs attention.", "dashboard")}
-                  ${CarbonPortal.tile("/transfer", "Practice transfer", "Download or restore the practice on this computer.", "backup")}
-                </div>
-                <h2 class="portal-section-title">${CarbonPortalIcons.svg("folder")}<span>Projects</span></h2>
-                $tiles
+                ${CarbonPortal.masthead(brand.displayName, "$role · Project directory for this phone.", "building")}
+                ${PortalKpis.strip(listOf(
+                    PortalKpis.Kpi("Active projects", active.toString(), "building", alert = "ok"),
+                    PortalKpis.Kpi("On hold", onHold.toString(), "task", alert = if (onHold > 0) "warning" else "ok"),
+                    PortalKpis.Kpi("Completed", completed.toString(), "chart", alert = "ok"),
+                    PortalKpis.Kpi("Archived", archived.toString(), "folder", alert = "none"),
+                    PortalKpis.Kpi("All projects", projects.size.toString(), "dashboard", alert = if (projects.isEmpty()) "warning" else "ok"),
+                ))}
+                <p class="portal-actions">
+                  <a class="cds--btn cds--btn--primary" href="/workspace?section=dashboard">${CarbonPortalIcons.svg("dashboard")}<span>Practice dashboard</span></a>
+                  <a class="cds--btn cds--btn--tertiary" href="/transfer">${CarbonPortalIcons.svg("backup")}<span>Practice transfer</span></a>
+                </p>
+                ${PortalKpis.dataTable("All projects", listOf("Project", "Code", "Client", "Status", "Measurements", "Schedule"), rows, "No projects yet.")}
             """.trimIndent(),
         )
     }
@@ -105,6 +135,7 @@ object PortalPages {
         coordination: List<CoordinationItemEntity>,
         drawings: List<ProjectDrawingEntity>,
         csrf: String,
+        brand: PortalBrand = PortalBrand.FALLBACK,
     ): String {
         fun tile(title: String, items: List<String>, icon: String): String {
             val body = if (items.isEmpty()) {
@@ -120,11 +151,15 @@ object PortalPages {
             current = "projects",
             crumb = project.name,
             csrf = csrf,
+            brand = brand,
             body = """
                 ${CarbonPortal.masthead("${project.projectCode} · ${project.name}", "${project.client} · ${project.siteLocation} · ${project.status}", "building")}
                 <div class="portal-tiles">
+                  ${CarbonPortal.tile("/workspace?section=tasks&id=${project.id}", "Tasks", "Kanban board — To do, Doing and Complete.", "task")}
+                  ${CarbonPortal.tile("/workspace?section=estimate&id=${project.id}", "Estimate", "Planned quantities at tax-exclusive rates.", "ruler")}
+                  ${CarbonPortal.tile("/workspace?section=bills&id=${project.id}", "Running bills", "Contractor bills from approved measurements.", "document")}
                   ${CarbonPortal.tile("/workspace?section=measure&id=${project.id}", "Measurement book", "Record, import and download measurements.", "notebook")}
-                  ${CarbonPortal.tile("/workspace?section=schedule&id=${project.id}", "Assigned works", "Item revision, contractors and rates.", "task")}
+                  ${CarbonPortal.tile("/workspace?section=schedule&id=${project.id}", "Assigned works", "Item revision, contractors and rates.", "ruler")}
                 </div>
                 <div class="portal-stack">
                   <section class="cds--tile portal-panel"><h2>${CarbonPortalIcons.svg("document")}<span>Brief</span></h2><p>${PortalHttp.escape(brief.ifBlank { "No brief yet." })}</p></section>

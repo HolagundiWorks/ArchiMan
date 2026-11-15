@@ -51,11 +51,14 @@ class SessionViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             _catalog.value = withContext(Dispatchers.IO) { runCatching { demoCompanyStore.readPackage() }.getOrNull() }
-            val restored = withContext(Dispatchers.IO) {
-                if (practiceDao.companyCount() > 0) suiteRepository.ensureDefaults()
-                val id = sessionStore.signedInUserId.first()
-                id?.let { practiceDao.activeUsers().firstOrNull() }
-            }
+            // A failed restore must still reach the sign-in screen instead of crashing on launch.
+            val restored = runCatching {
+                withContext(Dispatchers.IO) {
+                    if (practiceDao.companyCount() > 0) suiteRepository.ensureDefaults()
+                    val id = sessionStore.signedInUserId.first()
+                    id?.let { practiceDao.activeUsers().firstOrNull() }
+                }
+            }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it; android.util.Log.e("ArchiMan", "Session restore failed", it) }.getOrNull()
             if (restored != null) {
                 _signedIn.value = restored
             }
@@ -72,11 +75,15 @@ class SessionViewModel @Inject constructor(
 
     fun signIn(user: LocalUserEntity) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                val now = System.currentTimeMillis()
-                practiceDao.touchLogin(user.id, now)
-                sessionStore.signIn(user.id)
-            }
+            val failure = runCatching {
+                withContext(Dispatchers.IO) {
+                    val now = System.currentTimeMillis()
+                    practiceDao.touchLogin(user.id, now)
+                    sessionStore.signIn(user.id)
+                }
+            }.exceptionOrNull()
+            if (failure is kotlinx.coroutines.CancellationException) throw failure
+            if (failure != null) { _notice.value = failure.message ?: "Could not sign in. Please retry."; return@launch }
             _signedIn.value = user
             _notice.value = null
         }
@@ -84,10 +91,13 @@ class SessionViewModel @Inject constructor(
 
     fun signOut() {
         viewModelScope.launch {
-            if (portal.isRunning()) {
-                context.startService(Intent(context, PortalService::class.java).setAction(PortalService.STOP))
+            // startService can be refused while backgrounded; signing out must still complete.
+            runCatching {
+                if (portal.isRunning()) {
+                    context.startService(Intent(context, PortalService::class.java).setAction(PortalService.STOP))
+                }
             }
-            sessionStore.signOut()
+            runCatching { sessionStore.signOut() }.onFailure { if (it is kotlinx.coroutines.CancellationException) throw it }
             _signedIn.value = null
         }
     }

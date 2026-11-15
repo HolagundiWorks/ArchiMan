@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.sp
 import com.holagundi.archiman.domain.ArchiCalcEngine
 import com.holagundi.archiman.domain.ArchiCalcMeasure
 import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.GlassSurface
 import java.util.Locale
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -31,7 +30,7 @@ fun ArchiCalcPad(onInsert: (Double) -> Unit) {
     var expr by rememberSaveable { mutableStateOf("") }
     val result = ArchiCalcEngine.evaluate(expr)
     val grid = ArchiCalcMeasure.formatGrid(expr.ifBlank { "0" })
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack)) {
         Text("Archi Calc", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
         Text(
             expr.ifBlank { "0" },
@@ -44,7 +43,7 @@ fun ArchiCalcPad(onInsert: (Double) -> Unit) {
             fontSize = 28.sp,
             fontFamily = FontFamily.Monospace,
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("m", "m²", "m³", "ft", "ft²", "ft³").zip(listOf("m", "m2", "m3", "ft", "ft2", "ft3")).forEach { (label, key) ->
                 Text("${label} ${grid[key]}", color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, fontFamily = FontFamily.Monospace)
             }
@@ -56,14 +55,14 @@ fun ArchiCalcPad(onInsert: (Double) -> Unit) {
             "0", ".", "^", "+",
             "(", ")", "x", "C",
         )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             keys.forEach { key ->
                 TextButton(onClick = {
                     expr = if (key == "C") "" else expr + key
                 }) { Text(key, color = MaterialTheme.colorScheme.onSurface) }
             }
         }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf("sin", "cos", "tan", "sqrt", "x2", "1/x", "+/-").forEach { fn ->
                 TextButton(onClick = {
                     val next = ArchiCalcEngine.applyFn(if (result == "Error") expr else result, fn)

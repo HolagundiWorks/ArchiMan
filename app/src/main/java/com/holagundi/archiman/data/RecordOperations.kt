@@ -189,6 +189,7 @@ class RecordOperations @Inject constructor(private val db: ArchiManDatabase) {
         val paid = db.suiteDao().invoiceReceipts(record.id).map { it.amount + it.tdsAmount }
         require(InvoiceBalance.outstanding(0.0, paid).signum() == 0) { "Reverse the payments before voiding this invoice." }
         update(record, mapOf("status" to "VOID"))
+        LedgerRepository(db).reverseBySource("invoice", record.id, reason.trim())
         audit(record, "VOID", reason.trim())
     }
 
@@ -201,7 +202,16 @@ class RecordOperations @Inject constructor(private val db: ArchiManDatabase) {
         require(count("receipts", "note LIKE ?", arrayOf("REVERSAL:$id:%")) == 0L) { "This receipt has already been reversed." }
         val invoice = requireNotNull(db.suiteDao().invoice(receipt.invoiceId))
         require(invoice.status != "VOID") { "This invoice is void." }
-        db.suiteDao().insertReceipt(receipt.copy(id = 0, amount = -receipt.amount, tdsAmount = -receipt.tdsAmount, tdsVerified = false, note = "REVERSAL:$id: ${reason.trim()}", receivedAt = System.currentTimeMillis()))
+        val reversalAt = System.currentTimeMillis()
+        val reversalId = db.suiteDao().insertReceipt(receipt.copy(id = 0, amount = -receipt.amount, tdsAmount = -receipt.tdsAmount, tdsVerified = false, note = "REVERSAL:$id: ${reason.trim()}", receivedAt = reversalAt))
+        LedgerRepository(db).postReceipt(
+            receiptId = reversalId,
+            projectId = receipt.projectId,
+            amount = -receipt.amount,
+            tdsAmount = -receipt.tdsAmount,
+            clientId = db.projectDao().getProject(receipt.projectId)?.clientId,
+            receivedAt = reversalAt,
+        )
         if (receipt.bankKey.isNotBlank()) db.suiteDao().finance(receipt.bankKey)?.let { bank ->
             val body = org.json.JSONObject(bank.json).put("status", "UNMATCHED"); body.remove("invoiceId")
             db.suiteDao().saveFinance(bank.copy(json = body.toString()))

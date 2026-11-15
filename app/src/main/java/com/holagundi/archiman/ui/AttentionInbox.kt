@@ -11,7 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.holagundi.archiman.ui.shell.WorkspacePage
-import com.holagundi.archiman.ui.theme.ArchiField
+import com.holagundi.archiman.ui.theme.CarbonSearch
+import com.holagundi.archiman.ui.theme.CarbonSpacing
 import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
 
 @Composable
@@ -28,12 +29,12 @@ fun AttentionInbox(vm: PortfolioViewModel, filter: String, onBack: () -> Unit, o
     }
     val total = when (filter) { "tasks" -> metrics?.openTasks; "reviews" -> metrics?.pendingReviews; else -> metrics?.openIssues }
     BackHandler(onBack = onBack)
-    LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyColumn(contentPadding = CarbonSpacing.screenPadding, verticalArrangement = CarbonSpacing.stackArrangement) {
         item {
             TextButton(onClick = onBack) { Text("Back to dashboard") }
             Text(when (filter) { "tasks" -> "Open tasks"; "reviews" -> "Sheets to review"; else -> "Open site issues" }, style = MaterialTheme.typography.headlineSmall)
             Text("${rows.size} loaded of ${total ?: "…"} across current projects")
-            ArchiField(query, { query = it }, "Search loaded items", Modifier.fillMaxWidth())
+            CarbonSearch(query, { query = it }, Modifier.fillMaxWidth(), placeholder = "Search loaded items")
         }
         val visible = rows.filter { (it.title + " " + it.detail).contains(query, true) }
         if (visible.isEmpty()) item { Text(if (total == null) "Loading work…" else "No matching loaded items.") }

@@ -87,7 +87,7 @@ object WorkspaceDeviceChecks {
             check(request("GET","/carbon/vendor.js").contains("application/javascript"))
             check(request("GET","/carbon/unknown.txt").startsWith("HTTP/1.1 404"))
             val themeCss=request("GET","/theme.css")
-            check(themeCss.contains("--button-primary:#0f62fe") && themeCss.contains("--background:#161616") && themeCss.contains("--warning-icon:#f1c21b"))
+            check(themeCss.contains("--button-primary:#b83e16") && themeCss.contains("--background:#161616") && themeCss.contains("--warning-icon:#f1c21b"))
             check(request("GET","/theme.js").contains("archiman-theme"))
             val login=request("GET","/")
             check(login.contains("/theme.css") && login.contains("/theme.js"))
@@ -96,12 +96,17 @@ object WorkspaceDeviceChecks {
             val signed=request("POST","/","csrf=${encode(csrf)}&code=${server.state.value.code}&user=${user.id}","archiman_csrf=$csrf")
             val cookie="archiman_portal="+Regex("archiman_portal=([^;]+)").find(signed)!!.groupValues[1]
             check(request("GET","/workspace?section=company",cookie=cookie).contains("QA Studio"))
-            val overview=request("GET","/workspace?section=dashboard",cookie=cookie);check(overview.contains("data-carbon-chart")&&overview.contains("TDS withheld")&&overview.contains("Project directory"))
+            val overview=request("GET","/workspace?section=dashboard",cookie=cookie)
+            check(overview.contains("data-carbon-chart")) { "Overview missing fee chart: ${overview.take(400)}" }
+            check(overview.contains("TDS withheld")) { "Overview missing TDS balance: ${overview.take(400)}" }
+            check(overview.contains("Active project directory") || overview.contains("Project directory")) { "Overview missing project directory: ${overview.take(400)}" }
             check(request("GET","/workspace.js",cookie=cookie).contains("application/javascript"))
             check(request("POST","/workspace","action=seed&csrf=wrong",cookie).startsWith("HTTP/1.1 403"))
             val downloadPage=request("GET","/workspace/export?kind=letterhead&format=pdf",cookie=cookie)
-            check(downloadPage.contains("Protect & download") && downloadPage.contains("Download standard file"))
-            val exportCsrf=Regex("name='csrf' value='([^']+)'").find(downloadPage)!!.groupValues[1]
+            check(downloadPage.contains("Protect &amp; download") || downloadPage.contains("Protect & download")) { "Export page missing protect action: ${downloadPage.take(500)}" }
+            check(downloadPage.contains("Download standard file")) { "Export page missing plain download: ${downloadPage.take(500)}" }
+            val exportCsrf=Regex("""name=['"]csrf['"] value=['"]([^'"]+)['"]""").find(downloadPage)?.groupValues?.get(1)
+                ?: error("Export CSRF missing: ${downloadPage.take(500)}")
             val exportPassword="integration download password"
             val exportBody="kind=letterhead&format=pdf&csrf=${encode(exportCsrf)}&mode=protected&password=${encode(exportPassword)}&confirmation=${encode(exportPassword)}"
             val response=PinnedPortalClient.socket(server).use { socket ->

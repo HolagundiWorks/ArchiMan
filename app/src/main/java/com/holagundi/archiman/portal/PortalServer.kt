@@ -214,7 +214,7 @@ class PortalServer @Inject constructor(
                         request.method == "GET" && request.path == "/workspace.js" -> binary(client, "application/javascript; charset=utf-8", PortalWorkspaceAssets.js.toByteArray())
                         request.method == "GET" && request.path == "/workspace/export" -> {
                             val fields = request.query.filterKeys { it in setOf("kind","id","project","format") }.entries.joinToString("") { (key,value) -> "<input type='hidden' name='${PortalHttp.escape(key)}' value='${PortalHttp.escape(value)}'>" }
-                            write(client,"200 OK",workspace.shell("<section class='cds--tile portal-sign-in'><h1>Download document</h1><p class='portal-lead'>Protect the download before sharing. A .archimansecure file can be opened using Protect document files in the app. Keep the password separately; forgotten passwords cannot be recovered.</p><form method='post' action='/workspace/export'>$fields<input type='hidden' name='csrf' value='${PortalHttp.escape(session.csrf)}'><div class='cds--form-item'><label class='cds--label' for='export-password'>Password (12–256 characters)</label><input class='cds--text-input' id='export-password' type='password' name='password' maxlength='256' autocomplete='new-password'></div><div class='cds--form-item'><label class='cds--label' for='export-confirmation'>Confirm password</label><input class='cds--text-input' id='export-confirmation' type='password' name='confirmation' maxlength='256' autocomplete='new-password'></div><button class='cds--btn cds--btn--primary' name='mode' value='protected' type='submit'>Protect &amp; download</button><p class='portal-tile-meta'>Standard PDF, Excel and CSV files are readable without a password.</p><button class='cds--btn cds--btn--secondary' name='mode' value='plain' type='submit'>Download standard file</button></form></section>", "documents", session.csrf))
+                            write(client,"200 OK",runBlocking(Dispatchers.IO){workspace.shell("<section class='cds--tile portal-sign-in'><h1>Download document</h1><p class='portal-lead'>Protect the download before sharing. A .archimansecure file can be opened using Protect document files in the app. Keep the password separately; forgotten passwords cannot be recovered.</p><form method='post' action='/workspace/export'>$fields<input type='hidden' name='csrf' value='${PortalHttp.escape(session.csrf)}'><div class='cds--form-item'><label class='cds--label' for='export-password'>Password (12–256 characters)</label><input class='cds--text-input' id='export-password' type='password' name='password' maxlength='256' autocomplete='new-password'></div><div class='cds--form-item'><label class='cds--label' for='export-confirmation'>Confirm password</label><input class='cds--text-input' id='export-confirmation' type='password' name='confirmation' maxlength='256' autocomplete='new-password'></div><button class='cds--btn cds--btn--primary' name='mode' value='protected' type='submit'>Protect &amp; download</button><p class='portal-tile-meta'>Standard PDF, Excel and CSV files are readable without a password.</p><button class='cds--btn cds--btn--secondary' name='mode' value='plain' type='submit'>Download standard file</button></form></section>", "documents", session.csrf)})
                         }
                         request.method == "POST" && request.path == "/workspace/export" -> {
                             require(csrfMatches(request,session) && session.role == "Admin") { "Reopen the download form." }
@@ -246,7 +246,7 @@ class PortalServer @Inject constructor(
                         }
                         else -> write(client,"404 Not Found",PortalPages.message("Not found","Unknown workspace page."))
                     }
-                } catch (error: Exception) { write(client,"400 Bad Request",workspace.shell("<section class='cds--tile portal-sign-in'><h1>Check your entries</h1><p class='notice' role='alert'>${PortalHttp.escape((error.message ?: "Unable to complete the request.").take(500))}</p><p class='portal-lead'>Return using your browser Back button to correct the form.</p></section>", "dashboard", session.csrf)) }
+                } catch (error: Exception) { write(client,"400 Bad Request",runBlocking(Dispatchers.IO){workspace.shell("<section class='cds--tile portal-sign-in'><h1>Check your entries</h1><p class='notice' role='alert'>${PortalHttp.escape((error.message ?: "Unable to complete the request.").take(500))}</p><p class='portal-lead'>Return using your browser Back button to correct the form.</p></section>", "dashboard", session.csrf)}) }
             }
             request.path.startsWith("/transfer") && session != null && PortalTransfer.allowed(session.role) -> transfer(client, request, session, remote)
             request.method == "POST" && request.path == "/logout" -> {
@@ -259,7 +259,8 @@ class PortalServer @Inject constructor(
                     write(client, "303 See Other", PortalPages.message("Practice transfer", "Opening backup and restore."), listOf("Location: https://$address:${PortalHttp.PORT}/transfer"))
                 } else {
                     val page = runBlocking(Dispatchers.IO) {
-                        PortalPages.home(db.practiceDao().company(), db.projectDao().projects(), session.role, session.csrf)
+                        val brand = PortalBrand.load(db)
+                        PortalPages.home(db.practiceDao().company(), db.projectDao().projects(), session.role, session.csrf, brand)
                     }
                     write(client, "200 OK", page)
                 }
@@ -269,8 +270,8 @@ class PortalServer @Inject constructor(
             request.method == "GET" && (request.path == "/" || request.path == "/project") -> {
                 val csrf = newToken()
                 val page = runBlocking(Dispatchers.IO) {
-                    val company = db.practiceDao().company()
-                    PortalPages.login(company?.practiceName.orEmpty(), db.practiceDao().activeUsers(), csrf, null)
+                    val brand = PortalBrand.load(db)
+                    PortalPages.login(brand.practiceName, db.practiceDao().activeUsers(), csrf, null, brand)
                 }
                 write(client, "200 OK", page, listOf(csrfCookie(csrf)))
             }
@@ -332,8 +333,8 @@ class PortalServer @Inject constructor(
             failures.compute(remote) { _, previous -> Failure((previous?.count ?: 0) + 1, now) }
             val fresh = newToken()
             val page = runBlocking(Dispatchers.IO) {
-                val company = db.practiceDao().company()
-                PortalPages.login(company?.practiceName.orEmpty(), db.practiceDao().activeUsers(), fresh, "That code does not match the phone.")
+                val brand = PortalBrand.load(db)
+                PortalPages.login(brand.practiceName, db.practiceDao().activeUsers(), fresh, "That code does not match the phone.", brand)
             }
             write(client, "401 Unauthorized", page, listOf(csrfCookie(fresh)))
             return
@@ -362,7 +363,7 @@ class PortalServer @Inject constructor(
             "303 See Other",
             PortalPages.message("Signed in", "Opening the practice."),
             listOf(
-                "Location: https://$address:${PortalHttp.PORT}/",
+                "Location: https://$address:${PortalHttp.PORT}/workspace?section=dashboard",
                 "archiman_portal=$token; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=${PortalHttp.SESSION_SECONDS}",
                 clearCsrf(),
             ),
@@ -386,6 +387,7 @@ class PortalServer @Inject constructor(
                 db.suiteDao().coordinationItemsLimited(id, 40),
                 db.suiteDao().drawingsLimited(id, 40),
                 session.csrf,
+                PortalBrand.load(db),
             )
         }
         if (page == null) {
@@ -399,8 +401,8 @@ class PortalServer @Inject constructor(
         try {
             when {
                 request.method == "GET" && request.path == "/transfer" -> {
-                    val practice = runBlocking(Dispatchers.IO) { db.practiceDao().company()?.practiceName.orEmpty() }
-                    write(client, "200 OK", PortalPages.transfer(practice, session.csrf, null, session.role))
+                    val brand = runBlocking(Dispatchers.IO) { PortalBrand.load(db) }
+                    write(client, "200 OK", PortalPages.transfer(brand.displayName, session.csrf, null, session.role, brand))
                 }
                 request.method == "POST" && request.path == "/transfer/backup" -> downloadBackup(client, request, session, remote)
                 request.method == "POST" && request.path == "/transfer/restore" -> restoreBackup(client, request, session, remote)
@@ -409,8 +411,8 @@ class PortalServer @Inject constructor(
         } catch (error: Exception) {
             if (com.holagundi.archiman.BuildConfig.DEBUG) Log.e("ArchiManPortal", "practice transfer failed", error)
             if (client.isClosed) return
-            val practice = runCatching { runBlocking(Dispatchers.IO) { db.practiceDao().company()?.practiceName.orEmpty() } }.getOrDefault("")
-            runCatching { write(client, "400 Bad Request", PortalPages.transfer(practice, session.csrf, (error.message ?: "The transfer could not be completed.").take(500), session.role)) }
+            val brand = runCatching { runBlocking(Dispatchers.IO) { PortalBrand.load(db) } }.getOrDefault(PortalBrand.FALLBACK)
+            runCatching { write(client, "400 Bad Request", PortalPages.transfer(brand.displayName, session.csrf, (error.message ?: "The transfer could not be completed.").take(500), session.role, brand)) }
         }
     }
 

@@ -54,7 +54,9 @@ object PortalHttp {
     }
 
     fun originAllowed(origin: String?, address: String, port: Int = PORT): Boolean {
-        if (origin.isNullOrBlank() || origin.equals("null", ignoreCase = true)) return true
+        // Missing Origin is allowed for same-origin navigations; opaque "null" is not.
+        if (origin.isNullOrBlank()) return true
+        if (origin.equals("null", ignoreCase = true)) return false
         val expected = "https://${normalizeHost(address)}:$port"
         return origin.trim().trimEnd('/').equals(expected, ignoreCase = true)
     }

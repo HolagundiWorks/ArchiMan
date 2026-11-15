@@ -17,7 +17,7 @@
         <item quantity="other">%1$d attachment references were unavailable when this backup was created. Their files are not included.</item>
     </plurals>
     <plurals name="widget_open_tasks_summary">
-        <item quantity="one">%1$d open task — tap to open ArchiMan</item>
-        <item quantity="other">%1$d open tasks — tap to open ArchiMan</item>
+        <item quantity="one">%1$d open task — tap to open MynaHub Mobile</item>
+        <item quantity="other">%1$d open tasks — tap to open MynaHub Mobile</item>
     </plurals>
 </resources>

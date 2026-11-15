@@ -35,6 +35,7 @@ class BackupDeviceChecks : Instrumentation() {
         when (suite) {
             "screenWalk" -> { ScreenWalkRunner.run(this); return }
             "inputPrompts" -> { InputPromptSuite.run(this); return }
+            "ledger" -> { LedgerDeviceChecks.run(this); return }
         }
         val results = Bundle()
         val directory = File(targetContext.filesDir, "restored-attachments/device-check-${UUID.randomUUID()}")

@@ -120,12 +120,15 @@ function enhanceTables() {
   const tableName=table.caption?.textContent.trim()||headings.at(-1)?.textContent.trim()||'Records';
   if(!table.caption){const caption=table.createCaption();caption.textContent=tableName;caption.className='carbon-table-caption';}
 
+  if(!table.classList.contains('portal-sheet')) table.classList.add('portal-sheet');
   const host=table.closest('.tablewrap')||table.parentElement;
+  let scroll=table.closest('.portal-sheet-scroll');
+  if(!scroll){scroll=window.document.createElement('div');scroll.className='portal-sheet-scroll';table.parentElement.insertBefore(scroll,table);scroll.append(table);host.classList.add('portal-sheet-wrap');}
   const toolbar=window.document.createElement('div');toolbar.className='carbon-table-toolbar';toolbar.setAttribute('role','search');
-  const input=window.document.createElement('input');input.type='search';input.className='cds--text-input';input.placeholder='Search this table';input.setAttribute('aria-label','Search '+tableName);input.setAttribute('aria-controls',table.id);toolbar.append(icon(search),input);host.insertBefore(toolbar,table);
+  const input=window.document.createElement('input');input.type='search';input.className='cds--text-input';input.placeholder='Filter rows';input.setAttribute('aria-label','Filter '+tableName);input.setAttribute('aria-controls',table.id);toolbar.append(icon(search),input);host.insertBefore(toolbar,scroll);
   const pages=window.document.createElement('div');pages.className='carbon-table-pages';
-  const pageLabel=window.document.createElement('label');pageLabel.textContent='Rows per page';const perPage=window.document.createElement('select');perPage.setAttribute('aria-label','Rows per page');
-  for(const value of [25,50,100]){const option=window.document.createElement('option');option.value=value;option.textContent=value;perPage.append(option);}pageLabel.append(perPage);
+  const pageLabel=window.document.createElement('label');pageLabel.textContent='Rows';const perPage=window.document.createElement('select');perPage.setAttribute('aria-label','Rows per page');
+  for(const value of [25,50,100,250]){const option=window.document.createElement('option');option.value=value;option.textContent=value;perPage.append(option);}pageLabel.append(perPage);
   const status=window.document.createElement('span');status.setAttribute('aria-live','polite');
   const previous=window.document.createElement('button');previous.type='button';previous.textContent='Previous';previous.className='cds--btn cds--btn--ghost';
   const next=window.document.createElement('button');next.type='button';next.textContent='Next';next.className='cds--btn cds--btn--ghost';pages.append(pageLabel,status,previous,next);host.append(pages);

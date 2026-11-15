@@ -32,8 +32,8 @@ import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.domain.AbstractRow
 import com.holagundi.archiman.domain.QuantityAbstract
 import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.ChoiceChip
-import com.holagundi.archiman.ui.theme.GlassSurface
+import com.holagundi.archiman.ui.theme.CarbonContentSwitcher
+import com.holagundi.archiman.ui.theme.CarbonTile
 import com.holagundi.archiman.ui.theme.ScreenTitle
 
 private enum class SitemanPanel { LOGS, HFC, ABSTRACT, ORDERS, CALC }
@@ -77,23 +77,29 @@ fun SitemanPane(
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(com.holagundi.archiman.ui.theme.CarbonSpacing.stack),
     ) {
         ScreenTitle(stringResource(R.string.siteman_heading))
         Text(stringResource(R.string.siteman_body), color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ChoiceChip(stringResource(R.string.siteman_logs), panel == SitemanPanel.LOGS) { panel = SitemanPanel.LOGS }
-            ChoiceChip(stringResource(R.string.siteman_hfc), panel == SitemanPanel.HFC) { panel = SitemanPanel.HFC }
-            ChoiceChip(stringResource(R.string.siteman_abstract), panel == SitemanPanel.ABSTRACT) { panel = SitemanPanel.ABSTRACT }
-            ChoiceChip(stringResource(R.string.siteman_orders), panel == SitemanPanel.ORDERS) { panel = SitemanPanel.ORDERS }
-            ChoiceChip(stringResource(R.string.siteman_calc), panel == SitemanPanel.CALC) { panel = SitemanPanel.CALC }
-        }
+        val panels = SitemanPanel.entries
+        val panelLabels = listOf(
+            stringResource(R.string.siteman_logs),
+            stringResource(R.string.siteman_hfc),
+            stringResource(R.string.siteman_abstract),
+            stringResource(R.string.siteman_orders),
+            stringResource(R.string.siteman_calc),
+        )
+        CarbonContentSwitcher(
+            options = panelLabels,
+            selectedIndex = panels.indexOf(panel).coerceAtLeast(0),
+            onSelected = { panel = panels[it] },
+        )
 
         when (panel) {
             SitemanPanel.LOGS -> {
                 if (logs.isEmpty()) Text(stringResource(R.string.siteman_empty_logs), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 logs.forEach { log ->
-                    GlassSurface(Modifier.fillMaxWidth()) {
+                    CarbonTile(Modifier.fillMaxWidth()) {
                         Column {
                             Text(log.preparedBy.ifBlank { "Site" }, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                             Text(log.weather, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -104,7 +110,7 @@ fun SitemanPane(
                         }
                     }
                 }
-                GlassSurface(Modifier.fillMaxWidth()) {
+                CarbonTile(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ArchiField(weather, { weather = it }, stringResource(R.string.siteman_weather))
                         ArchiField(work, { work = it }, stringResource(R.string.siteman_work), singleLine = false)
@@ -126,7 +132,7 @@ fun SitemanPane(
             SitemanPanel.HFC -> {
                 if (hfc.isEmpty()) Text(stringResource(R.string.siteman_empty_hfc), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 hfc.forEach { drawing ->
-                    GlassSurface(Modifier.fillMaxWidth()) {
+                    CarbonTile(Modifier.fillMaxWidth()) {
                         Column {
                             Text(drawing.drawingNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                             Text(drawing.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
@@ -140,7 +146,7 @@ fun SitemanPane(
                     Text(stringResource(R.string.siteman_empty_abstract), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 abstract.forEach { line ->
-                    GlassSurface(Modifier.fillMaxWidth()) {
+                    CarbonTile(Modifier.fillMaxWidth()) {
                         Column {
                             Text(line.itemName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                             Text(
@@ -166,7 +172,7 @@ fun SitemanPane(
                 if (orders.isEmpty()) Text(stringResource(R.string.siteman_empty_orders), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 orders.forEach { order ->
                     val orderLines = lines.filter { it.orderId == order.id }
-                    GlassSurface(Modifier.fillMaxWidth()) {
+                    CarbonTile(Modifier.fillMaxWidth()) {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(order.referenceNumber, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelMedium)
                             Text(order.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
@@ -185,7 +191,7 @@ fun SitemanPane(
                         }
                     }
                 }
-                GlassSurface(Modifier.fillMaxWidth()) {
+                CarbonTile(Modifier.fillMaxWidth()) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ArchiField(title, { title = it }, stringResource(R.string.drawing_title))
                         ArchiField(supplier, { supplier = it }, stringResource(R.string.siteman_supplier))

@@ -37,6 +37,8 @@ import com.holagundi.archiman.domain.*
 import com.holagundi.archiman.ui.theme.ArchiField
 import com.holagundi.archiman.ui.theme.ArchiCard
 import com.holagundi.archiman.ui.theme.CarbonIcons
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonTile
 import java.util.Locale
 
 @Composable
@@ -103,9 +105,11 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
     var pendingLeave by remember { mutableStateOf<(() -> Unit)?>(null) }
     var editBaseline by rememberSaveable { mutableStateOf<List<String>>(emptyList()) }
     val feedback = remember { SnackbarHostState() }
-    LaunchedEffect(saved, error) {
-        val message = error ?: saved
-        if (!message.isNullOrBlank()) feedback.showSnackbar(message, withDismissAction = true, duration = if (error != null) SnackbarDuration.Long else SnackbarDuration.Short)
+    LaunchedEffect(saved) {
+        val message = saved
+        if (!message.isNullOrBlank()) {
+            feedback.showSnackbar(message, withDismissAction = true, duration = SnackbarDuration.Short)
+        }
     }
     fun hasDimensions() = listOf(length, breadth, height, deduction).any { it.isNotBlank() } || nos != "1"
     fun editorValues() = listOf(nos, length, breadth, height, deduction, description, location, remarks)
@@ -298,66 +302,94 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
     }
     if (contractorPicker && contractors.size <= 8) {
         fun closePicker() { contractorPicker = false; if (contractorId <= 0) onCancel() }
-        AlertDialog(
-            onDismissRequest = ::closePicker,
-            properties = androidx.compose.ui.window.DialogProperties(decorFitsSystemWindows = false),
-            modifier = Modifier.imePadding().safeDrawingPadding(),
-            title = { Text("Select contractor") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Choose whose work you are measuring. Only their assigned items will be shown.")
-                    Column(Modifier.fillMaxWidth().heightIn(max = 320.dp).verticalScroll(rememberScrollState())) {
-                        val matches = contractors
-                        if (matches.isEmpty()) Text(if (contractors.isEmpty()) "No contractors have been added to this project." else "No matching contractors.")
-                        matches.forEach { contractor ->
-                            val count = active?.lines.orEmpty().count { it.contractorId == contractor.id }
-                            DropdownMenuItem(
-                                text = { Column { Text(contractor.name); Text("$count assigned works", style = MaterialTheme.typography.bodySmall) } },
-                                leadingIcon = { Icon(if (contractorId == contractor.id) CarbonIcons.Check else CarbonIcons.People, null) },
-                                onClick = {
-                                    chooseContractor(contractor.id)
-                                },
-                            )
-                        }
-                    }
+        CarbonModal(
+            title = "Select contractor",
+            description = "Choose whose work you are measuring. Only their assigned items will be shown.",
+            onDismiss = ::closePicker,
+            primaryLabel = when {
+                contractors.isEmpty() || active == null -> "Open setup"
+                contractorId > 0 -> "Keep current contractor"
+                else -> "Cancel recording"
+            },
+            onPrimary = {
+                if (contractors.isEmpty() || active == null) {
+                    contractorPicker = false
+                    requestLeave(onSetup)
+                } else {
+                    closePicker()
                 }
             },
-            confirmButton = { if (contractors.isEmpty() || active == null) TextButton(onClick = { contractorPicker = false; requestLeave(onSetup) }) { Text("Open setup") } },
-            dismissButton = { TextButton(onClick = ::closePicker) { Text(if (contractorId > 0) "Keep current contractor" else "Cancel recording") } },
+            showFooterActions = true,
+            secondaryLabel = "Cancel recording",
+        ) {
+            if (contractors.isEmpty()) {
+                Text("No contractors have been added to this project.")
+            } else {
+                contractors.forEach { contractor ->
+                    val count = active?.lines.orEmpty().count { it.contractorId == contractor.id }
+                    CarbonTile(onClick = { chooseContractor(contractor.id) }) {
+                        Text(contractor.name, style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            "$count assigned works",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+    if (pendingContext != null) {
+        CarbonModal(
+            title = "Change measurement context?",
+            description = "Changing contractor or item clears the current dimensions to prevent using them with the wrong formula. Your custom description is retained.",
+            onDismiss = { pendingContext = null },
+            primaryLabel = "Change and clear dimensions",
+            secondaryLabel = "Keep current entry",
+            onPrimary = {
+                val change = pendingContext
+                pendingContext = null
+                change?.invoke()
+            },
         )
     }
-    if (pendingContext != null) AlertDialog(onDismissRequest = { pendingContext = null }, title = { Text("Change measurement context?") },
-        text = { Text("Changing contractor or item clears the current dimensions to prevent using them with the wrong formula. Your custom description is retained.") },
-        confirmButton = { TextButton(onClick = { val change = pendingContext; pendingContext = null; change?.invoke() }) { Text("Change and clear dimensions") } },
-        dismissButton = { TextButton(onClick = { pendingContext = null }) { Text("Keep current entry") } })
-    if (pendingLeave != null) AlertDialog(onDismissRequest = { pendingLeave = null }, title = { Text("Leave without saving?") },
-        text = { Text("This entry has unsaved values. Save it before leaving, or discard these values.") },
-        confirmButton = { TextButton(onClick = { val leave = pendingLeave; pendingLeave = null; leave?.invoke() }) { Text("Discard and leave") } },
-        dismissButton = { TextButton(onClick = { pendingLeave = null }) { Text("Keep editing") } })
-    if (confirmDelete) AlertDialog(
-        onDismissRequest = { confirmDelete = false },
-        title = { Text("Delete measurement entry?") },
-        text = { Text("This permanently removes the recorded entry. Approved entries cannot be deleted.") },
-        confirmButton = {
-            TextButton(
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                enabled = !busy,
-                onClick = {
-                    confirmDelete = false
-                    record.deleteSelected {
-                        clearDimensions()
-                        description = selectedLine?.description.orEmpty()
-                        descriptionEdited = false
-                        location = ""
-                        remarks = ""
-                        editBaseline = emptyList()
-                        activeField = "description"
-                    }
-                },
-            ) { Text("Delete entry") }
-        },
-        dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
-    )
+    if (pendingLeave != null) {
+        CarbonModal(
+            title = "Leave without saving?",
+            description = "This entry has unsaved values. Save it before leaving, or discard these values.",
+            onDismiss = { pendingLeave = null },
+            primaryLabel = "Discard and leave",
+            secondaryLabel = "Keep editing",
+            danger = true,
+            onPrimary = {
+                val leave = pendingLeave
+                pendingLeave = null
+                leave?.invoke()
+            },
+        )
+    }
+    if (confirmDelete) {
+        CarbonModal(
+            title = "Delete measurement entry?",
+            description = "This permanently removes the recorded entry. Approved entries cannot be deleted.",
+            onDismiss = { confirmDelete = false },
+            primaryLabel = "Delete entry",
+            danger = true,
+            primaryEnabled = !busy,
+            onPrimary = {
+                confirmDelete = false
+                record.deleteSelected {
+                    clearDimensions()
+                    description = selectedLine?.description.orEmpty()
+                    descriptionEdited = false
+                    location = ""
+                    remarks = ""
+                    editBaseline = emptyList()
+                    activeField = "description"
+                }
+            },
+        )
+    }
     Scaffold(
         modifier = Modifier.fillMaxSize().imePadding(),
         snackbarHost = { SnackbarHost(feedback) },
@@ -445,7 +477,7 @@ private fun RecordMeasurementContent(onDone: () -> Unit, onSetup: () -> Unit, on
                 val fieldWidth = ((availableWidth - 6.dp * (dimensions.size - 1)) / dimensions.size).coerceAtLeast(minFieldWidth)
                 Column {
                     if (minFieldWidth * dimensions.size + 6.dp * (dimensions.size - 1) > availableWidth) Text("Swipe to see all dimensions", style = MaterialTheme.typography.bodySmall)
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) { dimensions.forEach { EntryField(it, Modifier.width(fieldWidth)) } }
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) { dimensions.forEach { EntryField(it, Modifier.width(fieldWidth)) } }
                 }
             }
             if (calcType == CalculationTypes.WALL_PLASTER) EntryField("deduction", Modifier.fillMaxWidth())

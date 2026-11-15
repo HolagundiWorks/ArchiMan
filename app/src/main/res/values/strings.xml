@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="nav_measurement_setup">Measurement setup</string>
-    <string name="app_name">ArchiMan</string>
+    <string name="app_name">MynaHub Mobile</string>
     <string name="nav_group_site">Site</string>
     <string name="nav_group_fees">Fees</string>
     <string name="nav_home">Dashboard</string>
     <string name="nav_projects">Projects</string>
     <string name="nav_clients">Clients</string>
     <string name="nav_invoices">Invoices</string>
+    <string name="nav_issues">Issues</string>
     <string name="nav_practice">Practice</string>
     <string name="nav_demo">Demo</string>
     <string name="demo_heading">Built-in company file</string>
@@ -18,7 +19,7 @@
     <string name="demo_confirm_body">The practice on this phone is replaced by the fictional Studio Holagundi file. This is for testing.</string>
     <string name="demo_missing">The built-in company file is not in this build.</string>
     <string name="cancel">Cancel</string>
-    <string name="login_brand">ArchiMan</string>
+    <string name="login_brand">MynaHub</string>
     <string name="login_company_title">Open a company file</string>
     <string name="login_company_body">Open a company file or create a new freelance practice, then enter the admin workspace.</string>
     <string name="login_role_title">Sign in</string>
@@ -134,7 +135,7 @@
     <string name="create_site_issue">Site issue</string>
     <string name="create_invoice">Invoice</string>
     <string name="close_create_menu">Close create menu</string>
-    <string name="widget_practice_title">ArchiMan practice</string>
+    <string name="widget_practice_title">MynaHub practice</string>
     <string name="widget_practice_subtitle">KPIs and open tasks</string>
     <string name="widget_practice_description">Shows practice KPIs and open tasks from current projects.</string>
     <string name="widget_kpi_projects">Projects</string>
@@ -143,12 +144,12 @@
     <string name="widget_kpi_issues">Issues</string>
     <string name="widget_tasks_heading">Open tasks</string>
     <string name="widget_tasks_empty">No open tasks</string>
-    <string name="widget_tasks_error">Open ArchiMan to refresh this widget.</string>
-    <string name="app_lock_title">Unlock ArchiMan</string>
-    <string name="app_lock_body">Confirm your device screen lock to reopen the practice. ArchiMan does not store a separate app password.</string>
+    <string name="widget_tasks_error">Open MynaHub Mobile to refresh this widget.</string>
+    <string name="app_lock_title">Unlock MynaHub Mobile</string>
+    <string name="app_lock_body">Confirm your device screen lock to reopen the practice. MynaHub Mobile does not store a separate app password.</string>
     <string name="app_lock_unlock">Unlock</string>
     <string name="app_lock_failed">Unlock cancelled. Confirm your device lock to continue.</string>
-    <string name="app_lock_set_device_lock">Set a screen lock on this phone to protect practice data when ArchiMan is in the background.</string>
+    <string name="app_lock_set_device_lock">Set a screen lock on this phone to protect practice data when MynaHub Mobile is in the background.</string>
     <string name="practice_search">Search practice</string>
     <string name="practice_search_hint">Search projects, tasks, reviews and issues</string>
     <string name="close_search">Close search</string>
@@ -172,6 +173,8 @@
     <string name="portal_hour">The portal stops after one hour, or when you stop it or sign out.</string>
     <string name="portal_channel">Wi-Fi portal</string>
     <string name="portal_notification">Desktop access is on for this Wi-Fi.</string>
+    <string name="portal_notification_url">Open %1$s on a computer on this Wi-Fi. Tap Stop portal when finished.</string>
+    <string name="portal_notification_denied">Notification permission is off. The portal can still run, but Android may hide the ongoing status notice.</string>
     <string name="backup_title">Backup and restore</string>
     <string name="backup_description">Save all practice records and accessible attachments to a file you control. Keep a copy away from this phone.</string>
     <string name="backup_privacy">New backups require a password and use authenticated encryption. Keep the password separately: forgotten passwords cannot be recovered. Older unencrypted backups can still be restored. The safe size limit depends on device memory (up to 64 MB; database metadata up to 8 MB).</string>
@@ -193,4 +196,5 @@
     <string name="back_to_section">Back to section</string>
     <string name="more_actions">More actions for %1$s</string>
     <string name="finance_title">Taxes &amp; banking</string>
+    <string name="books_title">Books and ledger</string>
 </resources>

@@ -298,6 +298,9 @@ class DemoCompanyStore @Inject constructor(
                     title = task.getString("title"),
                     description = "",
                     status = task.getString("status"),
+                    priority = com.holagundi.archiman.domain.WorkPriority.normalize(
+                        task.optString("priority", "NORMAL"),
+                    ),
                     createdAt = now,
                 ),
             )
@@ -497,6 +500,14 @@ class DemoCompanyStore @Inject constructor(
                     amount = invoice.getDouble("amount"),
                     status = invoice.getString("status"),
                     createdAt = now,
+                    taxJson = org.json.JSONObject()
+                        .put("mode", "NONE")
+                        .put("base", invoice.getDouble("amount").toString())
+                        .put("cgst", "0.00")
+                        .put("sgst", "0.00")
+                        .put("igst", "0.00")
+                        .put("total", invoice.getDouble("amount").toString())
+                        .toString(),
                 ),
             )
         }

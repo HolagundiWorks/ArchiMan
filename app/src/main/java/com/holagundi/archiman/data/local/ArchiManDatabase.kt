@@ -59,6 +59,11 @@ import com.holagundi.archiman.data.local.entity.SiteIssueEntity
 import com.holagundi.archiman.data.local.entity.SiteIssueEventEntity
 import com.holagundi.archiman.data.local.entity.WorkContractEntity
 import com.holagundi.archiman.data.local.entity.WorkItemAliasEntity
+import com.holagundi.archiman.data.local.entity.LedgerAccountEntity
+import com.holagundi.archiman.data.local.entity.LedgerJournalEntity
+import com.holagundi.archiman.data.local.entity.LedgerJournalLineEntity
+import com.holagundi.archiman.data.local.entity.LedgerPeriodEntity
+import com.holagundi.archiman.domain.ChartOfAccounts
 import com.holagundi.archiman.domain.SchemaContract
 
 /**
@@ -110,7 +115,44 @@ object ArchiManMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_measurement_sheets_projectId_status` ON `measurement_sheets` (`projectId`, `status`)")
         }
     }
-    val ALL: Array<Migration> = arrayOf(MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32)
+    val MIGRATION_32_33 = object : Migration(32, 33) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `project_tasks` ADD COLUMN `priority` TEXT NOT NULL DEFAULT 'NORMAL'")
+        }
+    }
+    /** Double-entry ledger: chart of accounts, journals and periods, with MynaHub's immutability and closed-period rules as triggers. */
+    val MIGRATION_33_34 = object : Migration(33, 34) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `ledger_accounts` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `code` TEXT NOT NULL, `name` TEXT NOT NULL, `type` TEXT NOT NULL, `isSystem` INTEGER NOT NULL, `active` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_ledger_accounts_code` ON `ledger_accounts` (`code`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `ledger_journals` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `number` TEXT NOT NULL, `date` TEXT NOT NULL, `narration` TEXT NOT NULL, `sourceType` TEXT NOT NULL, `sourceId` INTEGER, `createdBy` INTEGER, `createdAt` INTEGER NOT NULL)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_ledger_journals_number` ON `ledger_journals` (`number`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_ledger_journals_date` ON `ledger_journals` (`date`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_ledger_journals_sourceType_sourceId` ON `ledger_journals` (`sourceType`, `sourceId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `ledger_journal_lines` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `journalId` INTEGER NOT NULL, `accountId` INTEGER NOT NULL, `debitPaise` INTEGER NOT NULL, `creditPaise` INTEGER NOT NULL, `memo` TEXT NOT NULL, `clientId` INTEGER, `projectId` INTEGER)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_ledger_journal_lines_journalId` ON `ledger_journal_lines` (`journalId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_ledger_journal_lines_accountId` ON `ledger_journal_lines` (`accountId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `ledger_periods` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `fy` TEXT NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL, `status` TEXT NOT NULL)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_ledger_periods_fy` ON `ledger_periods` (`fy`)")
+            listOf(
+                "CREATE TRIGGER IF NOT EXISTS ledger_journals_immutable BEFORE UPDATE ON ledger_journals BEGIN SELECT RAISE(ABORT, 'posted journals cannot be modified'); END",
+                "CREATE TRIGGER IF NOT EXISTS ledger_journals_no_delete BEFORE DELETE ON ledger_journals BEGIN SELECT RAISE(ABORT, 'posted journals cannot be deleted'); END",
+                "CREATE TRIGGER IF NOT EXISTS ledger_lines_immutable BEFORE UPDATE ON ledger_journal_lines BEGIN SELECT RAISE(ABORT, 'posted journal lines cannot be modified'); END",
+                "CREATE TRIGGER IF NOT EXISTS ledger_lines_no_delete BEFORE DELETE ON ledger_journal_lines BEGIN SELECT RAISE(ABORT, 'posted journal lines cannot be deleted'); END",
+                "CREATE TRIGGER IF NOT EXISTS ledger_journals_closed_period BEFORE INSERT ON ledger_journals WHEN EXISTS (SELECT 1 FROM ledger_periods p WHERE p.status = 'closed' AND NEW.date BETWEEN p.startDate AND p.endDate) BEGIN SELECT RAISE(ABORT, 'the accounting period is closed'); END",
+                "CREATE TRIGGER IF NOT EXISTS ledger_accounts_protected BEFORE DELETE ON ledger_accounts BEGIN SELECT RAISE(ABORT, 'accounts cannot be deleted'); END",
+            ).forEach(db::execSQL)
+            val now = System.currentTimeMillis()
+            ChartOfAccounts.SEED.forEach { seed ->
+                db.execSQL(
+                    "INSERT OR IGNORE INTO `ledger_accounts` (`code`, `name`, `type`, `isSystem`, `active`, `createdAt`) VALUES (?, ?, ?, 1, 1, ?)",
+                    arrayOf(seed.code, seed.name, seed.type, now),
+                )
+            }
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_27_28, MIGRATION_28_29, MIGRATION_29_30, MIGRATION_30_31, MIGRATION_31_32, MIGRATION_32_33, MIGRATION_33_34)
 
     private val statements = listOf(
         "CREATE TABLE IF NOT EXISTS `project_settings` (`projectId` INTEGER NOT NULL, `persona` TEXT NOT NULL, `consultancyType` TEXT NOT NULL, PRIMARY KEY(`projectId`), FOREIGN KEY(`projectId`) REFERENCES `projects`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
@@ -199,12 +241,17 @@ object ArchiManMigrations {
         WorkContractEntity::class,
         ScheduleActivityEntity::class,
         ItemLinkRuleEntity::class,
+        LedgerAccountEntity::class,
+        LedgerJournalEntity::class,
+        LedgerJournalLineEntity::class,
+        LedgerPeriodEntity::class,
     ],
     version = ArchiManMigrations.VERSION,
     exportSchema = true,
 )
 abstract class ArchiManDatabase : RoomDatabase() {
     abstract fun practiceDao(): PracticeDao
+    abstract fun ledgerDao(): LedgerDao
     abstract fun projectDao(): ProjectDao
     abstract fun catalogDao(): CatalogDao
     abstract fun measurementDao(): MeasurementDao

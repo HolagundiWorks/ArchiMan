@@ -5,6 +5,8 @@ import com.holagundi.archiman.ui.theme.CarbonTextButton as TextButton
 import com.holagundi.archiman.ui.theme.CarbonIcons
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DropdownMenu
@@ -12,9 +14,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,8 +33,9 @@ import androidx.lifecycle.ViewModel
 import com.holagundi.archiman.data.RecordKind
 import com.holagundi.archiman.data.RecordOperations
 import com.holagundi.archiman.data.RecordSnapshot
-import com.holagundi.archiman.ui.theme.ArchiField
-import com.holagundi.archiman.ui.theme.ChoiceChip
+import com.holagundi.archiman.ui.theme.CarbonModal
+import com.holagundi.archiman.ui.theme.CarbonTag
+import com.holagundi.archiman.ui.theme.CarbonTextInput
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -49,6 +49,7 @@ class RecordOperationsViewModel @Inject constructor(val operations: RecordOperat
 private data class RecordMenuChoice(val action: String, val label: String, val icon: ImageVector, val restriction: String? = null)
 
 /** Shared controls keep edit/save/cancel and destructive confirmations consistent on every list. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RecordActions(kind: RecordKind, id: Long, title: String, onDeleted: () -> Unit = {}) = key(kind, id) {
     val repository = hiltViewModel<RecordOperationsViewModel>().operations
@@ -149,91 +150,160 @@ fun RecordActions(kind: RecordKind, id: Long, title: String, onDeleted: () -> Un
         }
         val archived = current.text("status") == "ARCHIVED"
         val heading = if (selected == "Archive or reopen") { if (archived) "Reopen" else "Archive" } else selected
-        AlertDialog(
-            onDismissRequest = ::close,
-            title = { Text("$heading: $title") },
-            text = {
-                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    when (selected) {
-                        "Edit" -> {
-                            Text(draft.status, style = MaterialTheme.typography.bodySmall)
-                            draft.recovered?.let { recovered -> TextButton(onClick = {
+        val primaryLabel = if (selected == "Edit") "Save changes" else heading
+        val danger = selected in listOf("Delete", "Void invoice")
+        val primaryEnabled = !busy &&
+            (selected != "Edit" || kind.fields.all { (!it.required || !fields[it.column].isNullOrBlank()) && (!it.number || fields[it.column]?.toDoubleOrNull()?.let { n -> n.isFinite() && n >= 0 } == true) }) &&
+            (selected != "Delete" || kind != RecordKind.PROJECT || confirmation == "DELETE") &&
+            (selected != "Void invoice" || reason.isNotBlank())
+        CarbonModal(
+            title = "$heading: $title",
+            onDismiss = ::close,
+            primaryLabel = primaryLabel,
+            onPrimary = {
+                busy = true
+                scope.launch {
+                    try {
+                        val committed = withContext(Dispatchers.IO) {
+                            when (selected) {
+                                "Edit" -> repository.saveWithSnapshot(current, fields)
+                                "Delete" -> { repository.delete(current); null }
+                                "Void invoice" -> { repository.voidInvoice(current, reason); null }
+                                else -> repository.archiveWithSnapshot(current)
+                            }
+                        }
+                        undo = when (selected) {
+                            "Edit" -> {
+                                val savedSnapshot = requireNotNull(committed)
+                                val previous = kind.fields.associate { it.column to current.text(it.column) }
+                                suspend { repository.save(savedSnapshot, previous) }
+                            }
+                            "Archive or reopen" -> {
+                                val savedSnapshot = requireNotNull(committed)
+                                suspend { repository.archiveProject(savedSnapshot) }
+                            }
+                            else -> null
+                        }
+                        action = null
+                        error = null
+                        draft.clear()
+                        result = when (selected) {
+                            "Edit" -> "$title: details saved."
+                            "Delete" -> "$title deleted."
+                            "Void invoice" -> "$title voided; its history is retained."
+                            else -> "$title ${if (archived) "reopened" else "archived"}."
+                        }
+                        if (selected == "Delete") onDeleted()
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        error = failure.message ?: "Could not save this change."
+                    } finally {
+                        busy = false
+                    }
+                }
+            },
+            primaryEnabled = primaryEnabled,
+            primaryBusy = busy,
+            danger = danger,
+        ) {
+            // CarbonModal already scrolls its body; a second verticalScroll here crashes on open.
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                when (selected) {
+                    "Edit" -> {
+                        Text(draft.status, style = MaterialTheme.typography.bodySmall)
+                        draft.recovered?.let { recovered ->
+                            TextButton(onClick = {
                                 val json = org.json.JSONObject(recovered)
                                 fields = kind.fields.associate { it.column to json.optString(it.column, current.text(it.column)) }
                                 draft.recovered = null
-                            }) { Text("Resume local draft") } }
-                            kind.fields.forEach { field ->
+                            }) { Text("Resume local draft") }
+                        }
+                        kind.fields.forEach { field ->
                             if (field.column == "clientId") {
-                                Text("Client")
-                                clients.forEach { (clientId, label) ->
-                                    ChoiceChip(label, fields[field.column] == clientId.toString()) { fields = fields + (field.column to clientId.toString()); draft.save(org.json.JSONObject(fields).toString()) }
+                                Text("Client", style = MaterialTheme.typography.labelLarge)
+                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    clients.forEach { (clientId, label) ->
+                                        CarbonTag(
+                                            label = label,
+                                            selected = fields[field.column] == clientId.toString(),
+                                            onClick = {
+                                                fields = fields + (field.column to clientId.toString())
+                                                draft.save(org.json.JSONObject(fields).toString())
+                                            },
+                                        )
+                                    }
                                 }
-                            } else ArchiField(fields[field.column].orEmpty(), { fields = fields + (field.column to it); draft.save(org.json.JSONObject(fields).toString()) }, field.label + if (field.required) " (required)" else "", enabled = !busy, errorText = if (field.number && fields[field.column].orEmpty().isNotBlank() && fields[field.column]?.toDoubleOrNull()?.let { it.isFinite() && it >= 0 } != true) "Enter a valid non-negative number." else null, singleLine = field.column !in setOf("body", "description", "observation", "discussion", "decisions", "actionItems", "notes", "questionOrRequirement", "workCompleted", "remarks", "correctiveAction", "address"), keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = when {
-                                field.number -> androidx.compose.ui.text.input.KeyboardType.Decimal
-                                field.column.contains("phone", true) || field.column == "contactNo" -> androidx.compose.ui.text.input.KeyboardType.Phone
-                                field.column.contains("email", true) -> androidx.compose.ui.text.input.KeyboardType.Email
-                                else -> androidx.compose.ui.text.input.KeyboardType.Text
-                            }))
+                            } else {
+                                CarbonTextInput(
+                                    fields[field.column].orEmpty(),
+                                    { fields = fields + (field.column to it); draft.save(org.json.JSONObject(fields).toString()) },
+                                    field.label + if (field.required) " (required)" else "",
+                                    enabled = !busy,
+                                    errorText = if (field.number && fields[field.column].orEmpty().isNotBlank() && fields[field.column]?.toDoubleOrNull()?.let { it.isFinite() && it >= 0 } != true) {
+                                        "Enter a valid non-negative number."
+                                    } else {
+                                        null
+                                    },
+                                    singleLine = field.column !in setOf(
+                                        "body", "description", "observation", "discussion", "decisions", "actionItems",
+                                        "notes", "questionOrRequirement", "workCompleted", "remarks", "correctiveAction", "address",
+                                    ),
+                                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                        keyboardType = when {
+                                            field.number -> androidx.compose.ui.text.input.KeyboardType.Decimal
+                                            field.column.contains("phone", true) || field.column == "contactNo" -> androidx.compose.ui.text.input.KeyboardType.Phone
+                                            field.column.contains("email", true) -> androidx.compose.ui.text.input.KeyboardType.Email
+                                            else -> androidx.compose.ui.text.input.KeyboardType.Text
+                                        },
+                                    ),
+                                )
+                            }
                         }
-                        }
-                        "Delete" -> {
-                            Text(if (kind == RecordKind.PROJECT) "This permanently deletes the project and all its tasks, documents, site records, measurements, invoices and receipts. Shared clients and library items remain. Save a backup first." else if (kind == RecordKind.SHEET) "This deletes the sheet, all its entries and review comments. Only draft or returned sheets can be deleted." else if (kind == RecordKind.MEASUREMENT) "This permanently deletes the measurement entry. Approved entries cannot be deleted." else "Permanently delete this record? Linked or approved records may prevent deletion.")
-                            if (kind == RecordKind.PROJECT) ArchiField(confirmation, { confirmation = it }, "Type DELETE to confirm")
-                        }
-                        "Void invoice" -> {
-                            Text("Voiding retains the invoice and its history. Payments must be reversed first.")
-                            ArchiField(reason, { reason = it }, "Reason", singleLine = false)
-                        }
-                        else -> Text(if (archived) "Reopen this project as active? Its records will be retained." else "Archive this project? Its records will be retained and it can be reopened.")
                     }
-                    error?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Check your entries",it,com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR) }
-                    if (busy) Text("Saving…")
+                    "Delete" -> {
+                        Text(
+                            if (kind == RecordKind.PROJECT) {
+                                "This permanently deletes the project and all its tasks, documents, site records, measurements, invoices and receipts. Shared clients and library items remain. Save a backup first."
+                            } else if (kind == RecordKind.SHEET) {
+                                "This deletes the sheet, all its entries and review comments. Only draft or returned sheets can be deleted."
+                            } else if (kind == RecordKind.MEASUREMENT) {
+                                "This permanently deletes the measurement entry. Approved entries cannot be deleted."
+                            } else {
+                                "Permanently delete this record? Linked or approved records may prevent deletion."
+                            },
+                        )
+                        if (kind == RecordKind.PROJECT) {
+                            CarbonTextInput(confirmation, { confirmation = it }, "Type DELETE to confirm")
+                        }
+                    }
+                    "Void invoice" -> {
+                        Text("Voiding retains the invoice and its history. Payments must be reversed first.")
+                        CarbonTextInput(reason, { reason = it }, "Reason", singleLine = false)
+                    }
+                    else -> Text(
+                        if (archived) "Reopen this project as active? Its records will be retained." else "Archive this project? Its records will be retained and it can be reopened.",
+                    )
                 }
-            },
-            confirmButton = {
-                TextButton(colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = if (selected in listOf("Delete", "Void invoice")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary), enabled = !busy && (selected != "Edit" || kind.fields.all { (!it.required || !fields[it.column].isNullOrBlank()) && (!it.number || fields[it.column]?.toDoubleOrNull()?.let { n -> n.isFinite() && n >= 0 } == true) }) && (selected != "Delete" || kind != RecordKind.PROJECT || confirmation == "DELETE") && (selected != "Void invoice" || reason.isNotBlank()), onClick = {
-                    busy = true
-                    scope.launch {
-                        try {
-                            val committed = withContext(Dispatchers.IO) {
-                                when (selected) {
-                                    "Edit" -> repository.saveWithSnapshot(current, fields)
-                                    "Delete" -> { repository.delete(current); null }
-                                    "Void invoice" -> { repository.voidInvoice(current, reason); null }
-                                    else -> repository.archiveWithSnapshot(current)
-                                }
-                            }
-                            undo = when (selected) {
-                                "Edit" -> {
-                                    val savedSnapshot = requireNotNull(committed)
-                                    val previous = kind.fields.associate { it.column to current.text(it.column) }
-                                    suspend { repository.save(savedSnapshot, previous) }
-                                }
-                                "Archive or reopen" -> {
-                                    val savedSnapshot = requireNotNull(committed)
-                                    suspend { repository.archiveProject(savedSnapshot) }
-                                }
-                                else -> null
-                            }
-                            action = null
-                            error = null
-                            draft.clear()
-                            result = when (selected) { "Edit" -> "$title: details saved."; "Delete" -> "$title deleted."; "Void invoice" -> "$title voided; its history is retained."; else -> "$title ${if (archived) "reopened" else "archived"}." }
-                            if (selected == "Delete") onDeleted()
-                        } catch (cancelled: CancellationException) { throw cancelled
-                        } catch (failure: Exception) { error = failure.message ?: "Could not save this change."
-                        } finally { busy = false }
-                    }
-                }) { Text(if (selected == "Edit") "Save changes" else heading) }
-            },
-            dismissButton = { TextButton(enabled = !busy, onClick = ::close) { Text("Cancel") } },
-        )
-        if (leaveEditor) AlertDialog(onDismissRequest = { leaveEditor = false }, title = { Text("Keep your changes?") }, text = { Column { Text("A local draft can be resumed by reopening Edit details. Saved record details stay unchanged until you save."); Text(draft.status) } },
-            confirmButton = { TextButton(enabled = draft.status == "Local draft saved on this device", onClick = { leaveEditor = false; action = null }) { Text("Keep draft and close") } },
-            dismissButton = { Column {
-                TextButton(onClick = { leaveEditor = false }) { Text("Continue editing") }
+                error?.let {
+                    com.holagundi.archiman.ui.theme.CarbonInlineNotification("Check your entries", it, com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR)
+                }
+            }
+        }
+        if (leaveEditor) {
+            CarbonModal(
+                title = "Keep your changes?",
+                description = "A local draft can be resumed by reopening Edit details. Saved record details stay unchanged until you save.",
+                onDismiss = { leaveEditor = false },
+                primaryLabel = "Keep draft and close",
+                onPrimary = { leaveEditor = false; action = null },
+                primaryEnabled = draft.status == "Local draft saved on this device",
+                secondaryLabel = "Continue editing",
+            ) {
+                Text(draft.status)
                 TextButton(onClick = { draft.clear(); leaveEditor = false; action = null }) { Text("Discard changes") }
-            } })
+            }
+        }
     }
 }
 
@@ -246,21 +316,35 @@ fun ReceiptReversal(id: Long) = key(id) {
     var error by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     TextButton(colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error), onClick = { open = true }) { Text("Reverse receipt") }
-    if (open) AlertDialog(
-        onDismissRequest = { if (!busy) open = false },
-        title = { Text("Reverse receipt?") },
-        text = { Column { Text("The original receipt is retained. A reversal reopens the invoice balance."); ArchiField(reason, { reason = it }, "Reason", singleLine = false); error?.let { com.holagundi.archiman.ui.theme.CarbonInlineNotification("Check your entries",it,com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR) } } },
-        confirmButton = { TextButton(colors = androidx.compose.material3.ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error), enabled = !busy && reason.isNotBlank(), onClick = {
-            busy = true
-            scope.launch {
-                try {
-                    withContext(Dispatchers.IO) { repository.reverseReceipt(id, reason) }
-                    open = false
-                } catch (cancelled: CancellationException) { throw cancelled
-                } catch (failure: Exception) { error = failure.message ?: "Could not reverse receipt."
-                } finally { busy = false }
+    if (open) {
+        CarbonModal(
+            title = "Reverse receipt?",
+            description = "The original receipt is retained. A reversal reopens the invoice balance.",
+            onDismiss = { if (!busy) open = false },
+            primaryLabel = "Reverse receipt",
+            onPrimary = {
+                busy = true
+                scope.launch {
+                    try {
+                        withContext(Dispatchers.IO) { repository.reverseReceipt(id, reason) }
+                        open = false
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        error = failure.message ?: "Could not reverse receipt."
+                    } finally {
+                        busy = false
+                    }
+                }
+            },
+            primaryEnabled = !busy && reason.isNotBlank(),
+            primaryBusy = busy,
+            danger = true,
+        ) {
+            CarbonTextInput(reason, { reason = it }, "Reason", singleLine = false)
+            error?.let {
+                com.holagundi.archiman.ui.theme.CarbonInlineNotification("Check your entries", it, com.holagundi.archiman.ui.theme.CarbonNoticeKind.ERROR)
             }
-        }) { Text("Reverse receipt") } },
-        dismissButton = { TextButton(enabled = !busy, onClick = { open = false }) { Text("Cancel") } },
-    )
+        }
+    }
 }

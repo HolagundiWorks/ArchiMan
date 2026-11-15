@@ -42,7 +42,7 @@ data class ConsultancyInput(
 object ConsultancyTemplates {
     const val VERSION = "COA-ADAPTED-2026-11-05-v1"
     const val SCALE_URL = "https://coa.gov.in/index1.php?lang=1&level=2&lid=86&sublinkid=299"
-    const val REVIEW_NOTE = "Adapted ArchiMan draft; not a CoA-issued or certified form. Review project scope, commercial choices and legal particulars before signing."
+    const val REVIEW_NOTE = "Adapted MynaHub Mobile draft; not a CoA-issued or certified form. Review project scope, commercial choices and legal particulars before signing."
 
     private val commonTerms = """
         1. Client inputs: supply the brief, ownership records, surveys and investigations; approve stages promptly and fund authority charges.
