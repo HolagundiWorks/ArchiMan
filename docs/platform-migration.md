@@ -89,6 +89,10 @@ New Room-level pieces are additive (`sync_operation`, `sync_conflict`, a permiss
 
 Generate or hand-write a typed Kotlin client from the OpenAPI document (decide which when Phase 4 of the API lands) and add **contract tests** so a breaking API change fails a build here. Do not duplicate contract types by hand across the repositories.
 
+### What the API has built so far (2026-11-15, MynaHub repository `apps/api`, tested on a WebAssembly PostgreSQL, not on a deployed server)
+
+Better Auth routes under `/api/auth/*` (email and password sign-in, sign-out, `list-sessions`, `revoke-session`, `revoke-other-sessions`, two-factor `enable`, `verify-totp`, `verify-backup-code`); `POST /v1/invitations/accept` (token, name, password); `GET /v1/me`; `GET /v1/me/permissions`. Mobile sign-in is `Authorization: Bearer <token>` where the token is the `set-auth-token` response header. **Two things the phone must handle:** (1) after a successful two-factor verification the server **replaces the session**: the old token stops working and the new one is in the `set-auth-token` header of the verify response, so store that one; (2) a sign-in that still needs a second factor answers `twoFactorRedirect: true` and may also carry a `set-auth-token` header, which is **not** a session and must not be stored. Error bodies follow `{ "error": { "code", "message", "requestId" } }`; codes seen so far: `UNAUTHENTICATED`, `NOT_A_MEMBER`, `MEMBERSHIP_SUSPENDED`, `MFA_REQUIRED`, `REAUTH_REQUIRED`, `PERMISSION_DENIED`, `INVITATION_INVALID`, `VALIDATION_FAILED`. Sync, projects, tasks, site updates and files are not built yet.
+
 ## 8. Order of work (mobile follows the API)
 
 | Mobile step | Needs from the API first |
