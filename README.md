@@ -1,8 +1,18 @@
 # ArchiMan
 
-**ArchiMan** is a **native Android** app (Kotlin + Jetpack Compose) for freelance architects. The phone is the system of record: projects, clients, practice profile, tasks, drawings, site work, measurements, fees and encrypted backups stay on-device.
+**MynaHub Mobile** is a **native Android** app (Kotlin + Jetpack Compose) for architects. Company records use the live company API. Older practice modules still use local records until migrated; existing records are preserved. Local backup/restore is removed.
 
 There is no React / web product app in this repository. The only JavaScript package is `portal-ui/`, which builds static Carbon assets for the optional local HTTPS Wi‑Fi portal.
+
+MynaHub Mobile's **Practice > Live company sync** connects to the company API,
+with sign-in/invitations, MFA, permissions, live project pages and selected-project tasks. Authorized
+edits save online with version-conflict review. Company snapshots and drafts
+are not stored on the phone; only the encrypted login credential is retained.
+Local backup/restore and the legacy manual-sync entry point are removed.
+See [live company sync](docs/live-company-sync.md). Older practice modules remain
+separate local records until their API migration; existing records are preserved.
+Debug builds install separately as `com.holagundi.archiman.apidev` (API Dev);
+the release application ID is unchanged.
 
 ## Stack
 
@@ -32,7 +42,7 @@ Or open the `app` module in Android Studio and run on a device or emulator.
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n com.holagundi.archiman/.MainActivity
+adb shell am start -n com.holagundi.archiman.apidev/com.holagundi.archiman.MainActivity
 ```
 
 ## Product surface
@@ -65,13 +75,15 @@ HTTPS-only desktop workspace on the local network for letterhead, catalogues, es
 | **Coordination** | RFIs, submittals, site instructions |
 | **Drawings** | Register, revisions, transmittals |
 | **Fees** | Proposals, contracts, client invoices, receipts, GST/TDS-aware balances |
-| **Backup** | Password-encrypted `.archimanbackup` (AES-256-GCM); restore with preview and pre-restore recovery |
+| **Company sync** | Live authorized API projects, online edits and conflict review; no offline company cache or local backup |
 
-## Backup and recovery
+## Live company data
 
-**Practice → Backup and restore → Save backup** (also available from the company opening screen). Keep a copy off the phone.
+**Practice → Live company sync** requires an active API connection. The screen
+updates automatically and clears company records when the connection is lost.
 
-New backups are password-encrypted containers (AES-256-GCM, PBKDF2-HMAC-SHA256, 600,000 iterations) holding tables, readable attachments, schema identity and SHA-256 checks. Use a unique password of at least 12 characters — there is no recovery. Older unencrypted ZIP backups still restore. Schema-31 restores directly; known 28–30 backups upgrade. This format is separate from the demo `.archimandb.json` package.
+Backup creation/restoration is removed from the welcome screen, Practice menu
+and Wi-Fi portal. Existing practice data and previously created files are preserved.
 
 ## Validation
 
@@ -79,9 +91,9 @@ New backups are password-encrypted containers (AES-256-GCM, PBKDF2-HMAC-SHA256, 
 gradlew.bat :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-adb shell am instrument -w com.holagundi.archiman.test/com.holagundi.archiman.BackupDeviceChecks
-adb shell am instrument -w -e suite screenWalk com.holagundi.archiman.test/com.holagundi.archiman.BackupDeviceChecks
-adb shell am instrument -w -e suite inputPrompts com.holagundi.archiman.test/com.holagundi.archiman.BackupDeviceChecks
+adb shell am instrument -w -e suite companyApi com.holagundi.archiman.apidev.test/com.holagundi.archiman.BackupDeviceChecks
+adb shell am instrument -w -e suite screenWalk com.holagundi.archiman.apidev.test/com.holagundi.archiman.BackupDeviceChecks
+adb shell am instrument -w -e suite inputPrompts com.holagundi.archiman.apidev.test/com.holagundi.archiman.BackupDeviceChecks
 ```
 
 Device checks (`BackupDeviceChecks`) use an isolated database and do not restore over the user’s practice. Pass `-e suite screenWalk` to drive every practice and project destination in the installed UI, or `-e suite inputPrompts` to validate every create/edit prompt (demo company recommended).

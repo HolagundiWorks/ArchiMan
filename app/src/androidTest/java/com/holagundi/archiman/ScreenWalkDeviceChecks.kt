@@ -26,7 +26,7 @@ class ScreenWalkDeviceChecks : Instrumentation() {
 
 /** Walks every practice shell destination and every project workspace page on device. */
 object ScreenWalkRunner {
-    private const val PACKAGE = "com.holagundi.archiman"
+    private val PACKAGE = BuildConfig.APPLICATION_ID
 
     fun run(instrumentation: Instrumentation) {
         val results = Bundle()
@@ -107,14 +107,14 @@ object ScreenWalkRunner {
         assertScreen("practice.projects", listOf("Projects", "New project"), listOf("Skyline Villa Residence", "Metro Transit Urban Pavilion", "No projects yet"))
 
         openTab("Practice")
-        assertScreen("practice.menu", listOf("Your practice", "Finance", "Data and access"), listOf("Profile", "Clients", "Backup and restore"))
+        assertScreen("practice.menu", listOf("Your practice", "Finance", "Data and access"), listOf("Profile", "Clients", "Live company sync"))
 
         val registries = listOf(
             Triple("practice.profile", "Profile", listOf("Studio Holagundi", "CoA", "Opening the practice")),
             Triple("practice.clients", "Clients", listOf("Clients", "Save client")),
             Triple("practice.invoices", "Invoices", listOf("Invoices", "No invoices yet", "Fee invoices")),
             Triple("practice.finance", "Taxes & banking", listOf("Taxes & banking")),
-            Triple("practice.backup", "Backup and restore", listOf("Backup and restore", "Save backup")),
+            Triple("practice.live", "Live company sync", listOf("Company connection")),
             Triple("practice.portal", "Portal", listOf("Wi-Fi portal", "Start portal")),
             Triple("practice.demo", "Demo", listOf("Built-in company file", "Studio Holagundi")),
         )

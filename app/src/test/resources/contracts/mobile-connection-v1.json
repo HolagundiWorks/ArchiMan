@@ -1,0 +1,16 @@
+{
+  "service": "myna-api",
+  "apiVersion": 1,
+  "minimumVersionCode": 8,
+  "authBasePath": "/api/auth",
+  "capabilities": [
+    "identity",
+    "invitations",
+    "sessions",
+    "two-factor",
+    "projects.read",
+    "projects.edit",
+    "projects.live",
+    "tasks.live"
+  ]
+}

@@ -1,6 +1,143 @@
 # MynaHub Mobile: what changes for the Myna platform
 
-Status: **specification for the mobile work, 2026-11-15. Nothing in this document is implemented yet.** It tells the Android work what must change when MynaHub moves from "clients talk to the Neon Data API" to the company-owned **Myna API**. The platform plan and the API itself live in the MynaHub repository: `docs/hub-platform-plan.md` and `apps/api` (Phase 1, commit `9f83af8` there). The guidelines they implement are the owner's `DEVELOPER_GUIDELINES.md` v1.0.
+Current policy, confirmed by the owner on **2026-11-16**: **live API sync only; no Mobile backup/restore, offline company snapshots or persisted drafts**.
+
+The current implementation and verification are in [live company sync](live-company-sync.md).
+Only the encrypted login credential is retained. Project pages update
+automatically and clear when the connection is lost. Backup entry points and
+portal transfers are removed. Other entities and native desktop API integration
+remain separate work.
+
+**Historical notes below:** earlier offline-cache, saved-draft, backup and
+offline-queue proposals are superseded by this owner decision and are not current
+requirements. The tested offline implementation has been removed.
+
+The specification below records the target and remaining work. The platform plan
+and API live in the MynaHub repository (`docs/hub-platform-plan.md`, `apps/api`).
+The API must include `/v1/mobile/connection` for this client. The guidelines they
+implement are the owner's `DEVELOPER_GUIDELINES.md` v1.0.
+
+## Implemented connection slice
+
+Practice > Cloud sync now opens **Company connection**. Enter a runtime HTTPS
+API origin; the client checks `/health`, `/v1/mobile/connection` (service, API
+version, minimum app version, auth path and capabilities) and `/health/ready`
+before saving it. No API address or credentials are compiled into the new path.
+Only debug builds allow HTTP on localhost, 127.0.0.1 or emulator 10.0.2.2; release
+still requires HTTPS. Debug installs use `.apidev`, leaving the practice app separate.
+
+Implemented: email/password sign-in, invitation acceptance, authenticator/backup
+code sign-in, MFA enrollment and replacement-token handling, identity/effective
+permissions, session list/revoke, sign-out and account refresh on resume. Pending
+MFA cookies stay in memory; the pending header is never persisted as a session.
+Keystore-encrypted preferences contain the full session/identity cache, with a
+confirmed disk write before success. Membership removal/suspension and a refused
+session clear that cache. Network outages preserve it; sign-out clears it locally
+even if remote revocation fails, and reports that distinction. Company switching
+requires sign-out. Authenticator setup blocks screenshots while secrets are shown.
+
+New account code touches no local business tables and uploads no local records. The
+company screen can load assigned project summaries from `/v1/projects`,
+in pages of 25; API scope/permissions decide which rows are returned. These rows
+stay separate from local projects. The first page is sealed with the account
+for labeled offline viewing; online refresh replaces its scope, and sign-out
+or confirmed access refusal clears it. Sign-out clears local state before attempting
+remote revocation; a 403 refreshes effective permissions. Tasks, project creation/deletion,
+files and synchronization still require their server endpoints/M3. Existing
+offline features stay local. The legacy Neon
+sync implementation remains reachable under **Legacy sync settings**, including
+its old optional BuildConfig fields, until M3 cutover passes. Those fields are
+not used by the new company client. Public registration was not added.
+
+The connection-contract fixture under `app/src/test/resources/contracts/` was
+exported from the built API's `MOBILE_CONNECTION` value. A small typed Kotlin
+client consumes this versioned metadata; JVM tests exercise it alongside fake
+transport responses. The scoped project-read capability is additive; business
+sync contracts remain future work; online edits use the versioned PATCH contract.
+
+### Offline project summaries (2026-11-16)
+
+The latest authorized first page (up to 25 summaries) is now sealed with the
+account and restored across app closure. Offline results show their saved
+source and last-checked time; extra pages remain online-only. A successful
+identity refresh discards the old scope before fetching a replacement page.
+An unavailable API before identity refresh preserves the last snapshot;
+confirmed permission/session loss clears it. No local practice tables are
+changed. See [offline company projects](offline-company-projects.md).
+
+192 Android JVM tests and debug/test APK builds passed. The physical phone
+cached only Staff's assigned DEMO-01, recovered it after force-stop with the API
+link disconnected, and displayed the offline label and timestamp. Suspending
+the fictional Staff account then purged the snapshot/session. After another
+force-stop and offline reopening, neither could be restored. Staff was
+reactivated and signed in with a fresh scoped cache. No backend migration was
+needed. Full offline business sync, public HTTPS and release installation
+remain pending/unverified.
+
+### Online project edits (2026-11-15, preceding milestone)
+
+Members with projects.write can explicitly edit a company project's name, code
+and status. The API enforces role scope and assignments again. Each draft holds
+an operation UUID and expected revision. Once submitted its values are frozen
+for identical retries; interrupted requests never cause automatic resubmission.
+A version conflict shows submitted and company values. The user can review
+their draft against the current revision or use company values, then explicitly
+save. Neither choice overwrites automatically. Closing hides the editor.
+One saved edit is now sealed with the account and can be reviewed after reopening;
+unsaved field changes remain memory-only. Sign-out or confirmed access loss
+clears the saved edit. No automatic/background queue or local project
+synchronization was added. See [pending edits](pending-company-edits.md).
+
+Online-edit milestone checks: 124 API tests and 166 Android JVM tests passed; backend
+lint/type checking/build/format and debug APK/test-APK builds passed. Live Neon
+checks verified edits, identical retries, structured conflicts, operation-ID
+reuse refusal and write/receipt isolation. The physical phone passed save,
+retry, conflict and restoration through the real account service. The editor
+and a deliberately stale draft's conflict screen were visually inspected; both
+draft and newer company values were visible. Original demo details were
+restored and reloaded; revision history remains. Public HTTPS, release
+installation and full offline sync remain unverified/not implemented.
+
+### Verification of this slice (2026-11-15)
+
+Run: `:app:testDebugUnitTest` (160 tests, zero failures/errors), `:app:assembleDebug`
+and `:app:assembleDebugAndroidTest`. Backend checks passed 113 tests plus lint,
+type checking and build. On a real Android device, the isolated API Dev app
+connected through an adb loopback forward to the running demo API backed by
+Neon's separate `demo` branch. Device checks passed Staff sign-in, restored
+Keystore-protected identity/permissions, active-session listing, current-session
+revocation, Administrator MFA challenge/verification, and another Staff sign-in.
+Confirmed the sealed session survived instrumentation exit and reopening the app.
+Inspected the Company connection screen visually with the demo identity/role.
+
+Fixed findings: current-session comparison uses the raw portion of Better Auth's
+signed bearer header; account storage confirms its disk write before reporting
+success. Private device-test input is deleted before network calls (instrumentation
+finish can terminate before finally); verified absent afterward, and no private
+fixture files are packaged in the APK. The normal practice app was not replaced.
+
+Not run: a public HTTPS deployment/certificate flow on the device, a release
+installation, Android-device invitation acceptance, MFA enrollment UI/backup-code
+sign-in. Those are covered only by JVM/backend tests
+where applicable. No business sync, background work or cloud-derived business
+cache was implemented, so M3 and its data-removal/conflict tests remain pending.
+
+### Device access-removal checks (2026-11-15)
+
+Extended the opt-in device suite with assignment-removal and ended-access modes.
+Against the live demo API/Neon, a fresh Staff session first read DEMO-01. Removing
+that assignment returned no projects while retaining the session. Suspending the
+fictional Staff member then refused the next project read and cleared the sealed
+session, including after recreating the account service. The company address
+remained saved. Logical rows in the isolated API Dev app's local databases were
+unchanged across both checks; SQLite WAL bookkeeping is deliberately excluded.
+
+The test operator restored the assignment and reactivated Staff; a fresh phone
+sign-in and assigned-project read passed afterward. Private input was deleted.
+These checks exercise the real Android account service and Keystore, not a UI
+automation assertion that an already displayed project disappears. See
+[device-check procedure](company-api-device-checks.md). Full sync cleanup still
+needs its own tests once cloud business records are persisted.
 
 The app is named **MynaHub Mobile** (SUITE.md, the launcher label). The guidelines call it "Myno Mobile"; that is a naming slip, keep MynaHub Mobile.
 
@@ -92,6 +229,19 @@ Generate or hand-write a typed Kotlin client from the OpenAPI document (decide w
 ### What the API has built so far (2026-11-15, MynaHub repository `apps/api`, tested on a WebAssembly PostgreSQL, not on a deployed server)
 
 Better Auth routes under `/api/auth/*` (email and password sign-in, sign-out, `list-sessions`, `revoke-session`, `revoke-other-sessions`, two-factor `enable`, `verify-totp`, `verify-backup-code`); `POST /v1/invitations/accept` (token, name, password); `GET /v1/me`; `GET /v1/me/permissions`. Mobile sign-in is `Authorization: Bearer <token>` where the token is the `set-auth-token` response header. **Two things the phone must handle:** (1) after a successful two-factor verification the server **replaces the session**: the old token stops working and the new one is in the `set-auth-token` header of the verify response, so store that one; (2) a sign-in that still needs a second factor answers `twoFactorRedirect: true` and may also carry a `set-auth-token` header, which is **not** a session and must not be stored. Error bodies follow `{ "error": { "code", "message", "requestId" } }`; codes seen so far: `UNAUTHENTICATED`, `NOT_A_MEMBER`, `MEMBERSHIP_SUSPENDED`, `MFA_REQUIRED`, `REAUTH_REQUIRED`, `PERMISSION_DENIED`, `INVITATION_INVALID`, `VALIDATION_FAILED`. Sync, projects, tasks, site updates and files are not built yet.
+
+### Scoped project verification (2026-11-15)
+
+The API now implements project list/detail, assignments and role management;
+the earlier API inventory above describes the identity-only milestone. The
+current backend suite passes 113 tests. Live demo checks on Neon verified
+assignment boundaries, immediate access removal, owner protections and runtime
+RLS with transaction context cleared after commit.
+
+The physical-device check passed with Staff receiving exactly DEMO-01. The
+installed API Dev screen was visually checked showing Hillside Villa only.
+These are read-only summaries; project writes, tasks, files and sync remain
+pending. Public HTTPS and release installation remain unverified.
 
 ## 8. Order of work (mobile follows the API)
 

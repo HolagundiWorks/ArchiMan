@@ -17,25 +17,13 @@ object PortalPages {
         brand: PortalBrand = PortalBrand(practiceName = practiceName),
     ): String {
         val admin = users.firstOrNull { it.isActive && it.role == "Admin" }
+        if (admin == null) return message("Company connection required", "Open Mobile and connect to the company API. Local backup and restore are not available.")
         val notice = error?.let { """<p class="notice" role="alert">${PortalHttp.escape(it)}</p>""" }.orEmpty()
-        val title: String
-        val lead: String
-        val hiddenUser: String
-        val action: String
-        val icon: String
-        if (admin == null) {
-            title = "Practice transfer"
-            lead = "Enter the access code shown on the phone to save or restore a practice backup before opening a company."
-            hiddenUser = ""
-            action = "Open practice transfer"
-            icon = "backup"
-        } else {
-            title = brand.displayName.ifBlank { practiceName.ifBlank { "MynaHub" } }
-            lead = "Enter the access code shown on the phone. The practice stays on the phone; this computer only connects while the portal is on."
-            hiddenUser = """<input type="hidden" name="user" value="${admin.id}">"""
-            action = "Open portal"
-            icon = "wifi"
-        }
+        val title = brand.displayName.ifBlank { practiceName.ifBlank { "MynaHub" } }
+        val lead = "Enter the access code shown on the phone. This computer connects only while the portal is on."
+        val hiddenUser = """<input type="hidden" name="user" value="${admin.id}">"""
+        val action = "Open portal"
+        val icon = "wifi"
         val mark = if (brand.hasLogo) {
             """<img class="portal-sign-in-logo" src="${PortalHttp.escape(brand.logoDataUrl)}" alt="${PortalHttp.escape(title)}">"""
         } else {
@@ -56,7 +44,7 @@ object PortalPages {
                     <input type="hidden" name="csrf" value="${PortalHttp.escape(csrf)}">
                     $hiddenUser
                     ${CarbonPortal.textField("code", "code", "Access code", attributes = "autocomplete=\"off\" required autofocus")}
-                    ${CarbonPortal.button(action, icon = if (admin == null) "backup" else "wifi")}
+                    ${CarbonPortal.button(action, icon = icon)}
                   </form>
                 </section>
             """.trimIndent(),
@@ -120,7 +108,6 @@ object PortalPages {
                 ))}
                 <p class="portal-actions">
                   <a class="cds--btn cds--btn--primary" href="/workspace?section=dashboard">${CarbonPortalIcons.svg("dashboard")}<span>Practice dashboard</span></a>
-                  <a class="cds--btn cds--btn--tertiary" href="/transfer">${CarbonPortalIcons.svg("backup")}<span>Practice transfer</span></a>
                 </p>
                 ${PortalKpis.dataTable("All projects", listOf("Project", "Code", "Client", "Status", "Measurements", "Schedule"), rows, "No projects yet.")}
             """.trimIndent(),

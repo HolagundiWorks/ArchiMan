@@ -58,7 +58,6 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
     var step by rememberSaveable { mutableStateOf(LoginStep.COMPANY) }
     var confirmBuiltIn by rememberSaveable { mutableStateOf(false) }
     var confirmCreate by rememberSaveable { mutableStateOf(false) }
-    var showBackup by rememberSaveable { mutableStateOf(false) }
     var showPortal by rememberSaveable { mutableStateOf(false) }
     var pendingUri by rememberSaveable { mutableStateOf<String?>(null) }
     var practiceName by rememberSaveable { mutableStateOf("") }
@@ -148,7 +147,7 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
 
                     DisclosureCard(
                         title = "More ways in",
-                        summary = "File, new company, backup, Wi‑Fi portal",
+                        summary = "File, new company, Wi‑Fi portal",
                         expanded = moreOpen,
                         onExpandedChange = { moreOpen = it },
                         leadingIcon = CarbonIcons.FolderOpen,
@@ -164,12 +163,6 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
                             label = stringResource(R.string.login_create),
                             enabled = !opening,
                             onClick = { step = LoginStep.CREATE },
-                        )
-                        LoginActionRow(
-                            icon = CarbonIcons.Backup,
-                            label = stringResource(R.string.backup_title),
-                            enabled = !opening,
-                            onClick = { showBackup = true },
                         )
                         LoginActionRow(
                             icon = CarbonIcons.Wifi,
@@ -262,22 +255,6 @@ fun LoginScreen(viewModel: SessionViewModel = hiltViewModel()) {
             androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().heightIn(min = 320.dp, max = 400.dp)) {
                 PortalPane()
             }
-        }
-    }
-
-    if (showBackup) {
-        CarbonModal(
-            title = stringResource(R.string.backup_title),
-            onDismiss = { showBackup = false },
-            primaryLabel = stringResource(R.string.cancel),
-            onPrimary = { showBackup = false },
-            showFooterActions = false,
-        ) {
-            BackupPane(onRestored = {
-                viewModel.signOut()
-                showBackup = false
-                step = LoginStep.ROLE
-            })
         }
     }
 

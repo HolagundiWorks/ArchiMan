@@ -174,9 +174,7 @@ object CarbonPortal {
 
     private fun navGroups(audience: Audience): List<NavGroup> = when (audience) {
         Audience.SIGNED_OUT -> emptyList()
-        Audience.TRANSFER -> listOf(
-            NavGroup("Data", listOf(NavLink("transfer", "/transfer", "Practice transfer", "backup"))),
-        )
+        Audience.TRANSFER -> emptyList()
         Audience.ADMIN -> listOf(
             NavGroup(
                 "Practice",
@@ -204,12 +202,6 @@ object CarbonPortal {
                 "Company",
                 listOf(
                     NavLink("company", "/workspace?section=company", "Letterhead", "enterprise"),
-                ),
-            ),
-            NavGroup(
-                "Data",
-                listOf(
-                    NavLink("transfer", "/transfer", "Practice transfer", "backup"),
                 ),
             ),
         )

@@ -33,6 +33,7 @@ class BackupDeviceChecks : Instrumentation() {
 
     override fun onStart() {
         when (suite) {
+            "companyApi" -> { CompanyApiDeviceChecks.run(this); return }
             "screenWalk" -> { ScreenWalkRunner.run(this); return }
             "inputPrompts" -> { InputPromptSuite.run(this); return }
             "ledger" -> { LedgerDeviceChecks.run(this); return }

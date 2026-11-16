@@ -39,14 +39,7 @@ data class PortalUiState(
 class PortalServer @Inject constructor(
     private val db: ArchiManDatabase,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
-    private val backups: dagger.Lazy<com.holagundi.archiman.data.BackupRepository>,
 ) {
-    /** Tests that do not download or restore a practice. */
-    constructor(db: ArchiManDatabase, context: android.content.Context) : this(
-        db,
-        context,
-        dagger.Lazy { error("Practice transfer is not available in this test.") },
-    )
     private val _state = MutableStateFlow(PortalUiState())
     val state = _state.asStateFlow()
     var onStopped: (() -> Unit)? = null
@@ -149,7 +142,6 @@ class PortalServer @Inject constructor(
             val readDeadline=scope.launch { delay(120_000);runCatching { client.close() } }
             val request = try { PortalHttp.read(client.getInputStream()) { head ->
                 when {
-                    head.method == "POST" && head.path == "/transfer/restore" -> com.holagundi.archiman.data.BackupArchive.safeByteLimit() + 256 * 1024
                     head.method=="POST" && head.path=="/workspace" && session(head)?.role=="Admin" -> 4_000_000
                     else -> 8192
                 }
@@ -248,7 +240,7 @@ class PortalServer @Inject constructor(
                     }
                 } catch (error: Exception) { write(client,"400 Bad Request",runBlocking(Dispatchers.IO){workspace.shell("<section class='cds--tile portal-sign-in'><h1>Check your entries</h1><p class='notice' role='alert'>${PortalHttp.escape((error.message ?: "Unable to complete the request.").take(500))}</p><p class='portal-lead'>Return using your browser Back button to correct the form.</p></section>", "dashboard", session.csrf)}) }
             }
-            request.path.startsWith("/transfer") && session != null && PortalTransfer.allowed(session.role) -> transfer(client, request, session, remote)
+            request.path.startsWith("/transfer") -> write(client, "410 Gone", PortalPages.message("Live company sync", "Local backup and restore have been removed from Mobile."))
             request.method == "POST" && request.path == "/logout" -> {
                 if (session != null && csrfMatches(request, session)) sessions.remove(cookie(request))
                 write(client, "303 See Other", PortalPages.message("Signed out", "The portal session is closed."), listOf("Location: https://$address:${PortalHttp.PORT}/", clearCookie()))
@@ -296,39 +288,7 @@ class PortalServer @Inject constructor(
         val userId = fields["user"]?.toLongOrNull()
         val admins = runBlocking(Dispatchers.IO) { db.practiceDao().activeUsers().filter { it.isActive && it.role == "Admin" } }
         val user = admins.firstOrNull { it.id == userId }
-        if (PortalTransfer.codeOnly(codeOk, admins.size)) {
-            failures.remove(remote)
-            val token = newToken()
-            val sessionCsrf = newToken()
-            val signedIn = runBlocking(Dispatchers.IO) { db.withTransaction {
-                require(isRunning() && PortalHttp.codesMatch(accessCode, fields["code"].orEmpty())) { "The portal session ended during sign-in." }
-                db.practiceDao().insertAudit(
-                    PortalAuditEventEntity(
-                        userId = 0,
-                        username = "transfer",
-                        action = "PORTAL_SIGN_IN",
-                        entityType = "portal",
-                        summary = "Practice transfer sign-in before a company admin exists",
-                        sourceAddress = remote,
-                        occurredAt = now,
-                    ),
-                )
-                true
-            } }
-            if (!signedIn) return
-            sessions[token] = PortalSession(0, "transfer", PortalTransfer.ROLE, sessionCsrf, now, now)
-            write(
-                client,
-                "303 See Other",
-                PortalPages.message("Practice transfer", "Download or restore the practice, then open the company on the phone."),
-                listOf(
-                    "Location: https://$address:${PortalHttp.PORT}/transfer",
-                    "archiman_portal=$token; Secure; HttpOnly; SameSite=Strict; Path=/; Max-Age=${PortalHttp.SESSION_SECONDS}",
-                    clearCsrf(),
-                ),
-            )
-            return
-        }
+        if (admins.isEmpty()) { write(client, "410 Gone", PortalPages.message("Company connection required", "Connect Mobile to the company API.")); return }
         if (!codeOk || user == null) {
             failures.compute(remote) { _, previous -> Failure((previous?.count ?: 0) + 1, now) }
             val fresh = newToken()
@@ -394,101 +354,6 @@ class PortalServer @Inject constructor(
             write(client, "404 Not Found", PortalPages.message("Not found", "That project is not on this phone."))
         } else {
             write(client, "200 OK", page)
-        }
-    }
-
-    private fun transfer(client: Socket, request: PortalRequest, session: PortalSession, remote: String) {
-        try {
-            when {
-                request.method == "GET" && request.path == "/transfer" -> {
-                    val brand = runBlocking(Dispatchers.IO) { PortalBrand.load(db) }
-                    write(client, "200 OK", PortalPages.transfer(brand.displayName, session.csrf, null, session.role, brand))
-                }
-                request.method == "POST" && request.path == "/transfer/backup" -> downloadBackup(client, request, session, remote)
-                request.method == "POST" && request.path == "/transfer/restore" -> restoreBackup(client, request, session, remote)
-                else -> write(client, "404 Not Found", PortalPages.message("Not found", "That transfer page is not on the portal."))
-            }
-        } catch (error: Exception) {
-            if (com.holagundi.archiman.BuildConfig.DEBUG) Log.e("ArchiManPortal", "practice transfer failed", error)
-            if (client.isClosed) return
-            val brand = runCatching { runBlocking(Dispatchers.IO) { PortalBrand.load(db) } }.getOrDefault(PortalBrand.FALLBACK)
-            runCatching { write(client, "400 Bad Request", PortalPages.transfer(brand.displayName, session.csrf, (error.message ?: "The transfer could not be completed.").take(500), session.role, brand)) }
-        }
-    }
-
-    private fun downloadBackup(client: Socket, request: PortalRequest, session: PortalSession, remote: String) {
-        require(csrfMatches(request, session)) { "Reopen the transfer page and try the download again." }
-        if (!portalMutation.compareAndSet(false, true)) throw IllegalStateException("Finish the other portal change before saving a backup.")
-        val fields = PortalHttp.form(request.body)
-        try {
-            val raw = java.io.ByteArrayOutputStream()
-            runBlocking(Dispatchers.IO) {
-                require(isRunning() && this@PortalServer.session(request) === session) { "This browser session has ended. Start the portal on the phone again." }
-                backups.get().export(raw)
-            }
-            val plain = raw.toByteArray()
-            val encrypted = try {
-                PortalTransfer.protect(plain, fields["password"].orEmpty(), fields["confirmation"].orEmpty())
-            } finally {
-                plain.fill(0)
-            }
-            binary(client, "application/octet-stream", encrypted, "ArchiMan-practice.archimanbackup")
-            runBlocking(Dispatchers.IO) {
-                db.practiceDao().insertAudit(
-                    PortalAuditEventEntity(
-                        userId = session.userId,
-                        username = session.username,
-                        action = "PORTAL_BACKUP",
-                        entityType = "portal",
-                        summary = "Practice backup downloaded from the Wi-Fi portal",
-                        sourceAddress = remote,
-                        occurredAt = System.currentTimeMillis(),
-                    ),
-                )
-            }
-        } finally {
-            portalMutation.set(false)
-        }
-    }
-
-    private fun restoreBackup(client: Socket, request: PortalRequest, session: PortalSession, remote: String) {
-        val parts = PortalHttp.multipart(request.headers["content-type"], request.rawBody)
-        require(parts["csrf"]?.text() == session.csrf) { "Reopen the transfer page and try the restore again." }
-        if (!portalMutation.compareAndSet(false, true)) throw IllegalStateException("Finish the other portal change before restoring the practice.")
-        val file = parts["file"]?.bytes ?: throw IllegalArgumentException("Choose a backup file.")
-        val plain = PortalTransfer.open(file, parts["password"]?.text().orEmpty(), parts["confirm"]?.text().orEmpty())
-        try {
-            val prepared = runBlocking(Dispatchers.IO) {
-                require(isRunning() && this@PortalServer.session(request) === session) { "This browser session has ended. Start the portal on the phone again." }
-                backups.get().prepare(plain.inputStream())
-            }
-            write(
-                client,
-                "200 OK",
-                PortalPages.message(
-                    "Restoring the practice",
-                    "The portal will close. When it stops, open the company on the phone.",
-                ),
-            )
-            // Finish the TLS response before restore closes every portal socket.
-            runCatching { (client as? javax.net.ssl.SSLSocket)?.shutdownOutput() }
-            runBlocking(Dispatchers.IO) {
-                backups.get().restore(prepared)
-                db.practiceDao().insertAudit(
-                    PortalAuditEventEntity(
-                        userId = session.userId,
-                        username = session.username,
-                        action = "PORTAL_RESTORE",
-                        entityType = "portal",
-                        summary = "Practice replaced from a computer backup",
-                        sourceAddress = remote,
-                        occurredAt = System.currentTimeMillis(),
-                    ),
-                )
-            }
-        } finally {
-            plain.fill(0)
-            portalMutation.set(false)
         }
     }
 

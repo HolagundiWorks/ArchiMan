@@ -139,7 +139,7 @@ class CloudSyncViewModel @Inject constructor(private val service: CloudSyncServi
 }
 
 @Composable
-fun CloudSyncPane(viewModel: CloudSyncViewModel = hiltViewModel()) {
+fun LegacyCloudSyncPane(viewModel: CloudSyncViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }

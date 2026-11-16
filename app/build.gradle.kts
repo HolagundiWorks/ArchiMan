@@ -50,6 +50,11 @@ android {
         }
     }
     buildTypes {
+        debug {
+            // Keep API development and device checks separate from the installed practice app.
+            applicationIdSuffix = ".apidev"
+            versionNameSuffix = "-api-dev"
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true

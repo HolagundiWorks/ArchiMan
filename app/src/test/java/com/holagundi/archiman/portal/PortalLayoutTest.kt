@@ -8,7 +8,8 @@ class PortalLayoutTest {
     @Test
     fun signInUsesTheCarbonShellAndFields() {
         val brand = PortalBrand(practiceName = "Studio Holagundi", accent = "#0F62FE")
-        val page = PortalPages.login("Studio Holagundi", emptyList(), "csrf-token", "That code does not match the phone.", brand)
+        val admin = com.holagundi.archiman.data.local.entity.LocalUserEntity(1,"admin","Admin","Admin",true,0,0)
+        val page = PortalPages.login("Studio Holagundi", listOf(admin), "csrf-token", "That code does not match the phone.", brand)
         assertTrue(page.contains("class=\"cds--header\""))
         assertTrue(page.contains("class=\"cds--tile portal-sign-in\""))
         assertTrue(page.contains("class=\"cds--text-input\""))
@@ -24,15 +25,23 @@ class PortalLayoutTest {
     }
 
     @Test
-    fun projectsUseSideNavigationKpisTableAndTransfer() {
+    fun anUnconfiguredPracticeDoesNotOfferBackupTransfer() {
+        val page = PortalPages.login("Demo", emptyList(), "csrf", null)
+        assertTrue(page.contains("Company connection required"))
+        assertFalse(page.contains("action=\"/transfer"))
+        assertFalse(page.contains("type=\"password\""))
+    }
+
+    @Test
+    fun projectsUseSideNavigationWithoutLocalBackupTransfer() {
         val brand = PortalBrand(practiceName = "Studio Holagundi", logoDataUrl = "data:image/png;base64,abc")
         val page = PortalPages.home(null, emptyList(), "Admin", "csrf-token", brand)
         assertTrue(page.contains("portal-side-nav"))
         assertTrue(page.contains("data-state=\"rail\""))
         assertTrue(page.contains("portal-nav-group"))
         assertTrue(page.contains("portal-nav-menu"))
-        assertTrue(page.contains("href=\"/transfer\""))
-        assertTrue(page.contains("Practice transfer"))
+        assertFalse(page.contains("href=\"/transfer\""))
+        assertFalse(page.contains("Practice transfer"))
         assertTrue(page.contains("carbon-kpis"))
         assertTrue(page.contains("cds--data-table"))
         assertTrue(page.contains("Active projects"))

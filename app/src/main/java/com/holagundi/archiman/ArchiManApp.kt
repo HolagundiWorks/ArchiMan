@@ -16,7 +16,6 @@ class ArchiManApp : Application() {
     @Inject lateinit var seeder: DatabaseSeeder
     @Inject lateinit var suite: SuiteRepository
     @Inject lateinit var demoStore: com.holagundi.archiman.data.DemoCompanyStore
-    @Inject lateinit var backups: com.holagundi.archiman.data.BackupRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -38,9 +37,6 @@ class ArchiManApp : Application() {
             // Sample data is opened explicitly from the welcome screen.
             suite.ensureDefaults()
             demoStore.ensureDemoContractors()
-            try { backups.protectLegacyRecovery() }
-            catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
-            catch (error: Exception) { android.util.Log.e("ArchiManBackup","Could not protect legacy recovery copy; original retained.",error) }
             com.holagundi.archiman.widget.PracticeWidgetUpdater.requestUpdate(this@ArchiManApp)
         }
     }

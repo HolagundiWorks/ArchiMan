@@ -299,7 +299,7 @@ object InputPromptDeviceChecks {
 
 /** UI check that key form prompts expose the formulated labels users type into. */
 object InputPromptUiChecks {
-    private const val PACKAGE = "com.holagundi.archiman"
+    private val PACKAGE = BuildConfig.APPLICATION_ID
 
     fun run(instrumentation: Instrumentation, results: Bundle) {
         val device = UiDevice.getInstance(instrumentation)

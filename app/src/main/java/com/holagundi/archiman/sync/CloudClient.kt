@@ -14,18 +14,26 @@ class HttpResponse(val code: Int, val headers: Map<String, List<String>>, val bo
 /** The one place the network is touched, so the tests can stand in for it. */
 interface HttpTransport {
     fun request(method: String, url: String, headers: Map<String, String>, body: String?): HttpResponse
+    fun cancel() {}
 }
 
-class UrlConnectionTransport(private val timeoutMs: Int = 30_000) : HttpTransport {
+class UrlConnectionTransport(
+    private val timeoutMs: Int = 30_000,
+    private val allowDevelopmentLoopback: Boolean = false,
+) : HttpTransport {
+    private val active = java.util.concurrent.ConcurrentHashMap.newKeySet<HttpURLConnection>()
+    override fun cancel() { active.forEach { it.disconnect() } }
     override fun request(method: String, url: String, headers: Map<String, String>, body: String?): HttpResponse {
         val u = URL(url)
-        require(u.protocol == "https") { "Only https addresses are used." }
+        require(u.protocol == "https" || (allowDevelopmentLoopback && u.protocol == "http" && u.host in setOf("localhost", "127.0.0.1", "10.0.2.2"))) { "Use an https company address." }
         val c = u.openConnection() as HttpURLConnection
+        active.add(c)
         try {
             c.requestMethod = method
             c.connectTimeout = timeoutMs
             c.readTimeout = timeoutMs
             c.instanceFollowRedirects = false
+            c.useCaches = false
             headers.forEach { (k, v) -> c.setRequestProperty(k, v) }
             if (body != null) {
                 c.doOutput = true
@@ -33,10 +41,21 @@ class UrlConnectionTransport(private val timeoutMs: Int = 30_000) : HttpTranspor
             }
             val code = c.responseCode
             val stream = if (code >= 400) c.errorStream else c.inputStream
-            val text = stream?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+            val text = stream?.use {
+                val output = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(8192)
+                while (true) {
+                    val count = it.read(buffer)
+                    if (count < 0) break
+                    if (output.size() + count > 1_048_576) throw java.io.IOException("The server response is too large.")
+                    output.write(buffer, 0, count)
+                }
+                output.toString("UTF-8")
+            } ?: ""
             val hs = c.headerFields.filterKeys { it != null }.mapKeys { it.key!! }
             return HttpResponse(code, hs, text)
         } finally {
+            active.remove(c)
             c.disconnect()
         }
     }
