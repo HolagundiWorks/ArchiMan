@@ -11,5 +11,6 @@ encrypted login credential is retained. Company records clear on connection
 loss or leaving the screen.
 
 See [live company sync](live-company-sync.md) for behavior, implementation,
-verification and remaining coverage. The old direct Neon transport remains
-unreachable compatibility code; it is not the current Mobile flow.
+verification and remaining coverage. The old direct-Neon screen/service and
+compiled endpoint fields are removed. Pure sync helpers and database migration
+history remain for compatibility; they are not the current Mobile flow.

@@ -1,4 +1,4 @@
-# ArchiMan
+# MynaHub Mobile
 
 **MynaHub Mobile** is a **native Android** app (Kotlin + Jetpack Compose) for architects. Company records use the live company API. Older practice modules still use local records until migrated; existing records are preserved. Local backup/restore is removed.
 
@@ -21,7 +21,7 @@ the release application ID is unchanged.
 | Language | Kotlin 17 |
 | UI | Jetpack Compose, Material 3, IBM Carbon colours / IBM Plex Sans / Carbon icons |
 | Architecture | Hilt, Coroutines, Navigation Compose |
-| Storage | Room (schema 32), offline-first |
+| Storage | Company API data in memory only; Room schema 32 for separate legacy practice records |
 | Portal assets | Bundled Carbon web components under `app/src/main/assets/carbon/` (built from `portal-ui/`) |
 | Application ID | `com.holagundi.archiman` |
 | SDK | minSdk 26, targetSdk / compileSdk 35 |
@@ -51,7 +51,7 @@ adb shell am start -n com.holagundi.archiman.apidev/com.holagundi.archiman.MainA
 
 - **Dashboard** — practice at a glance, KPIs, fees overview, project mix, needs attention, recent projects; floating search and create actions
 - **Projects** — portfolio list and filters
-- **Practice** — profile, clients, invoices, finance, backup/restore, Wi‑Fi portal, demo company, appearance (System / Light / Dark)
+- **Practice** — profile, clients, invoices, finance, live company sync, Wi‑Fi portal, demo company, appearance (System / Light / Dark)
 
 **Inside a project**
 
@@ -75,9 +75,12 @@ HTTPS-only desktop workspace on the local network for letterhead, catalogues, es
 | **Coordination** | RFIs, submittals, site instructions |
 | **Drawings** | Register, revisions, transmittals |
 | **Fees** | Proposals, contracts, client invoices, receipts, GST/TDS-aware balances |
-| **Company sync** | Live authorized API projects, online edits and conflict review; no offline company cache or local backup |
+| **Company sync** | Live API projects/tasks, online project creation/edits/confirmed deletion, task edits and conflict review; no offline company cache or local backup |
 
 ## Live company data
+
+See [current implementation](docs/current-implementation.md) and [branding](docs/BRANDING.md)
+for the implemented scope, compatibility identifiers and platform styling.
 
 **Practice → Live company sync** requires an active API connection. The screen
 updates automatically and clears company records when the connection is lost.

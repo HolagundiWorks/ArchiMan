@@ -1,8 +1,8 @@
 package com.holagundi.archiman.portal
 
-/** Carbon UI shell shared by sign-in, projects, transfer and the workspace. */
+/** Carbon UI shell shared by sign-in, projects and the workspace. */
 object CarbonPortal {
-    enum class Audience { SIGNED_OUT, ADMIN, TRANSFER }
+    enum class Audience { SIGNED_OUT, ADMIN }
 
     fun page(
         title: String,
@@ -15,7 +15,6 @@ object CarbonPortal {
         brand: PortalBrand = PortalBrand.FALLBACK,
     ): String {
         val home = when (audience) {
-            Audience.TRANSFER -> "/transfer"
             Audience.ADMIN -> "/workspace?section=dashboard"
             Audience.SIGNED_OUT -> "/"
         }
@@ -174,7 +173,6 @@ object CarbonPortal {
 
     private fun navGroups(audience: Audience): List<NavGroup> = when (audience) {
         Audience.SIGNED_OUT -> emptyList()
-        Audience.TRANSFER -> emptyList()
         Audience.ADMIN -> listOf(
             NavGroup(
                 "Practice",

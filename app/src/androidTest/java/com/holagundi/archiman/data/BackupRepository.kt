@@ -9,14 +9,11 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.holagundi.archiman.data.local.ArchiManDatabase
 import com.holagundi.archiman.domain.SchemaContract
 import com.holagundi.archiman.portal.PortalServer
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.Base64
 import java.util.UUID
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.json.JSONArray
@@ -34,9 +31,9 @@ data class BackupPreview(
 
 class PreparedBackup internal constructor(internal val entries: Map<String, ByteArray>, val preview: BackupPreview)
 
-@Singleton
-class BackupRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+/** Legacy archive fixture for isolated device checks; excluded from the product APK. */
+class BackupRepository(
+    private val context: Context,
     private val db: ArchiManDatabase,
     private val portal: PortalServer,
 ) {

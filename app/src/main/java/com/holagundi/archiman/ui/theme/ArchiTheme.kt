@@ -58,7 +58,7 @@ internal val ArchiLight = lightColorScheme(
 )
 
 internal val ArchiDark = darkColorScheme(
-    // Carbon Blue 40 keeps text and selected icons legible on Gray 100.
+    // The lighter Ember accent keeps text and selected icons legible on Gray 100.
     primary = Color(0xFFE0703A), onPrimary = Color(0xFF0B1020),
     primaryContainer = Color(0xFF3A2218), onPrimaryContainer = Color(0xFFFFDBCB),
     secondary = Color(0xFFC6C6C6), onSecondary = Color(0xFF161616),

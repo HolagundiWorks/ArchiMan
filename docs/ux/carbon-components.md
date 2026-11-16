@@ -1,5 +1,10 @@
 # Carbon components and patterns — 1.1.0
 
+Historical delivery record. The current product uses Ember highlights and
+live-only company data; local backup/restore has been removed. See
+[current implementation](../current-implementation.md) and [branding](../BRANDING.md).
+The older regression results below describe that earlier build.
+
 The Android app now uses native Compose implementations of Carbon patterns. The HTTPS portal bundles official Carbon Styles, Carbon Web Components and Carbon Charts. Carbon does not supply an official Android Compose component library; the native adapters preserve Android input, accessibility and navigation behavior while applying Carbon geometry, typography, icons and semantic colors.
 
 ## Delivered components

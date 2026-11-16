@@ -20,7 +20,9 @@ interface HttpTransport {
 class UrlConnectionTransport(
     private val timeoutMs: Int = 30_000,
     private val allowDevelopmentLoopback: Boolean = false,
+    private val maxResponseBytes:Int=1_048_576,
 ) : HttpTransport {
+    init {require(maxResponseBytes in 1..8*1024*1024)}
     private val active = java.util.concurrent.ConcurrentHashMap.newKeySet<HttpURLConnection>()
     override fun cancel() { active.forEach { it.disconnect() } }
     override fun request(method: String, url: String, headers: Map<String, String>, body: String?): HttpResponse {
@@ -47,7 +49,7 @@ class UrlConnectionTransport(
                 while (true) {
                     val count = it.read(buffer)
                     if (count < 0) break
-                    if (output.size() + count > 1_048_576) throw java.io.IOException("The server response is too large.")
+                    if (output.size() + count > maxResponseBytes) throw java.io.IOException("The server response is too large.")
                     output.write(buffer, 0, count)
                 }
                 output.toString("UTF-8")

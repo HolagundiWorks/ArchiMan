@@ -51,17 +51,6 @@ object PortalPages {
         )
     }
 
-    fun transfer(practice: String, csrf: String, error: String?, role: String = "Admin", brand: PortalBrand = PortalBrand(practiceName = practice)) =
-        CarbonPortal.page(
-            title = "Practice transfer",
-            audience = if (role == PortalTransfer.ROLE) CarbonPortal.Audience.TRANSFER else CarbonPortal.Audience.ADMIN,
-            current = "transfer",
-            crumb = "Practice transfer",
-            csrf = csrf,
-            brand = brand,
-            body = PortalTransfer.page(practice, csrf, error),
-        )
-
     fun home(
         company: CompanyProfileEntity?,
         projects: List<ProjectEntity>,

@@ -1,5 +1,9 @@
 # Standard record operations audit
 
+Historical audit of local practice record operations. Current company API data
+is a separate live-only flow; Mobile backup/restore is removed. Archive fixtures
+remain only in test sources. See [current implementation](../current-implementation.md).
+
 Reviewed and implemented: 5 November 2026. Scope is the Kotlin Android product, with an emphasis on reachable record screens. The LAN portal remains a read-only companion.
 
 The original gap was systematic: most lists could create and display records but offered no correction or removal controls. A shared record editor now supplies validated edits, Save/Cancel, confirmed deletion, stale-record checks and local operation logging. Lifecycle transitions remain separate from free-text editing. No database schema change was needed.

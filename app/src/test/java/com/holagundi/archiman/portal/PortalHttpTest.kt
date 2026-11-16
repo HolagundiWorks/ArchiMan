@@ -110,24 +110,6 @@ class PortalHttpTest {
     }
 
     @Test
-    fun transferUnlocksWithTheAccessCodeOnlyWhenNoAdminExists() {
-        assertTrue(PortalTransfer.codeOnly(codeOk = true, adminCount = 0))
-        assertFalse(PortalTransfer.codeOnly(codeOk = true, adminCount = 1))
-        assertFalse(PortalTransfer.codeOnly(codeOk = false, adminCount = 0))
-        assertTrue(PortalTransfer.allowed("Admin"))
-        assertTrue(PortalTransfer.allowed(PortalTransfer.ROLE))
-        assertFalse(PortalTransfer.allowed("Staff"))
-        assertFalse(PortalTransfer.allowed(null))
-        var rejected = false
-        try {
-            PortalTransfer.open(byteArrayOf(1, 2, 3), "", "restore")
-        } catch (error: IllegalArgumentException) {
-            rejected = true
-        }
-        assertTrue(rejected)
-    }
-
-    @Test
     fun readsAnAbsoluteBrowserTarget() {
         val raw = "GET http://192.168.1.8:8765/project?id=15 HTTP/1.1\r\nHost: 192.168.1.8:8765\r\n\r\n"
         val request = PortalHttp.read(ByteArrayInputStream(raw.toByteArray(StandardCharsets.UTF_8)))

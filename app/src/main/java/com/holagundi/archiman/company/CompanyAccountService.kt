@@ -14,8 +14,8 @@ import javax.inject.Singleton
 class CompanyAccountService @Inject constructor(@ApplicationContext context: Context) {
     val account = CompanyAccount(
         CompanyAccountStore(CompanyAccountPreferences(context), KeystoreBox("mynahub_company_api_session")),
-        CompanyApiClient(UrlConnectionTransport(allowDevelopmentLoopback = BuildConfig.DEBUG), BuildConfig.DEBUG, BuildConfig.VERSION_CODE),
-        CompanyApiClient(UrlConnectionTransport(allowDevelopmentLoopback = BuildConfig.DEBUG), BuildConfig.DEBUG, BuildConfig.VERSION_CODE),
+        CompanyApiClient(UrlConnectionTransport(allowDevelopmentLoopback = BuildConfig.DEBUG,maxResponseBytes=8*1024*1024), BuildConfig.DEBUG, BuildConfig.VERSION_CODE),
+        CompanyApiClient(UrlConnectionTransport(allowDevelopmentLoopback = BuildConfig.DEBUG,maxResponseBytes=8*1024*1024), BuildConfig.DEBUG, BuildConfig.VERSION_CODE),
     )
 }
 

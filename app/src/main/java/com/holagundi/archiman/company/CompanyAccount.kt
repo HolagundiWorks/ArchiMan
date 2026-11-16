@@ -57,6 +57,16 @@ class CompanyAccount(private val store: CompanyAccountStore, private val api: Co
         private set
     var enrollment: CompanyMfaSetup? = null
         private set
+    fun fileStatus()=guarded {api.fileStatus(needSession())}
+    fun uploadFile(upload:CompanyFileUpload)=guarded {api.uploadFile(needSession(),upload)}
+    fun fileContent(file:CompanyFile)=guarded {api.fileContent(needSession(),file)}
+    fun deleteFile(action:CompanyFileDelete)=guarded {api.deleteFile(needSession(),action)}
+    fun changeSiteRecord(change:CompanySiteChange)=guarded {api.changeSiteRecord(needSession(),change)}
+    fun taskAction(action:CompanyTaskAction)=guarded {api.taskAction(needSession(),action)}
+    fun client(id:String)=guarded {api.client(needSession(),id)}
+    fun changeClient(change:CompanyClientChange)=guarded {api.changeClient(needSession(),change)}
+    fun projectClient(id:String)=guarded {api.projectClient(needSession(),id)}
+    fun linkClient(link:CompanyClientLink)=guarded {api.linkClient(needSession(),link)}
     fun connection() = store.connection()
     fun session() = store.load()
     fun hasSavedSession() = store.savedToken() != null
@@ -86,17 +96,20 @@ class CompanyAccount(private val store: CompanyAccountStore, private val api: Co
         store.saveIfCurrent(token, api.identity(needConnection(), token))
     }
     fun projects(after: String? = null): CompanyProjectPage = guarded { api.projects(needSession(), after) }
-    fun liveProjects(after: String?, since: String?, taskProjectId: String? = null, taskAfter: String? = null): CompanyLiveProjects {
+    fun liveProjects(after: String?, since: String?, taskProjectId: String? = null, taskAfter: String? = null, clients: Boolean = false, clientAfter: String? = null, assignees:Boolean=false, assigneeAfter:String?=null,siteProjectId:String?=null,siteAfter:String?=null,fileProjectId:String?=null,fileAfter:String?=null): CompanyLiveProjects {
         val generation = liveEpoch.get()
         return guarded({ generation == liveEpoch.get() }) {
             val session = needSession()
-            val result = liveApi.liveProjects(session, after, since, taskProjectId, taskAfter)
+            val result = liveApi.liveProjects(session, after, since, taskProjectId, taskAfter, clients, clientAfter,assignees,assigneeAfter,siteProjectId,siteAfter,fileProjectId,fileAfter)
             if (generation != liveEpoch.get()) throw java.util.concurrent.CancellationException("Live request closed.")
             store.remember(CompanySession(session.connection, session.token, session.identity.copy(roles = result.roles, permissions = result.permissions)))
             result
         }
     }
     fun editProject(edit: CompanyProjectEdit): CompanyProjectEditResult = guarded { api.editProject(needSession(), edit) }
+    fun createProject(draft:CompanyProjectCreate):CompanyProject = guarded {api.createProject(needSession(),draft)}
+    fun deleteProject(action:CompanyProjectDelete):CompanyProjectDeleteResult = guarded {api.deleteProject(needSession(),action)}
+    fun saveTask(edit: CompanyTaskEdit): CompanyTaskMutationResult = guarded { api.saveTask(needSession(), edit) }
     fun devices(): List<CompanyDeviceSession> = guarded { api.sessions(needSession()) }
     fun revoke(device: CompanyDeviceSession) = guarded {
         api.revoke(needSession(), device)

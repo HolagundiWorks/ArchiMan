@@ -39,7 +39,7 @@ val carbonSupport: CarbonSupportColors
     CarbonTile(modifier = Modifier.fillMaxWidth()) {
         Column(verticalArrangement = Arrangement.spacedBy(CarbonSpacing.stackTight)) {
             Text("Appearance", style = MaterialTheme.typography.titleMedium)
-            Text("IBM Carbon · Blue highlights", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("IBM Carbon · Ember highlights", color = MaterialTheme.colorScheme.onSurfaceVariant)
             CarbonContentSwitcher(
                 options = options,
                 selectedIndex = AppearanceMode.entries.indexOf(mode).coerceAtLeast(0),

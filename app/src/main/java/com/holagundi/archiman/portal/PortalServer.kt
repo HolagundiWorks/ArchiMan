@@ -247,15 +247,11 @@ class PortalServer @Inject constructor(
             }
             request.method == "POST" && request.path == "/" -> signIn(client, request, remote, address)
             request.method == "GET" && request.path == "/" && session != null -> {
-                if (session.role == PortalTransfer.ROLE) {
-                    write(client, "303 See Other", PortalPages.message("Practice transfer", "Opening backup and restore."), listOf("Location: https://$address:${PortalHttp.PORT}/transfer"))
-                } else {
-                    val page = runBlocking(Dispatchers.IO) {
-                        val brand = PortalBrand.load(db)
-                        PortalPages.home(db.practiceDao().company(), db.projectDao().projects(), session.role, session.csrf, brand)
-                    }
-                    write(client, "200 OK", page)
+                val page = runBlocking(Dispatchers.IO) {
+                    val brand = PortalBrand.load(db)
+                    PortalPages.home(db.practiceDao().company(), db.projectDao().projects(), session.role, session.csrf, brand)
                 }
+                write(client, "200 OK", page)
             }
             request.method == "GET" && request.path == "/project" && session?.role == "Admin" -> openProject(client, request, session!!)
             request.method == "GET" && request.path == "/favicon.ico" -> write(client, "204 No Content", "")

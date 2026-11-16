@@ -28,6 +28,8 @@
             </intent-filter>
         </activity>
 
+        <service android:name=".company.CompanyFileRendererService" android:exported="false" android:isolatedProcess="true" android:process=":company_file_preview" />
+
         <service
             android:name=".portal.PortalService"
             android:exported="false"
