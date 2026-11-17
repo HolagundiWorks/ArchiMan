@@ -64,4 +64,10 @@ The siteRecords fixture mode passed live site create/edit/retry/conflict, resolu
 
 The rendererOnly fixture passed isolated PNG/PDF parsing, multiple PDF pages, bounded raw-pixel output and unchanged app-file inventory without company credentials. The files fixture passed actual private TXT/PNG/PDF upload/retry, verified in-memory previews, live metadata, confirmed deletion/retry and no persistent document copies. Original demo business records were preserved.
 
-Interactive picker verification is paused at Samsung biometric/pattern authentication on the physical phone. Unlock must be performed by the owner; no pattern/PIN is requested or automated. Programmatic private upload/view/deletion and isolated-renderer checks passed.
+The owner completed Samsung biometric/pattern unlock for interactive picker verification. No pattern/PIN was requested or automated. The callback fix and final device result are recorded below.
+
+## Picker callback fix (2026-11-17)
+
+Interactive verification found that AppLockGate disposes its screen content while locked, removing the screen-owned picker callback. The picker host now lives above that gate. Only a public origin and a one-shot unread local URI remain in RAM while awaiting unlock; no project or company records are retained. A valid result returns to company sync, which refreshes identity and permissions before reading the bounded local file. Restored results after process recreation are ignored. The lock remains enabled.
+
+The fix passed 210 Android unit tests and app/test APK builds. Physical picker verification passed after owner unlock: selection returned to company sync, the fictional 56-byte TXT was uploaded to DEMO-01 and its exact text displayed in memory. An older session was correctly refused deletion. A fresh demo session removed only the uniquely named, hash-matched test file; content then returned 404. The isolated image/PDF renderer device check passed again. No device credential was entered by the agent.

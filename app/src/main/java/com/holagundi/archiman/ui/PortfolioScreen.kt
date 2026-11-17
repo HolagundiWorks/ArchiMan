@@ -115,6 +115,16 @@ fun PortfolioScreen(
     var showSearch by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var practicePage by rememberSaveable { mutableStateOf<PracticeRegistry?>(null) }
+    val companyPicker = LocalCompanyFilePicker.current
+    LaunchedEffect(companyPicker.revision) {
+        if (companyPicker.hasPending()) {
+            inbox = null
+            showSearch = false
+            searchQuery = ""
+            practicePage = PracticeRegistry.CLOUD
+            destination = PracticeDestination.PRACTICE
+        }
+    }
     val currentProjects = projects.filter { it.status != "ARCHIVED" }
     val openCreateTask = {
         showCreateTask = true

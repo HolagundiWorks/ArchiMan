@@ -10,9 +10,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.withResumed
 import android.content.Context
 import android.net.Uri
@@ -637,12 +634,11 @@ class CompanyAccountViewModel @Inject constructor(service: CompanyAccountService
 fun CloudSyncPane(viewModel: CompanyAccountViewModel = hiltViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val pickerScope=rememberCoroutineScope()
-    var pickerOrigin by remember {mutableStateOf("")}
-    var pickerLaunched by remember {mutableStateOf(false)}
-    val filePicker=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri->
-        val accept=pickerLaunched;pickerLaunched=false
-        if(uri!=null && accept) {val origin=pickerOrigin;pickerScope.launch {lifecycle.withResumed {viewModel.selectLocalFile(uri,origin)}}}
+    val filePicker = LocalCompanyFilePicker.current
+    LaunchedEffect(filePicker.revision) {
+        filePicker.take()?.let { (origin, uri) ->
+            lifecycle.withResumed { viewModel.selectLocalFile(uri, origin) }
+        }
     }
 
     DisposableEffect(lifecycle, viewModel) {
@@ -719,7 +715,7 @@ fun CloudSyncPane(viewModel: CompanyAccountViewModel = hiltViewModel()) {
             Text("Permissions: ${identity.permissions.joinToString()}", style = MaterialTheme.typography.bodySmall)
             Text("Projects update live while this screen is open. A connection is required.")
             if("files.write" in identity.permissions) {
-                OutlinedButton(enabled=!state.busy && state.live,onClick={pickerOrigin=state.address;pickerLaunched=true;filePicker.launch("*/*")}) {Text("Choose local file for company upload")}
+                OutlinedButton(enabled=!state.busy && state.live,onClick={filePicker.choose(state.address)}) {Text("Choose local file for company upload")}
                 Text("Choose a supported file up to 5 MiB, then open its project and confirm the upload.")
                 state.selectedFile?.let {selected->
                     Text("Selected local file: ${selected.name} · ${selected.size} bytes")

@@ -51,3 +51,5 @@ Task assignees and confirmed deletion are implemented with project-scoped permis
 Shared company site records (instructions, inspections and snags) have live reads, online create/edit and confirmed deletion, with scoped permissions, revision conflicts and immutable retries. Other local fieldwork modules remain separate.
 
 Private project attachments have live metadata, authenticated uploads/downloads, confirmed removal and memory-only Mobile previews. PDF/image decoding is isolated; no offline file cache is added. Storage retention/reconciliation remains part of production rollout.
+
+2026-11-17: the picker callback now lives above AppLockGate. Its one-shot public-origin/local-URI handoff stays in RAM and is ignored after process recreation. Physical owner-unlock/selection/upload/text-view checks passed; the exact fictional file was removed with a fresh demo session. Android checks now total 210 unit tests.

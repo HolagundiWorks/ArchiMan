@@ -43,7 +43,7 @@ must reflect this behavior.
 
 Do not publish the historic backup claims or imply every local practice module
 is synchronized. Native desktop API integration remains pending. Android OS cloud
-backup is disabled. The interactive file-picker check still awaits device-owner unlock.
+backup is disabled. The interactive picker/upload/text-view check passed after device-owner unlock; signed-release verification remains pending.
 
 See [current implementation](../current-implementation.md),
 [live company data](../live-company-sync.md) and
